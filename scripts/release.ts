@@ -1,10 +1,12 @@
 import pkg from '../packages/eslint-config/package.json' with { type: 'json' };
-import { $, ensure, poll } from './shell-harness';
+import { $ } from './shell-harness';
+import { ensure, poll } from './util';
 
 const packageName = '@totvibe/eslint-config';
 const { version } = pkg;
 const tag = `v${version}`;
 const spec = `${packageName}@${version}`;
+const registryUrl = `https://registry.npmjs.org/${packageName.replace('/', '%2f')}/${version}`;
 
 const release = async () => {
   const branch = await $.git.currentBranch();
@@ -18,8 +20,8 @@ const release = async () => {
   const remoteHead = await $.git.revParse('origin/main');
   ensure(head === remoteHead, 'local main and origin/main differ; push or pull first');
 
-  const released = await $.gh.release.view(tag);
-  ensure(!released, `release ${tag} already exists`);
+  const exists = await $.gh.release.exists(tag);
+  ensure(!exists, `release ${tag} already exists`);
 
   console.log(`Cutting release ${tag} from main ...`);
   await $.gh.release.create(tag, { target: 'main' });
@@ -38,8 +40,8 @@ const release = async () => {
   console.log(`Verifying ${spec} on npm ...`);
   const published = await poll(
     async () => {
-      const info = await $.bun.pm.view(spec);
-      return info.length > 0 ? spec : undefined;
+      const response = await fetch(registryUrl);
+      return response.ok ? spec : undefined;
     },
     10,
     3000,

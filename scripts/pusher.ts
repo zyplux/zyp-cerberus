@@ -1,4 +1,5 @@
-import { $, ensure } from './shell-harness';
+import { $ } from './shell-harness';
+import { ensure } from './util';
 
 const ready = process.argv.includes('--ready') || process.argv.includes('-r');
 
@@ -7,7 +8,7 @@ const push = async () => {
   ensure(branch.length > 0, 'not on any branch (detached HEAD?)');
   ensure(branch !== 'main', 'refusing to run on main');
 
-  const existing = await $.gh.pr.state();
+  const existing = await $.gh.pr.state(branch);
   if (existing === 'MERGED') {
     console.log(`PR merged; switching to main and deleting local branch '${branch}'`);
     await $.git.checkout('main');
