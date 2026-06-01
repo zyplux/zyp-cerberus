@@ -1,0 +1,12 @@
+{
+  "$schema": "https://unpkg.com/knip@6/schema.json",
+  "workspaces": {
+    ".": {},
+    "packages/eslint-config": {
+      "entry": ["test/**/*.test.ts"]
+    },
+    "tests/public-interface": {
+      "entry": "**/*.test.ts"
+    }
+  }
+}
