@@ -7,7 +7,9 @@ const gh = {
   pr: {
     create: (base: string, title: string) => Bun.$`gh pr create --base ${base} --title ${title} --body ${''} --draft`,
     isDraft: async () => (await readTrimmed(Bun.$`gh pr view --json isDraft --jq .isDraft`.text())) === 'true',
-    merge: () => Bun.$`gh pr merge --auto --squash --delete-branch`,
+    merge: () => Bun.$`gh pr merge --squash --delete-branch`,
+    mergeAuto: () => Bun.$`gh pr merge --auto --squash --delete-branch`,
+    mergeState: () => readTrimmed(Bun.$`gh pr view --json mergeStateStatus --jq .mergeStateStatus`.text()),
     ready: () => Bun.$`gh pr ready`,
     state: (branch: string) =>
       readTrimmed(Bun.$`gh pr list --head ${branch} --state all --json state --jq ${'.[0].state // ""'}`.text()),

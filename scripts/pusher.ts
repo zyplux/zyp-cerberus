@@ -1,5 +1,5 @@
 import { $ } from './shell-harness';
-import { ensure } from './util';
+import { ensure, poll } from './util';
 
 const ready = process.argv.includes('--ready') || process.argv.includes('-r');
 
@@ -19,7 +19,7 @@ const push = async () => {
 
   await $.git.push('origin', branch);
 
-  if (existing === '') {
+  if (existing !== 'OPEN') {
     await $.gh.pr.create('main', branch);
   }
   if (ready && (await $.gh.pr.isDraft())) {
@@ -32,8 +32,25 @@ const push = async () => {
     return;
   }
 
-  await $.gh.pr.merge();
-  console.log(`PR (ready, auto-merge enabled): ${url}`);
+  const mergeState =
+    (await poll(
+      async () => {
+        const state = await $.gh.pr.mergeState();
+        return state === 'UNKNOWN' ? undefined : state;
+      },
+      10,
+      1000,
+    )) ?? 'UNKNOWN';
+  ensure(mergeState !== 'UNKNOWN', 'merge state stayed UNKNOWN; check the PR on GitHub');
+  ensure(mergeState !== 'DIRTY', 'merge conflict with main — rebase or resolve, then retry');
+
+  if (mergeState === 'CLEAN') {
+    await $.gh.pr.merge();
+    console.log(`PR merged: ${url}`);
+  } else {
+    await $.gh.pr.mergeAuto();
+    console.log(`PR ready, auto-merge scheduled (${mergeState}): ${url}`);
+  }
 };
 
 try {
