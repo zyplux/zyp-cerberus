@@ -59,6 +59,10 @@ check:
 release:
     bun run release
 
+# Push the current branch and open a draft PR (-r/--ready marks it ready and enables auto-merge).
+push *flags:
+    bun run push -- {{ flags }}
+
 # Remove dependencies and caches.
 clean:
     rm -rf node_modules packages/*/node_modules tests/*/node_modules

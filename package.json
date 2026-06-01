@@ -43,7 +43,8 @@
     "lint:fix": "eslint . --fix",
     "test": "bun --filter '*' test",
     "upgrade": "npm-check-updates --root --workspaces --format group",
-    "release": "bun scripts/release.ts"
+    "release": "bun scripts/release.ts",
+    "push": "bun scripts/pusher.ts"
   },
   "devDependencies": {
     "bun-types": "catalog:",

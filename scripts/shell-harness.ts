@@ -27,6 +27,15 @@ const bun = {
 };
 
 const gh = {
+  pr: {
+    create: (base: string, title: string) => Bun.$`gh pr create --base ${base} --title ${title} --body ${''} --draft`,
+    isDraft: async () =>
+      (await readTrimmed(Bun.$`gh pr view --json isDraft --jq .isDraft`.nothrow().text())) === 'true',
+    merge: () => Bun.$`gh pr merge --auto --squash --delete-branch`.nothrow(),
+    ready: () => Bun.$`gh pr ready`.nothrow(),
+    state: () => readTrimmed(Bun.$`gh pr view --json state --jq .state`.nothrow().text()),
+    url: () => readTrimmed(Bun.$`gh pr view --json url --jq .url`.nothrow().text()),
+  },
   release: {
     create: (tag: string, options: { target: string }) =>
       Bun.$`gh release create ${tag} --target ${options.target} --title ${tag} --generate-notes`,
@@ -50,8 +59,12 @@ const gh = {
 };
 
 const git = {
+  checkout: (ref: string) => Bun.$`git checkout ${ref}`,
   currentBranch: () => readTrimmed(Bun.$`git rev-parse --abbrev-ref HEAD`.text()),
+  deleteBranch: (branch: string) => Bun.$`git branch -D ${branch}`,
   fetch: (remote: string, branch: string) => Bun.$`git fetch --quiet ${remote} ${branch}`,
+  pull: () => Bun.$`git pull --ff-only`,
+  push: (remote: string, branch: string) => Bun.$`git push -u ${remote} ${branch}`,
   revParse: (rev: string) => readTrimmed(Bun.$`git rev-parse ${rev}`.text()),
   status: () => readTrimmed(Bun.$`git status --porcelain`.text()),
 };
