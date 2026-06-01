@@ -23,12 +23,14 @@ const release = async () => {
   const exists = await $.gh.release.exists(tag);
   ensure(!exists, `release ${tag} already exists`);
 
+  const knownRuns = await $.gh.run.ids({ event: 'release', workflow: 'release.yml' });
+
   console.log(`Cutting release ${tag} from main ...`);
   await $.gh.release.create(tag, { target: 'main' });
 
   console.log('Watching the publish workflow ...');
   const runId = await poll(
-    () => $.gh.run.find({ event: 'release', headSha: remoteHead, workflow: 'release.yml' }),
+    () => $.gh.run.find({ event: 'release', headSha: remoteHead, knownIds: knownRuns, workflow: 'release.yml' }),
     30,
     2000,
   );

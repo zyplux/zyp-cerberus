@@ -23,12 +23,19 @@ const gh = {
       'true',
   },
   run: {
-    find: async (options: { event: string; headSha: string; workflow: string }) => {
-      const query = `[.[] | select(.headSha=="${options.headSha}")][0].databaseId`;
-      const id = await readTrimmed(
+    find: async (options: { event: string; headSha: string; knownIds: string[]; workflow: string }) => {
+      const query = `[.[] | select(.headSha=="${options.headSha}")] | .[].databaseId`;
+      const listed = await readTrimmed(
         Bun.$`gh run list --workflow=${options.workflow} --event=${options.event} --json databaseId,headSha --jq ${query}`.text(),
       );
-      return id && id !== 'null' ? id : undefined;
+      const ids = listed ? listed.split('\n') : [];
+      return ids.find(id => !options.knownIds.includes(id));
+    },
+    ids: async (options: { event: string; workflow: string }) => {
+      const listed = await readTrimmed(
+        Bun.$`gh run list --workflow=${options.workflow} --event=${options.event} --json databaseId --jq ${'.[].databaseId'}`.text(),
+      );
+      return listed ? listed.split('\n') : [];
     },
     watch: (runId: string) => Bun.$`gh run watch ${runId} --exit-status`,
   },

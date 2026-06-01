@@ -35,4 +35,6 @@ jobs:
           NPM_TOKEN: ${{ secrets.NPM_TOKEN }}
       - name: Publish
         working-directory: packages/eslint-config
-        run: bun publish
+        run: |
+          bun pm pack
+          npm publish ./*.tgz --access public
