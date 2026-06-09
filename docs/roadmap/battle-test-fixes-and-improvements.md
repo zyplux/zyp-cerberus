@@ -14,91 +14,9 @@ consumer doesn't have to reach past the preset and redefine a rule by hand.
 
 ## 1. Changes the consumer required
 
-### 1a. Applied to the preset
-
-#### `react.version`: `'detect'` → `'19.0'`
-
-`src/configs/react.ts`
-
-`version: 'detect'` asks `eslint-plugin-react` to resolve the installed `react`
-package starting from the lint working directory. In a Bun workspace where
-`react` is a per-app dependency (and, for the terminal app, paired with a
-different JSX runtime), there is no `react` at the monorepo root where ESLint
-runs, so detection fails. The plugin then warns on every run and falls back to
-assuming a version — which makes version-sensitive rules nondeterministic.
-Pinning to `'19.0'` removes the warning and makes behavior reproducible.
-
-This is applied, but it hardcodes a single React version into a shared preset.
-See 2a for turning it into an option.
-
-#### Version bump `0.1.0` → `0.1.1`
+#### Version bump `0.1.0` → `0.2.0`
 
 `package.json` — carries the change above.
-
-#### Generators are not expressible as arrows — `no-restricted-syntax` exempts them
-
-`src/configs/base.ts`
-
-There is no arrow equivalent of `function*` — generators (and async
-generators, e.g. a streaming agent event loop) cannot be rewritten as arrows, so
-the arrow-only rule was flagging code that _cannot_ comply. Both selectors now
-carry a `[generator=false]` carve-out:
-
-```ts
-'no-restricted-syntax': [
-  'error',
-  { message: arrowOnlyMessage, selector: 'FunctionDeclaration[generator=false]' },
-  {
-    message: arrowOnlyMessage,
-    selector: ':not(MethodDefinition, Property[method=true]) > FunctionExpression[generator=false]',
-  },
-],
-```
-
-This is strictly safe — every non-generator function declaration/expression is
-still banned; only the one construct arrows can't express stops being flagged.
-The companion `@totvibe/prefer-arrow-functions` rule already skips generators (it
-has to — it can't produce an arrow for them), so the two rules now agree on the
-construct.
-
-### 1b. Still carried as local overrides (should be upstreamed)
-
-These are the blocks the consumer's `eslint.config.ts` had to append _after_
-`...totvibe(...)` to redefine preset rules. Each is a candidate for a first-class
-option so the consumer can stop hand-patching.
-
-#### Non-DOM React renderers trip `react/no-unknown-property`
-
-`src/configs/react.ts`
-
-`reactConfig` applies `eslint-plugin-react`'s DOM-oriented `recommended` to every
-React file. OpenTUI (a terminal renderer) uses custom host elements and props
-that are not DOM attributes, so `react/no-unknown-property` rejects valid code.
-The consumer turned the rule off for the terminal app:
-
-```ts
-{ files: ['apps/tui/src/**/*.{ts,tsx}'], rules: { 'react/no-unknown-property': 'off' } }
-```
-
-This is a general problem, not an OpenTUI quirk: Ink, react-three-fiber,
-react-pdf, and OpenTUI are all non-DOM React renderers with their own host
-namespaces. **Proposed:** see 2b.
-
-## 2. Suggestions for `@totvibe/eslint-config`
-
-### 2a. Make the React version an option
-
-`TotvibeOptions.reactVersion?: string`, defaulting to `'detect'`. Consumers in a
-workspace where detection fails pin it (`reactVersion: '19.0'`); standalone apps
-keep autodetection. Removes the hardcoded version a shared preset shouldn't own.
-
-### 2b. Add a non-DOM React renderer axis
-
-Add `nonDomReactFiles?: string[]` (or `reactRenderer: 'dom' | 'custom'` scoped to
-a file set). For those files, disable the DOM-specific rules
-(`react/no-unknown-property`, and audit `react/void-dom-elements-no-children`,
-`react/no-danger`, etc.). This makes OpenTUI/Ink/r3f first-class instead of
-something each consumer discovers and patches by hand.
 
 ### 2c. Document the project-references / `no-inferrable-return-type` sharp edge
 
@@ -137,25 +55,6 @@ calling out, plus one real gap:
 
 A documented recipe (the `z.ZodType<T>` discriminated-union pattern) plus a note
 about the missing-member blind spot would save consumers the trial-and-error.
-
-### 2e. The two arrow-function rules overlap (intentionally)
-
-`no-restricted-syntax` (in `base`) and `@totvibe/prefer-arrow-functions` (in
-`totvibe`) both steer toward arrow functions and both fire on the easy case (a
-plain `function foo() {}` with no `this`/`arguments`), so a single violation can
-surface as either message. But they are complementary, not duplicates:
-`prefer-arrow-functions` auto-fixes the safe subset and backs off whenever a
-function uses `this`/`arguments`/`super`/`new.target` (it can't emit a correct
-arrow); `no-restricted-syntax` is the strict backstop that flags exactly those
-hard cases and forces a redesign. Removing either changes what's enforced —
-dropping `no-restricted-syntax` would silently legalize `this`/`arguments`
-functions; dropping `prefer-arrow-functions` would lose the autofix and
-object-shorthand-method coverage.
-
-They no longer disagree about generators: both now skip them (§1a, generator
-carve-out). The only redundancy left is the double report on the easy case,
-which isn't worth losing the strict backstop's `this`/`arguments` coverage to
-remove.
 
 ## 3. Error-message improvements
 
