@@ -35,60 +35,37 @@ See 2a for turning it into an option.
 
 `package.json` — carries the change above.
 
+#### Generators are not expressible as arrows — `no-restricted-syntax` exempts them
+
+`src/configs/base.ts`
+
+There is no arrow equivalent of `function*` — generators (and async
+generators, e.g. a streaming agent event loop) cannot be rewritten as arrows, so
+the arrow-only rule was flagging code that _cannot_ comply. Both selectors now
+carry a `[generator=false]` carve-out:
+
+```ts
+'no-restricted-syntax': [
+  'error',
+  { message: arrowOnlyMessage, selector: 'FunctionDeclaration[generator=false]' },
+  {
+    message: arrowOnlyMessage,
+    selector: ':not(MethodDefinition, Property[method=true]) > FunctionExpression[generator=false]',
+  },
+],
+```
+
+This is strictly safe — every non-generator function declaration/expression is
+still banned; only the one construct arrows can't express stops being flagged.
+The companion `@totvibe/prefer-arrow-functions` rule already skips generators (it
+has to — it can't produce an arrow for them), so the two rules now agree on the
+construct.
+
 ### 1b. Still carried as local overrides (should be upstreamed)
 
 These are the blocks the consumer's `eslint.config.ts` had to append _after_
 `...totvibe(...)` to redefine preset rules. Each is a candidate for a first-class
 option so the consumer can stop hand-patching.
-
-#### Generators are not expressible as arrows — exempt them in `no-restricted-syntax`
-
-`src/configs/base.ts`
-
-The arrow-only rule restricts `FunctionDeclaration` and `FunctionExpression`
-with no generator carve-out:
-
-```ts
-'no-restricted-syntax': [
-  'error',
-  { message: arrowOnlyMessage, selector: 'FunctionDeclaration' },
-  { message: arrowOnlyMessage, selector: ':not(MethodDefinition, Property[method=true]) > FunctionExpression' },
-],
-```
-
-There is no arrow equivalent of `function*` — generators (and async
-generators, e.g. a streaming agent event loop) cannot be rewritten as arrows, so
-this rule flags code that _cannot_ comply. The consumer had to redefine both
-selectors with `[generator=false]`:
-
-```ts
-{ selector: 'FunctionDeclaration[generator=false]', message: '…' },
-{ selector: ':not(MethodDefinition, Property[method=true]) > FunctionExpression[generator=false]', message: '…' },
-```
-
-Note the inconsistency: the companion `@totvibe/prefer-arrow-functions` rule
-already skips generators (it has to — it can't produce an arrow for them), so
-today the two rules disagree about the same construct.
-
-**Proposed:** add `[generator=false]` to both selectors in the preset. This is
-strictly safe — every non-generator function declaration/expression is still
-banned; only the one construct arrows can't express stops being flagged.
-
-#### `unicorn/filename-case` is too narrow for React component files
-
-`src/configs/unicorn.ts`
-
-The unicorn recommended default permits only `kebab-case` filenames. A React
-codebase conventionally uses `PascalCase.tsx` for component modules and
-`camelCase.ts` for everything else (`createSocketController.ts`,
-`ApprovalPrompt.tsx`). The consumer overrode to allow three cases:
-
-```ts
-'unicorn/filename-case': ['error', { cases: { camelCase: true, kebabCase: true, pascalCase: true } }],
-```
-
-**Proposed:** see 2b — expose `filenameCase` (or relax the default to the three
-common cases when `react: true`).
 
 #### Non-DOM React renderers trip `react/no-unknown-property`
 
@@ -105,7 +82,7 @@ The consumer turned the rule off for the terminal app:
 
 This is a general problem, not an OpenTUI quirk: Ink, react-three-fiber,
 react-pdf, and OpenTUI are all non-DOM React renderers with their own host
-namespaces. **Proposed:** see 2c.
+namespaces. **Proposed:** see 2b.
 
 ## 2. Suggestions for `@totvibe/eslint-config`
 
@@ -115,15 +92,7 @@ namespaces. **Proposed:** see 2c.
 workspace where detection fails pin it (`reactVersion: '19.0'`); standalone apps
 keep autodetection. Removes the hardcoded version a shared preset shouldn't own.
 
-### 2b. Make `unicorn/filename-case` configurable
-
-Add `filenameCase?: FilenameCases` to `TotvibeOptions`, passed straight through
-to the rule. A reasonable default when `react: true` is
-`{ camelCase, kebabCase, pascalCase }`, since component files are
-conventionally Pascal. Without this, every React consumer rewrites the same
-override.
-
-### 2c. Add a non-DOM React renderer axis
+### 2b. Add a non-DOM React renderer axis
 
 Add `nonDomReactFiles?: string[]` (or `reactRenderer: 'dom' | 'custom'` scoped to
 a file set). For those files, disable the DOM-specific rules
@@ -131,7 +100,7 @@ a file set). For those files, disable the DOM-specific rules
 `react/no-danger`, etc.). This makes OpenTUI/Ink/r3f first-class instead of
 something each consumer discovers and patches by hand.
 
-### 2d. Document the project-references / `no-inferrable-return-type` sharp edge
+### 2c. Document the project-references / `no-inferrable-return-type` sharp edge
 
 With `composite` + declaration emit, `tsc -b` can demand a return-type annotation
 for portability (TS2742 "cannot be named", TS2883 non-portable inferred type) on
@@ -150,7 +119,7 @@ These are legitimate and worth a short "interactions with TypeScript project
 references" section in the preset README, so the patterns are discoverable rather
 than rediscovered.
 
-### 2e. Document the zod-at-the-boundary workflow
+### 2d. Document the zod-at-the-boundary workflow
 
 `consistent-type-assertions: 'never'` plus `@totvibe/no-zod-custom` and
 `@totvibe/no-type-predicate` together steer every deserialization boundary
@@ -169,13 +138,24 @@ calling out, plus one real gap:
 A documented recipe (the `z.ZodType<T>` discriminated-union pattern) plus a note
 about the missing-member blind spot would save consumers the trial-and-error.
 
-### 2f. Consider deduplicating the two arrow-function rules
+### 2e. The two arrow-function rules overlap (intentionally)
 
 `no-restricted-syntax` (in `base`) and `@totvibe/prefer-arrow-functions` (in
-`totvibe`) both ban non-arrow functions. They overlap, they disagree about
-generators (§1b, generator carve-out), and a violation can surface as either message depending
-on which fires. Picking one as the source of truth — or making them share the
-generator carve-out explicitly — would remove the ambiguity.
+`totvibe`) both steer toward arrow functions and both fire on the easy case (a
+plain `function foo() {}` with no `this`/`arguments`), so a single violation can
+surface as either message. But they are complementary, not duplicates:
+`prefer-arrow-functions` auto-fixes the safe subset and backs off whenever a
+function uses `this`/`arguments`/`super`/`new.target` (it can't emit a correct
+arrow); `no-restricted-syntax` is the strict backstop that flags exactly those
+hard cases and forces a redesign. Removing either changes what's enforced —
+dropping `no-restricted-syntax` would silently legalize `this`/`arguments`
+functions; dropping `prefer-arrow-functions` would lose the autofix and
+object-shorthand-method coverage.
+
+They no longer disagree about generators: both now skip them (§1a, generator
+carve-out). The only redundancy left is the double report on the easy case,
+which isn't worth losing the strict backstop's `this`/`arguments` coverage to
+remove.
 
 ## 3. Error-message improvements
 
@@ -189,7 +169,7 @@ Current:
 
 > Explicit return type annotation is unnecessary; let TypeScript infer it.
 
-When the annotation exists to satisfy `tsc -b` portability (2d), "just remove it"
+When the annotation exists to satisfy `tsc -b` portability (2c), "just remove it"
 is wrong and the author has no next step. Suggested:
 
 > Explicit return type annotation is unnecessary; let TypeScript infer it. If
@@ -202,12 +182,13 @@ TS error. Consider downgrading the fix to a _suggestion_ (so it isn't applied by
 `--fix` blindly) when a return type is present, or documenting that `--fix` can
 break project-reference builds.
 
-#### `no-restricted-syntax` (arrow-only) → acknowledge generators
+#### `no-restricted-syntax` (arrow-only) → acknowledge generators — applied
 
-Current message ends "If `this`/`arguments`/`new.target`/generators are needed,
-redesign." But generators genuinely have no arrow form — "redesign" is not always
-possible. Once the rule exempts generators (§1b generator carve-out), drop generators from
-the message so it stops advising a redesign that the rule no longer requires:
+The message used to end "If `this`/`arguments`/`new.target`/generators are
+needed, redesign", but generators have no arrow form so "redesign" was not always
+possible. Now that the rule exempts generators (§1a, generator carve-out), the
+`generators` clause is dropped so the message stops advising a redesign the rule
+no longer requires:
 
 > Use an arrow function. If `this`/`arguments`/`new.target` are needed, redesign.
 
@@ -215,7 +196,7 @@ the message so it stops advising a redesign that the rule no longer requires:
 
 When the rule fires inside a non-DOM React renderer, the property is not unknown
 — it belongs to a different host namespace. The preset can't change the upstream
-message, but documenting the cause and the `nonDomReactFiles` fix (2c) next to
+message, but documenting the cause and the `nonDomReactFiles` fix (2b) next to
 the rule turns a confusing "unknown property `…`" into an actionable one.
 
 #### General principle

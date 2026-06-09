@@ -3,13 +3,13 @@ import { defineConfig, globalIgnores } from 'eslint/config';
 
 import { base } from './configs/base';
 import { perfectionistConfig } from './configs/perfectionist';
-import { nonDomReactConfig, reactConfig } from './configs/react';
+import { reactPresets, type RendererGlobs } from './configs/react';
 import { tanstackRoutes } from './configs/tanstack';
 import { totvibeRules } from './configs/totvibe';
 import { typescript } from './configs/typescript';
-import { type FilenameCases, unicornConfig } from './configs/unicorn';
+import { unicornConfig } from './configs/unicorn';
 
-export type { FilenameCase, FilenameCases } from './configs/unicorn';
+export type { ReactRenderer, RendererGlobs } from './configs/react';
 export { plugin } from './plugin';
 
 const defaultIgnores = [
@@ -25,43 +25,57 @@ const defaultIgnores = [
   '**/worker-configuration.d.ts',
 ];
 
+const defaultDomFiles = ['**/src/**/*.{ts,tsx}'];
+
+export type ReactOption = boolean | RendererGlobs;
+
 export type TotvibeOptions = {
-  filenameCase?: FilenameCases;
   ignores?: string[];
   nonDomReactFiles?: string[];
-  react?: boolean;
+  react?: ReactOption;
   reactFiles?: string[];
   reactVersion?: string;
   tanstack?: boolean;
   tsconfigRootDir?: string;
 };
 
-const reactFilenameCases: FilenameCases = { camelCase: true, kebabCase: true, pascalCase: true };
+const resolveRenderers = (react: ReactOption, domFiles: string[], nonDomFiles: string[]) => {
+  if (react === false) return {};
+  if (react === true) {
+    return { dom: domFiles, ...(nonDomFiles.length > 0 && { opentui: nonDomFiles }) };
+  }
+  return react;
+};
 
-export const totvibe = (options: TotvibeOptions = {}) => {
+const create = (options: TotvibeOptions = {}) => {
   const {
-    filenameCase,
     ignores = [],
     nonDomReactFiles = [],
     react = false,
-    reactFiles = ['**/src/**/*.{ts,tsx}'],
+    reactFiles = defaultDomFiles,
     reactVersion = 'detect',
     tanstack = false,
     tsconfigRootDir = process.cwd(),
   } = options;
 
-  const resolvedFilenameCase = filenameCase ?? (react ? reactFilenameCases : undefined);
+  const renderers = resolveRenderers(react, reactFiles, nonDomReactFiles);
 
   return defineConfig(
     globalIgnores([...defaultIgnores, ...ignores]),
     base,
     typescript(tsconfigRootDir),
-    ...(react ? [reactConfig(reactFiles, reactVersion)] : []),
+    ...reactPresets(renderers, reactVersion),
     perfectionistConfig,
-    unicornConfig(resolvedFilenameCase),
+    unicornConfig,
     ...(tanstack ? [tanstackRoutes] : []),
-    ...(react && nonDomReactFiles.length > 0 ? [nonDomReactConfig(nonDomReactFiles)] : []),
     totvibeRules,
     prettier,
   );
 };
+
+export const totvibe = Object.assign(create, {
+  withDefaults:
+    (defaults: TotvibeOptions) =>
+    (options: TotvibeOptions = {}) =>
+      create({ ...defaults, ...options }),
+});

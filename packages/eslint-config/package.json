@@ -1,7 +1,7 @@
 {
   "name": "@totvibe/eslint-config",
   "version": "0.1.1",
-  "description": "Shared ESLint flat config and custom rules for totvibe projects",
+  "description": "Shared ESLint flat config and custom rules",
   "keywords": [
     "eslint",
     "eslintconfig",
@@ -36,6 +36,7 @@
     "#rules/no-zod-custom": "./src/rules/no-zod-custom.ts"
   },
   "files": [
+    "README.md",
     "src"
   ],
   "publishConfig": {

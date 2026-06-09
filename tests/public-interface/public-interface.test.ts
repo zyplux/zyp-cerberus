@@ -21,12 +21,13 @@ const reactVersion = (config: Config) => {
   return;
 };
 
-const findEntryRule = (config: Config, offSignatureRule: string, targetRule: string) => {
-  const entry = config.find(item => item.rules?.[offSignatureRule] === 'off');
-  return entry?.rules?.[targetRule];
-};
-
 const turnsOffRule = (config: Config, ruleName: string) => config.some(entry => entry.rules?.[ruleName] === 'off');
+
+const reactSettingsFiles = (config: Config) =>
+  config.filter(entry => entry.settings !== undefined && 'react' in entry.settings).flatMap(entry => entry.files ?? []);
+
+const offRuleFiles = (config: Config, ruleName: string) =>
+  config.filter(entry => entry.rules?.[ruleName] === 'off').flatMap(entry => entry.files ?? []);
 
 describe('totvibe', () => {
   test('returns a non-empty flat config array', () => {
@@ -55,28 +56,51 @@ describe('totvibe', () => {
     expect(reactVersion(totvibe({ react: true, reactVersion: '19.0' }))).toBe('19.0');
   });
 
-  test('filenameCase is unset by default and relaxes to camel/kebab/pascal with react', () => {
-    expect(findEntryRule(totvibe(), 'unicorn/prevent-abbreviations', 'unicorn/filename-case')).toBeUndefined();
-    expect(findEntryRule(totvibe({ react: true }), 'unicorn/prevent-abbreviations', 'unicorn/filename-case')).toEqual([
-      'error',
-      { cases: { camelCase: true, kebabCase: true, pascalCase: true } },
-    ]);
-  });
-
-  test('filenameCase passes an explicit case map through', () => {
-    const config = totvibe({ filenameCase: { snakeCase: true } });
-    expect(findEntryRule(config, 'unicorn/prevent-abbreviations', 'unicorn/filename-case')).toEqual([
-      'error',
-      { cases: { snakeCase: true } },
-    ]);
-  });
-
   test('nonDomReactFiles requires react and turns off react/no-unknown-property', () => {
     expect(turnsOffRule(totvibe(), 'react/no-unknown-property')).toBe(false);
     expect(turnsOffRule(totvibe({ nonDomReactFiles: ['apps/tui/**'] }), 'react/no-unknown-property')).toBe(false);
     expect(turnsOffRule(totvibe({ nonDomReactFiles: ['apps/tui/**'], react: true }), 'react/no-unknown-property')).toBe(
       true,
     );
+  });
+});
+
+describe('renderer presets', () => {
+  test('react: true scopes the DOM preset to the default src glob', () => {
+    expect(reactSettingsFiles(totvibe({ react: true }))).toEqual(['**/src/**/*.{ts,tsx}']);
+  });
+
+  test('a renderer map scopes each renderer to its own globs', () => {
+    const config = totvibe({ react: { dom: ['apps/web/**/*.tsx'], opentui: ['apps/tui/**/*.tsx'] } });
+    expect(reactSettingsFiles(config)).toEqual(['apps/web/**/*.tsx', 'apps/tui/**/*.tsx']);
+  });
+
+  test('the DOM renderer keeps react/no-unknown-property; non-DOM renderers turn it off on their globs', () => {
+    const config = totvibe({ react: { dom: ['apps/web/**/*.tsx'], opentui: ['apps/tui/**/*.tsx'] } });
+    expect(offRuleFiles(config, 'react/no-unknown-property')).toEqual(['apps/tui/**/*.tsx']);
+  });
+
+  test('a non-DOM renderer alone enables react and turns off react/no-unknown-property', () => {
+    const config = totvibe({ react: { opentui: ['apps/tui/**'] } });
+    expect(hasReactSettings(config)).toBe(true);
+    expect(turnsOffRule(config, 'react/no-unknown-property')).toBe(true);
+  });
+
+  test('an empty renderer map is treated as no react', () => {
+    expect(hasReactSettings(totvibe({ react: {} }))).toBe(false);
+  });
+});
+
+describe('withDefaults', () => {
+  test('applies shared defaults to every call', () => {
+    const tv = totvibe.withDefaults({ react: true, reactVersion: '19.0' });
+    expect(reactVersion(tv())).toBe('19.0');
+    expect(hasReactSettings(tv())).toBe(true);
+  });
+
+  test('a per-call option overrides the shared default', () => {
+    const tv = totvibe.withDefaults({ react: true });
+    expect(hasReactSettings(tv({ react: false }))).toBe(false);
   });
 });
 

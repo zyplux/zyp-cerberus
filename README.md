@@ -1,6 +1,6 @@
 # @totvibe/eslint-config
 
-Shared ESLint flat config and custom rules for totvibe projects. Ships TypeScript source — consumed directly under Bun.
+Shared ESLint flat config and custom rules. Ships TypeScript source — consumed directly under Bun.
 
 ## Install
 
@@ -24,26 +24,58 @@ Frontend (React + TanStack Router):
 import { totvibe } from '@totvibe/eslint-config';
 
 export default totvibe({
-  react: true,
+  react: true, // ≡ { dom: ['**/src/**/*.{ts,tsx}'] }
   tanstack: true,
   tsconfigRootDir: import.meta.dirname,
 });
 ```
 
+### React renderers
+
+`react` takes a renderer → globs map. Only listed globs receive React rules, so non-React packages match nothing.
+
+```ts
+export default totvibe({
+  react: {
+    dom: ['apps/web/**/*.{ts,tsx}'], // full eslint-plugin-react (DOM)
+    opentui: ['apps/tui/**/*.{ts,tsx}'], // non-DOM renderer
+  },
+  reactVersion: '19.0',
+  tsconfigRootDir: import.meta.dirname,
+});
+```
+
+`dom` keeps DOM rules on; the non-DOM renderers `opentui`, `ink`, `r3f`, `react-pdf` turn off `react/no-unknown-property`, because `tsc` already validates each renderer's host props through `JSX.IntrinsicElements` (no ignore-list to maintain). All renderers share the React Hooks + `jsx-runtime` base.
+
+### Monorepos
+
+A single `totvibe()` call with a renderer map covers a whole repo: set `tsconfigRootDir` once and `projectService` resolves each package's nearest `tsconfig.json`. When packages need genuinely different baselines, scope whole presets with `defineConfig` and share options through `withDefaults`:
+
+```ts
+import { defineConfig } from 'eslint/config';
+import { totvibe } from '@totvibe/eslint-config';
+
+const tv = totvibe.withDefaults({ tsconfigRootDir: import.meta.dirname });
+
+export default defineConfig(
+  { files: ['packages/api/**'], extends: [tv()] },
+  { files: ['packages/web/**'], extends: [tv({ react: true })] },
+);
+```
+
 ### Options
 
-| Option             | Default                            | Description                                                                           |
-| ------------------ | ---------------------------------- | ------------------------------------------------------------------------------------- |
-| `react`            | `false`                            | Enable `eslint-plugin-react` + React Hooks rules                                      |
-| `tanstack`         | `false`                            | Enforce kebab-case filenames under `routes/`                                          |
-| `tsconfigRootDir`  | `process.cwd()`                    | Root for typed linting (`projectService`)                                             |
-| `reactFiles`       | `['**/src/**/*.{ts,tsx}']`         | Globs the React rules apply to                                                        |
-| `reactVersion`     | `'detect'`                         | React version for `eslint-plugin-react`; pin it (e.g. `'19.0'`) where detection fails |
-| `filenameCase`     | kebab (camel/kebab/pascal w/react) | Allowed `unicorn/filename-case` cases, e.g. `{ camelCase: true, pascalCase: true }`   |
-| `nonDomReactFiles` | `[]`                               | Globs on a non-DOM renderer (OpenTUI/Ink/r3f); turns off `react/no-unknown-property`  |
-| `ignores`          | `[]`                               | Extra ignore globs appended to the defaults                                           |
+| Option            | Default         | Description                                                                           |
+| ----------------- | --------------- | ------------------------------------------------------------------------------------- |
+| `react`           | `false`         | `true`, or a renderer → globs map (`dom` / `opentui` / `ink` / `r3f` / `react-pdf`)   |
+| `tanstack`        | `false`         | Enforce kebab-case filenames under `routes/`                                          |
+| `tsconfigRootDir` | `process.cwd()` | Root for typed linting (`projectService`)                                             |
+| `reactVersion`    | `'detect'`      | React version for `eslint-plugin-react`; pin it (e.g. `'19.0'`) where detection fails |
+| `ignores`         | `[]`            | Extra ignore globs appended to the defaults                                           |
 
-`reactVersion` matters in a workspace where `react` is a per-app dependency: `'detect'` resolves from the lint working directory, finds nothing at the monorepo root, warns, and falls back nondeterministically — pin the version to silence it. `filenameCase` defaults to camel/kebab/pascal when `react: true` (component files are conventionally Pascal) and to unicorn's kebab-only otherwise. `nonDomReactFiles` requires `react: true`.
+`reactVersion` matters in a workspace where `react` is a per-app dependency: `'detect'` resolves from the lint working directory, finds nothing at the monorepo root, warns, and falls back nondeterministically — pin the version to silence it.
+
+Deprecated, kept working for back-compat: `reactFiles` maps onto `react: { dom }` and `nonDomReactFiles` onto `react: { opentui }` (the latter still requires React enabled).
 
 The custom `@totvibe` rules (`no-inferrable-return-type`, `no-type-predicate`, `no-zod-custom`, `prefer-arrow-functions`) are bundled and always on.
 
