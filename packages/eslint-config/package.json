@@ -64,7 +64,6 @@
     "@typescript-eslint/rule-tester": "catalog:",
     "bun-types": "catalog:",
     "typescript": "catalog:",
-    "vitest": "catalog:",
-    "zod": "catalog:"
+    "vitest": "catalog:"
   }
 }

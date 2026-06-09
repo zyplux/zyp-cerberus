@@ -1,0 +1,17 @@
+{
+  "name": "@totvibe/tests-rules",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "test": "bun test",
+    "typecheck": "tsc --noEmit -p tsconfig.json"
+  },
+  "devDependencies": {
+    "@totvibe/eslint-config": "workspace:*",
+    "bun-types": "catalog:",
+    "eslint": "catalog:",
+    "typescript-eslint": "catalog:",
+    "zod": "catalog:"
+  }
+}

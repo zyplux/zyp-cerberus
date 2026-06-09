@@ -34,7 +34,6 @@
         "bun-types": "catalog:",
         "typescript": "catalog:",
         "vitest": "catalog:",
-        "zod": "catalog:",
       },
       "peerDependencies": {
         "eslint": "catalog:",
@@ -47,6 +46,17 @@
       "devDependencies": {
         "@totvibe/eslint-config": "workspace:*",
         "bun-types": "catalog:",
+      },
+    },
+    "tests/rules": {
+      "name": "@totvibe/tests-rules",
+      "version": "0.1.0",
+      "devDependencies": {
+        "@totvibe/eslint-config": "workspace:*",
+        "bun-types": "catalog:",
+        "eslint": "catalog:",
+        "typescript-eslint": "catalog:",
+        "zod": "catalog:",
       },
     },
   },
@@ -265,6 +275,8 @@
     "@totvibe/eslint-config": ["@totvibe/eslint-config@workspace:packages/eslint-config"],
 
     "@totvibe/tests-eslint-config": ["@totvibe/tests-eslint-config@workspace:tests/public-interface"],
+
+    "@totvibe/tests-rules": ["@totvibe/tests-rules@workspace:tests/rules"],
 
     "@tybys/wasm-util": ["@tybys/wasm-util@0.10.2", "", { "dependencies": { "tslib": "^2.4.0" } }, "sha512-RoBvJ2X0wuKlWFIjrwffGw1IqZHKQqzIchKaadZZfnNpsAYp2mM0h36JtPCjNDAHGgYez/15uMBpfGwchhiMgg=="],
 

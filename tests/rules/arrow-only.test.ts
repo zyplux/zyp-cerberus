@@ -1,14 +1,15 @@
+import { totvibe } from '@totvibe/eslint-config';
+import { describe, expect, it } from 'bun:test';
 import { Linter } from 'eslint';
-import { describe, expect, it } from 'vitest';
 
-import { base } from '#configs/base';
-
-const arrowOnlyRule = Array.isArray(base) ? undefined : base.rules?.['no-restricted-syntax'];
+const config = totvibe();
+const arrowOnlyEntry = config.find(entry => entry.rules?.['no-restricted-syntax'] !== undefined);
+const arrowOnlyRule = arrowOnlyEntry?.rules?.['no-restricted-syntax'] ?? 'off';
 
 const linter = new Linter();
 
 const arrowOnlyErrorCount = (code: string) =>
-  linter.verify(code, { rules: { 'no-restricted-syntax': arrowOnlyRule ?? 'off' } }).length;
+  linter.verify(code, { rules: { 'no-restricted-syntax': arrowOnlyRule } }).length;
 
 describe('arrow-only no-restricted-syntax', () => {
   it('still bans function declarations', () => {
