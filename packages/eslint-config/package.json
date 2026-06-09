@@ -1,6 +1,6 @@
 {
   "name": "@totvibe/eslint-config",
-  "version": "0.1.1",
+  "version": "0.2.0",
   "description": "Shared ESLint flat config and custom rules",
   "keywords": [
     "eslint",
@@ -31,6 +31,7 @@
     "#package.json": "./package.json",
     "#configs/base": "./src/configs/base.ts",
     "#configs/typescript": "./src/configs/typescript.ts",
+    "#rules/no-identity-cast": "./src/rules/no-identity-cast.ts",
     "#rules/no-inferrable-return-type": "./src/rules/no-inferrable-return-type.ts",
     "#rules/no-type-predicate": "./src/rules/no-type-predicate.ts",
     "#rules/no-zod-custom": "./src/rules/no-zod-custom.ts"

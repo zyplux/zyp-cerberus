@@ -77,7 +77,7 @@ export default defineConfig(
 
 Deprecated, kept working for back-compat: `reactFiles` maps onto `react: { dom }` and `nonDomReactFiles` onto `react: { opentui }` (the latter still requires React enabled).
 
-The custom `@totvibe` rules (`no-inferrable-return-type`, `no-type-predicate`, `no-zod-custom`, `prefer-arrow-functions`) are bundled and always on.
+The custom `@totvibe` rules (`no-identity-cast`, `no-inferrable-return-type`, `no-type-predicate`, `no-zod-custom`, `prefer-arrow-functions`) are bundled and always on.
 
 ### No parent-relative imports
 
@@ -92,16 +92,6 @@ The custom `@totvibe` rules (`no-inferrable-return-type`, `no-type-predicate`, `
 ```
 
 `import { x } from '@/foo'` then resolves from any depth, with one wildcard. TypeScript (5+, no `baseUrl`) and Bun read `paths` natively; Vite does not — add [`vite-tsconfig-paths`](https://github.com/aleclarson/vite-tsconfig-paths) so tsconfig stays the single source of truth. Cross-package references go through the workspace package name (`@scope/pkg`).
-
-### Interactions with TypeScript project references
-
-With `composite` + declaration emit, `tsc -b` can demand a return-type annotation for portability (TS2742 "cannot be named", TS2883 non-portable inferred type) on the same functions `no-inferrable-return-type` forbids annotating. Resolve it without re-adding the return type:
-
-- annotate the returned _value_ with `satisfies T` in the body — the rule only inspects the return-type slot;
-- route the value through a typed identity parameter (`const asT = (x: T) => x; return asT(value);`) — parameters carry portable types where a `const` binding gets narrowed;
-- `export` the offending type so the inferred type can be named.
-
-`--fix` strips the annotation and reintroduces the `tsc` error; use one of the above instead of re-annotating.
 
 ### zod at the boundary
 

@@ -6,6 +6,7 @@ export const totvibeRules: ConfigWithExtends = {
   files: ['**/*.{ts,tsx}'],
   plugins: { '@totvibe': plugin },
   rules: {
+    '@totvibe/no-identity-cast': 'error',
     '@totvibe/no-inferrable-return-type': 'error',
     '@totvibe/no-type-predicate': 'error',
     '@totvibe/no-zod-custom': 'error',

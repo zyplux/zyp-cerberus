@@ -3,7 +3,13 @@ import { describe, expect, test } from 'bun:test';
 
 type Config = ReturnType<typeof totvibe>;
 
-const customRuleNames = ['no-inferrable-return-type', 'no-type-predicate', 'no-zod-custom', 'prefer-arrow-functions'];
+const customRuleNames = [
+  'no-identity-cast',
+  'no-inferrable-return-type',
+  'no-type-predicate',
+  'no-zod-custom',
+  'prefer-arrow-functions',
+];
 
 const hasReactSettings = (config: Config) =>
   config.some(entry => entry.settings !== undefined && 'react' in entry.settings);

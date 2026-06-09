@@ -69,10 +69,14 @@ Deprecated, mapped onto `react` for back-compat: `reactFiles` → `react: { dom 
 
 ## What's always on
 
-- Custom `@totvibe` rules: `no-inferrable-return-type`, `no-type-predicate`, `no-zod-custom`, `prefer-arrow-functions`.
+- Custom `@totvibe` rules: `no-identity-cast`, `no-inferrable-return-type`, `no-type-predicate`, `no-zod-custom`, `prefer-arrow-functions`.
 - Type-checked TypeScript (`strictTypeChecked` + `stylisticTypeChecked`), arrow-only functions, `type` over `interface`, no type assertions.
 - No parent-relative (`../`) imports — route through a tsconfig `paths` alias (`@/foo`).
 - unicorn + perfectionist (natural sorting); prettier last, so formatting rules are off.
+
+## zod at the boundary
+
+`consistent-type-assertions: 'never'` plus `no-zod-custom` and `no-type-predicate` steer every deserialization boundary (`JSON.parse`, `event.data`, JSONL) toward a zod schema that _returns_ the typed value rather than `parse(x) as T`. Annotate hand-written schemas as `z.ZodType<T>` to keep their declared type. Blind spot: that annotation only rejects schemas producing values _outside_ `T` — a schema _missing_ a union member still type-checks (a narrower output is assignable to the wider `T`), so a discriminated union can silently drop a case. Keep wire schemas exhaustive by hand.
 
 ## Tweaking rules
 
