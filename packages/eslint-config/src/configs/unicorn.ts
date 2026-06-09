@@ -2,11 +2,11 @@ import unicorn from 'eslint-plugin-unicorn';
 
 import type { ConfigWithExtends } from './types';
 
-export const unicornConfig: ConfigWithExtends = {
+export const unicornConfig = {
   extends: [unicorn.configs.recommended],
   files: ['**/*.{ts,tsx,js,mjs,cjs}'],
   rules: {
     'unicorn/catch-error-name': 'off',
     'unicorn/prevent-abbreviations': 'off',
   },
-};
+} satisfies ConfigWithExtends;

@@ -1,7 +1,7 @@
 import { RuleTester } from '@typescript-eslint/rule-tester';
 import { afterAll, describe, it } from 'vitest';
 
-import { noTypePredicate } from '../src/rules/no-type-predicate';
+import { noTypePredicate } from '#rules/no-type-predicate';
 
 RuleTester.afterAll = afterAll;
 RuleTester.describe = describe;

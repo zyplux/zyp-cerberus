@@ -1,7 +1,7 @@
 import { RuleTester } from '@typescript-eslint/rule-tester';
 import { afterAll, describe, it } from 'vitest';
 
-import { noZodCustom } from '../src/rules/no-zod-custom';
+import { noZodCustom } from '#rules/no-zod-custom';
 
 RuleTester.afterAll = afterAll;
 RuleTester.describe = describe;

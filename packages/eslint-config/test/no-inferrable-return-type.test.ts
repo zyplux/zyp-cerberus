@@ -1,7 +1,7 @@
 import { RuleTester } from '@typescript-eslint/rule-tester';
 import { afterAll, describe, it } from 'vitest';
 
-import { noInferrableReturnType } from '../src/rules/no-inferrable-return-type';
+import { noInferrableReturnType } from '#rules/no-inferrable-return-type';
 
 RuleTester.afterAll = afterAll;
 RuleTester.describe = describe;
@@ -78,12 +78,50 @@ ruleTester.run('no-inferrable-return-type', noInferrableReturnType, {
       name: 'tuple return — `as const` literal already pins the type',
       output: 'const f = () => [1, "a"] as const;',
     },
+    {
+      code: 'export const f = () => { const g = (): number => 1; return g; };',
+      errors: [{ messageId: 'removeReturnType' }],
+      name: 'nested function inside an exported boundary is still internal',
+      output: 'export const f = () => { const g = () => 1; return g; };',
+    },
   ],
   valid: [
     'const isString = (x: unknown): x is string => typeof x === "string";',
     'function assert(cond: unknown): asserts cond {}',
     'const greet = () => "hi";',
     'declare function exists(): number;',
+    {
+      code: 'export const greet = (): string => "hi";',
+      name: 'exported arrow — annotation may be load-bearing for declaration emit',
+    },
+    {
+      code: 'export async function fetchAll(): Promise<void> {}',
+      name: 'exported function declaration is a module boundary',
+    },
+    {
+      code: 'export default (): string => "hi";',
+      name: 'default-exported arrow is a module boundary',
+    },
+    {
+      code: 'export default function compute(): number { return 1; }',
+      name: 'default-exported function declaration is a module boundary',
+    },
+    {
+      code: 'const greet = (): string => "hi";\nexport { greet };',
+      name: 'function re-exported via an export specifier is a module boundary',
+    },
+    {
+      code: 'export const api = { make(): string { return "x"; } };',
+      name: 'method of an exported object literal is part of the public surface',
+    },
+    {
+      code: 'export class A { m(): void {} }',
+      name: 'method of an exported class is part of the public surface',
+    },
+    {
+      code: 'export const A = class { m(): number { return 1; } };',
+      name: 'method of an exported class expression is part of the public surface',
+    },
     {
       code: 'const factorial = (n: number): number => n <= 1 ? 1 : n * factorial(n - 1);',
       name: 'recursive arrow — triggers TS7023 (implicit any return type)',

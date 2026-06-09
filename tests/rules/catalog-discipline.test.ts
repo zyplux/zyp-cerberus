@@ -1,10 +1,10 @@
+import { describe, expect, it } from 'bun:test';
 import { readdirSync, readFileSync } from 'node:fs';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
-import { describe, expect, it } from 'vitest';
 import * as z from 'zod';
 
-const repoRoot = path.join(path.dirname(fileURLToPath(import.meta.url)), '../../..');
+const repoRoot = path.join(path.dirname(fileURLToPath(import.meta.url)), '../..');
 
 const dependencyMap = z.record(z.string(), z.string());
 

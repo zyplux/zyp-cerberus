@@ -2,7 +2,7 @@ import type { TSESTree } from '@typescript-eslint/utils';
 
 import { AST_NODE_TYPES } from '@typescript-eslint/utils';
 
-import { createRule } from '../create-rule';
+import { createRule } from '#create-rule';
 
 type FunctionWithReturnType =
   | TSESTree.ArrowFunctionExpression
@@ -65,8 +65,63 @@ const returnTypeReferencesAny = (typeNode: TSESTree.Node, names: Set<string>) =>
   });
 };
 
+const declarationContainers: ReadonlySet<TSESTree.Node['type']> = new Set([
+  AST_NODE_TYPES.AccessorProperty,
+  AST_NODE_TYPES.ArrayExpression,
+  AST_NODE_TYPES.ClassBody,
+  AST_NODE_TYPES.ClassDeclaration,
+  AST_NODE_TYPES.ClassExpression,
+  AST_NODE_TYPES.MethodDefinition,
+  AST_NODE_TYPES.ObjectExpression,
+  AST_NODE_TYPES.Property,
+  AST_NODE_TYPES.PropertyDefinition,
+  AST_NODE_TYPES.VariableDeclaration,
+  AST_NODE_TYPES.VariableDeclarator,
+]);
+
+const hasExportedAncestor = (node: TSESTree.Node): boolean => {
+  const parent = node.parent;
+  if (!parent) return false;
+  if (
+    parent.type === AST_NODE_TYPES.ExportNamedDeclaration ||
+    parent.type === AST_NODE_TYPES.ExportDefaultDeclaration
+  ) {
+    return true;
+  }
+  return declarationContainers.has(parent.type) && hasExportedAncestor(parent);
+};
+
+const isReExportedAtTopLevel = (node: FunctionWithReturnType, exportedNames: ReadonlySet<string>) => {
+  if (exportedNames.size === 0) return false;
+  if (node.type === AST_NODE_TYPES.FunctionDeclaration) {
+    return node.parent.type === AST_NODE_TYPES.Program && node.id !== null && exportedNames.has(node.id.name);
+  }
+  const declarator = node.parent;
+  if (declarator.type !== AST_NODE_TYPES.VariableDeclarator || declarator.id.type !== AST_NODE_TYPES.Identifier) {
+    return false;
+  }
+  return declarator.parent.parent.type === AST_NODE_TYPES.Program && exportedNames.has(declarator.id.name);
+};
+
+const isAtModuleBoundary = (node: FunctionWithReturnType, exportedNames: ReadonlySet<string>) =>
+  hasExportedAncestor(node) || isReExportedAtTopLevel(node, exportedNames);
+
+const collectExportedNames = (program: TSESTree.Program) => {
+  const names = new Set<string>();
+  for (const statement of program.body) {
+    if (statement.type !== AST_NODE_TYPES.ExportNamedDeclaration) continue;
+    if (statement.source) continue;
+    for (const specifier of statement.specifiers) {
+      names.add(specifier.local.name);
+    }
+  }
+  return names;
+};
+
 export const noInferrableReturnType = createRule({
   create: context => {
+    let exportedNames: ReadonlySet<string> = new Set();
+
     const checkFunction = (node: FunctionWithReturnType) => {
       const returnTypeNode = node.returnType;
       if (!returnTypeNode) return;
@@ -78,6 +133,8 @@ export const noInferrableReturnType = createRule({
 
       const functionName = getFunctionName(node);
       if (functionName && bodyReferencesIdentifier(node.body, functionName)) return;
+
+      if (isAtModuleBoundary(node, exportedNames)) return;
 
       const tokenBefore = context.sourceCode.getTokenBefore(returnTypeNode);
       context.report({
@@ -93,16 +150,20 @@ export const noInferrableReturnType = createRule({
       ArrowFunctionExpression: checkFunction,
       FunctionDeclaration: checkFunction,
       FunctionExpression: checkFunction,
+      Program: program => {
+        exportedNames = collectExportedNames(program);
+      },
     };
   },
   defaultOptions: [],
   meta: {
     docs: {
-      description: 'Disallow explicit return type annotations on functions; let TypeScript infer them.',
+      description: 'Disallow explicit return type annotations on non-exported functions; let TypeScript infer them.',
     },
     fixable: 'code',
     messages: {
-      removeReturnType: 'Explicit return type annotation is unnecessary; let TypeScript infer it.',
+      removeReturnType:
+        'Explicit return type annotation is unnecessary; let TypeScript infer it. (Exported functions are exempt, since `tsc` may need the annotation for declaration-emit portability.)',
     },
     schema: [],
     type: 'suggestion',

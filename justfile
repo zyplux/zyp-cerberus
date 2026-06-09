@@ -1,12 +1,13 @@
 set shell := ["bash", "-euo", "pipefail", "-c"]
 
-alias l := lint
-alias tc := typecheck
-alias t := test
 alias i := install
+alias k := knip
+alias tc := typecheck
+alias l := lint
+alias t := test
+alias c := check
 alias u := upgrade
 alias ui := upgrade-interactive
-alias c := check
 
 # List available recipes.
 default:
@@ -16,6 +17,30 @@ default:
 install:
     bun install
 
+# Report unused files, dependencies, and exports via knip.
+knip:
+    bun run knip
+
+# Type-check root config files and all workspaces.
+typecheck:
+    bun run typecheck
+
+# Lint and format with autofix: eslint --fix + prettier --write.
+lint:
+    bun run lint:fix
+    bun run format
+
+# Run all workspace tests.
+test:
+    bun run test
+
+# Full gate: install, knip, typecheck, lint, test — autofix throughout.
+check: install knip typecheck lint test
+
+# Auto-format with prettier.
+format:
+    bun run format
+
 # Upgrade JS dependencies across the workspace via ncu (catalog-aware). Forwards extra args (e.g. `just u -i`).
 upgrade *args='':
     bun run upgrade -- {{ args }}
@@ -24,36 +49,6 @@ upgrade *args='':
 upgrade-interactive:
     bun run upgrade -- -i
     bun install
-
-# Report unused files, dependencies, and exports via knip.
-knip:
-    bun run knip
-
-# Auto-format with prettier.
-format:
-    bun run format
-
-# Type-check root config files and all workspaces; runs knip first.
-typecheck: knip
-    bun run typecheck
-
-# Lint (eslint) — autofix by default; runs typecheck first. --check/-c to check only.
-[arg('fix', long='check', short='c', value='')]
-lint fix='--fix': typecheck
-    bun run {{ if fix == '--fix' { 'lint:fix' } else { 'lint' } }}
-
-# Run all workspace tests; runs lint first. --check/-c to skip lint fixes.
-[arg('fix', long='check', short='c', value='')]
-test fix='--fix': (lint fix)
-    bun run test
-
-# Verify like CI (no autofix): knip, type-check, lint, format check, test.
-check:
-    bun run knip
-    bun run typecheck
-    bun run lint
-    bunx prettier --check .
-    bun run test
 
 # Cut a GitHub release for the current package version, then watch the publish workflow and verify it on npm.
 release:

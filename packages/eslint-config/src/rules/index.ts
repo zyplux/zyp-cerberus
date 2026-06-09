@@ -1,6 +1,8 @@
 import preferArrowFunctions from 'eslint-plugin-prefer-arrow-functions';
 
-import { castToEslintRule } from '../create-rule';
+import { castToEslintRule } from '#create-rule';
+
+import { noIdentityCast } from './no-identity-cast';
 import { noInferrableReturnType } from './no-inferrable-return-type';
 import { noTypePredicate } from './no-type-predicate';
 import { noZodCustom } from './no-zod-custom';
@@ -11,6 +13,7 @@ if (!upstreamPreferArrowFunctions) {
 }
 
 export const rules = {
+  'no-identity-cast': noIdentityCast,
   'no-inferrable-return-type': noInferrableReturnType,
   'no-type-predicate': noTypePredicate,
   'no-zod-custom': noZodCustom,
