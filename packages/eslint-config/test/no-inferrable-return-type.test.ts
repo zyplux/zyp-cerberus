@@ -1,7 +1,7 @@
 import { RuleTester } from '@typescript-eslint/rule-tester';
 import { afterAll, describe, it } from 'vitest';
 
-import { noInferrableReturnType } from '../src/rules/no-inferrable-return-type';
+import { noInferrableReturnType } from '#rules/no-inferrable-return-type';
 
 RuleTester.afterAll = afterAll;
 RuleTester.describe = describe;

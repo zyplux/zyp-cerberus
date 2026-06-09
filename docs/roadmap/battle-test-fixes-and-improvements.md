@@ -183,7 +183,7 @@ Good messages already exist (`no-zod-custom` and `no-type-predicate` both name
 the construct _and_ the sanctioned alternative — keep that as the bar). The gaps
 are the messages that say _what_ is wrong without saying _how_ to comply.
 
-#### `no-inferrable-return-type` → name the escape hatches
+### `no-inferrable-return-type` → name the escape hatches
 
 Current:
 

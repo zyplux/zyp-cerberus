@@ -1,4 +1,5 @@
-import pkg from '../packages/eslint-config/package.json' with { type: 'json' };
+import pkg from '@totvibe/eslint-config/package.json' with { type: 'json' };
+
 import { $ } from './shell-harness';
 import { ensure, poll } from './util';
 

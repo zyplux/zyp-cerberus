@@ -5,6 +5,7 @@
     "": {
       "name": "totvibe-eslint",
       "devDependencies": {
+        "@totvibe/eslint-config": "workspace:*",
         "bun-types": "catalog:",
         "eslint": "catalog:",
         "knip": "catalog:",
@@ -16,7 +17,7 @@
     },
     "packages/eslint-config": {
       "name": "@totvibe/eslint-config",
-      "version": "0.0.0",
+      "version": "0.1.1",
       "dependencies": {
         "@eslint/js": "catalog:",
         "@typescript-eslint/utils": "catalog:",

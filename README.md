@@ -47,6 +47,20 @@ export default totvibe({
 
 The custom `@totvibe` rules (`no-inferrable-return-type`, `no-type-predicate`, `no-zod-custom`, `prefer-arrow-functions`) are bundled and always on.
 
+### No parent-relative imports
+
+`../`-style imports are banned (`@typescript-eslint/no-restricted-imports`, every depth including `import type`). Route intra-package references through a tsconfig `paths` alias so moving a file never breaks them:
+
+```json
+{
+  "compilerOptions": {
+    "paths": { "@/*": ["./src/*"] }
+  }
+}
+```
+
+`import { x } from '@/foo'` then resolves from any depth, with one wildcard. TypeScript (5+, no `baseUrl`) and Bun read `paths` natively; Vite does not — add [`vite-tsconfig-paths`](https://github.com/aleclarson/vite-tsconfig-paths) so tsconfig stays the single source of truth. Cross-package references go through the workspace package name (`@scope/pkg`).
+
 ### Interactions with TypeScript project references
 
 With `composite` + declaration emit, `tsc -b` can demand a return-type annotation for portability (TS2742 "cannot be named", TS2883 non-portable inferred type) on the same functions `no-inferrable-return-type` forbids annotating. Resolve it without re-adding the return type:
@@ -73,5 +87,5 @@ Individual recipes: `just lint`, `just typecheck`, `just test`, `just format`, `
 ## Publish
 
 ```sh
-just publish
+just release
 ```

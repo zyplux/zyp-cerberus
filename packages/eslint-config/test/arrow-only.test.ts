@@ -1,7 +1,7 @@
 import { Linter } from 'eslint';
 import { describe, expect, it } from 'vitest';
 
-import { base } from '../src/configs/base';
+import { base } from '#configs/base';
 
 const arrowOnlyRule = Array.isArray(base) ? undefined : base.rules?.['no-restricted-syntax'];
 

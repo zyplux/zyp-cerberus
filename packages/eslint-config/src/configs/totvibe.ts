@@ -1,6 +1,6 @@
-import type { ConfigWithExtends } from './types';
+import { plugin } from '#plugin';
 
-import { plugin } from '../plugin';
+import type { ConfigWithExtends } from './types';
 
 export const totvibeRules: ConfigWithExtends = {
   files: ['**/*.{ts,tsx}'],

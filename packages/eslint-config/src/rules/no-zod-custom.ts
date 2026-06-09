@@ -1,6 +1,6 @@
 import { AST_NODE_TYPES } from '@typescript-eslint/utils';
 
-import { createRule } from '../create-rule';
+import { createRule } from '#create-rule';
 
 export const noZodCustom = createRule({
   create: context => ({

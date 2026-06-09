@@ -2,7 +2,7 @@ import type { TSESTree } from '@typescript-eslint/utils';
 
 import { AST_NODE_TYPES } from '@typescript-eslint/utils';
 
-import { createRule } from '../create-rule';
+import { createRule } from '#create-rule';
 
 type FunctionWithReturnType =
   | TSESTree.ArrowFunctionExpression

@@ -25,6 +25,16 @@
     },
     "./package.json": "./package.json"
   },
+  "imports": {
+    "#create-rule": "./src/create-rule.ts",
+    "#plugin": "./src/plugin.ts",
+    "#package.json": "./package.json",
+    "#configs/base": "./src/configs/base.ts",
+    "#configs/typescript": "./src/configs/typescript.ts",
+    "#rules/no-inferrable-return-type": "./src/rules/no-inferrable-return-type.ts",
+    "#rules/no-type-predicate": "./src/rules/no-type-predicate.ts",
+    "#rules/no-zod-custom": "./src/rules/no-zod-custom.ts"
+  },
   "files": [
     "src"
   ],
