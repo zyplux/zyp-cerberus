@@ -13,33 +13,39 @@ alias ui := upgrade-interactive
 default:
     @just --list
 
-# Install dependencies (the prepare script installs git hooks via lefthook).
+# Install both workspaces: bun (prepare installs git hooks via lefthook) + uv.
 install:
     bun install
+    uv sync --all-packages --all-groups
 
-# Report unused files, dependencies, and exports via knip.
+# Report unused files, dependencies, and exports via knip (JS workspace).
 knip:
     bun run knip
 
-# Type-check root config files and all workspaces.
+# Type-check both workspaces: tsc/bun for .ts, pyrefly for .py.
 typecheck:
     bun run typecheck
+    uv run pyrefly check
 
-# Lint and format with autofix: eslint --fix + prettier --write.
+# Lint and format both workspaces with autofix: eslint --fix + prettier, ruff --fix + ruff format.
 lint:
     bun run lint:fix
     bun run format
+    uv run ruff check --fix
+    uv run ruff format
 
-# Run all workspace tests.
+# Run tests for both workspaces: bun for .ts, pytest for .py.
 test:
     bun run test
+    uv run pytest
 
-# Full gate: install, knip, typecheck, lint, test — autofix throughout.
+# Full gate across both workspaces: install, knip, typecheck, lint, test — autofix throughout.
 check: install knip typecheck lint test
 
-# Auto-format with prettier.
+# Auto-format both workspaces: prettier for .ts, ruff format for .py.
 format:
     bun run format
+    uv run ruff format
 
 # Upgrade JS dependencies across the workspace via ncu (catalog-aware). Forwards extra args (e.g. `just u -i`).
 upgrade *args='':
@@ -58,6 +64,8 @@ release:
 push *flags:
     bun run push -- {{ flags }}
 
-# Remove dependencies and caches.
+# Remove dependencies and caches from both workspaces.
 clean:
     rm -rf node_modules packages/*/node_modules tests/*/node_modules
+    rm -rf .venv .pytest_cache .ruff_cache .rumdl_cache
+    find . -type d -name __pycache__ -prune -exec rm -rf {} +

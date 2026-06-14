@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'bun:test';
-import { readdirSync, readFileSync } from 'node:fs';
+import { existsSync, readdirSync, readFileSync } from 'node:fs';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 import * as z from 'zod';
@@ -21,7 +21,8 @@ const collectWorkspaceManifests = () => {
   const paths = [path.join(repoRoot, 'package.json')];
   for (const group of ['packages', 'tests']) {
     for (const name of readdirSync(path.join(repoRoot, group))) {
-      paths.push(path.join(repoRoot, group, name, 'package.json'));
+      const manifestPath = path.join(repoRoot, group, name, 'package.json');
+      if (existsSync(manifestPath)) paths.push(manifestPath);
     }
   }
   return paths;

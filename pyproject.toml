@@ -1,0 +1,45 @@
+[project]
+name = "zyp-cerberus"
+version = "0"
+description = "zyp-cerberus — virtual workspace root (cerberus governance CLI + @totvibe/eslint-config)"
+requires-python = ">=3.14"
+
+[tool.uv]
+package = false
+
+[tool.uv.workspace]
+members = ["apps/cerberus"]
+
+[tool.ruff]
+line-length = 100
+target-version = "py314"
+
+[tool.ruff.lint]
+select = ["E", "F", "I", "B", "UP", "ASYNC", "S", "RUF"]
+ignore = ["S101"]
+
+[tool.ruff.lint.per-file-ignores]
+"**/tests/**" = ["S"]
+# proc.py is cerberus's sole subprocess boundary: resolved abs path, no shell,
+# program-constructed argv. S603 is an audit-only rule, false-positive prone for
+# non-literal argv (ruff #4045); intent is expressed here rather than inline.
+"apps/cerberus/src/cerberus/proc.py" = ["S603"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests/cerberus"]
+
+[tool.pyrefly]
+project-includes = ["apps/cerberus/src", "tests/cerberus"]
+search-path = ["apps/cerberus/src"]
+
+[dependency-groups]
+lint = [
+    "ruff>=0.15.17",
+    "rumdl>=0.2.16",
+]
+test = [
+    "pytest>=9.1.0",
+]
+type = [
+    "pyrefly>=1.0.0",
+]

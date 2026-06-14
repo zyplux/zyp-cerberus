@@ -1,3 +1,8 @@
 {
-  "recommendations": ["dbaeumer.vscode-eslint", "esbenp.prettier-vscode", "mermaidchart.vscode-mermaid-chart"]
+  "recommendations": [
+    "dbaeumer.vscode-eslint",
+    "esbenp.prettier-vscode",
+    "mermaidchart.vscode-mermaid-chart",
+    "meta.pyrefly"
+  ]
 }

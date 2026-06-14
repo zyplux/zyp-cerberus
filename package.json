@@ -1,5 +1,5 @@
 {
-  "name": "totvibe-eslint",
+  "name": "zyp-cerberus",
   "private": true,
   "version": "0.0.0",
   "type": "module",
@@ -47,7 +47,7 @@
     "push": "bun scripts/pusher.ts"
   },
   "devDependencies": {
-    "@totvibe/eslint-config": "workspace:*",
+    "@zyplux/eslint-config": "workspace:*",
     "bun-types": "catalog:",
     "eslint": "catalog:",
     "knip": "catalog:",
