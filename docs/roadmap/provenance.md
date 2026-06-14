@@ -41,7 +41,7 @@ The same `NPM_TOKEN` secret is reused. `setup-node` writes the `.npmrc` that wir
 ## Further step: tokenless publishing
 
 Once a first version is published, register a Trusted Publisher for the package on
-npmjs.com (repo `realSergiy/totvibe-eslint`, workflow `release.yml`). npm then
+npmjs.com (repo `zyplux/zyp-cerberus`, workflow `release.yml`). npm then
 mints a short-lived token from the job's OIDC identity, so the `NPM_TOKEN` secret
 can be deleted entirely. Provenance is emitted automatically; the `--provenance`
 flag becomes redundant.

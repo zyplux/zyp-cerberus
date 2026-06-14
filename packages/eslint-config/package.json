@@ -11,10 +11,10 @@
   ],
   "license": "MIT",
   "author": "Sergiy Yeskov <sergiy.yeskov@gmail.com>",
-  "homepage": "https://github.com/realSergiy/totvibe-eslint",
+  "homepage": "https://github.com/zyplux/zyp-cerberus",
   "repository": {
     "type": "git",
-    "url": "git+https://github.com/realSergiy/totvibe-eslint.git",
+    "url": "git+https://github.com/zyplux/zyp-cerberus.git",
     "directory": "packages/eslint-config"
   },
   "type": "module",

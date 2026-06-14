@@ -1,4 +1,15 @@
+# JavaScript / bun
 node_modules/
 dist/
 *.tsbuildinfo
+
+# Python / uv
+.venv/
+__pycache__/
+*.py[cod]
+.pytest_cache/
+.ruff_cache/
+.rumdl_cache/
+
+# OS
 .DS_Store

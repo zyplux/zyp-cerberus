@@ -1,0 +1,21 @@
+org = "zyplux"
+exclude_repos = [".github", "client-roadmap-feedback", "zyplux-ai-pages"]
+ruleset_name = "default-branch-baseline"
+default_recipe_marker = "just --list"
+
+[aliases.required]
+i = "install"
+k = "knip"
+tc = "typecheck"
+l = "lint"
+t = "test"
+c = "check"
+
+[aliases.recommended]
+u = "upgrade"
+ui = "upgrade-interactive"
+
+[recipes]
+required = ["default", "install", "knip", "typecheck", "lint", "test", "check"]
+recommended = ["upgrade", "upgrade-interactive", "clean"]
+check_pipeline = ["install", "knip", "typecheck", "lint", "test"]
