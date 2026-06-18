@@ -27,12 +27,14 @@ typecheck:
     bun run typecheck
     uv run pyrefly check
 
-# Lint and format both workspaces with autofix: eslint --fix + prettier, ruff --fix + ruff format.
+# Lint and format both workspaces with autofix, then verify org invariants with cerberus.
 lint:
     bun run lint:fix
     bun run format
+    rumdl check --fix
     uv run ruff check --fix
     uv run ruff format
+    uv run cerberus    
 
 # Run tests for both workspaces: bun for .ts, pytest for .py.
 test:
@@ -41,11 +43,6 @@ test:
 
 # Full gate across both workspaces: install, knip, typecheck, lint, test — autofix throughout.
 check: install knip typecheck lint test
-
-# Auto-format both workspaces: prettier for .ts, ruff format for .py.
-format:
-    bun run format
-    uv run ruff format
 
 # Upgrade JS dependencies across the workspace via ncu (catalog-aware). Forwards extra args (e.g. `just u -i`).
 upgrade *args='':
@@ -56,7 +53,7 @@ upgrade-interactive:
     bun run upgrade -- -i
     bun install
 
-# Cut a GitHub release for the current package version, then watch the publish workflow and verify it on npm.
+# Publish any bumped workspace package (eslint-config → npm, cerberus → PyPI) via GitHub releases.
 release:
     bun run release
 

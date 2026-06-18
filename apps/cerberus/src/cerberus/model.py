@@ -21,6 +21,13 @@ class Status(Enum):
         return order.index(self)
 
 
+class Scope(Enum):
+    """Where a check's facts live, hence where it can run."""
+
+    CONTENT = auto()  # in the checkout — runnable as a per-repo CI linter
+    CONTROL_PLANE = auto()  # GitHub org/admin state — only the central org scan
+
+
 @dataclass(frozen=True)
 class Repo:
     name: str

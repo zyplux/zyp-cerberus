@@ -11,18 +11,19 @@ from cerberus.checks import (
     secrets_check,
 )
 from cerberus.context import Context
-from cerberus.model import CheckResult, Repo
+from cerberus.model import CheckResult, Repo, Scope
 
 
 @dataclass(frozen=True)
 class Check:
     id: str
     summary: str
+    scope: Scope
     run: Callable[[Repo, Context], CheckResult]
 
 
 ALL: tuple[Check, ...] = tuple(
-    Check(module.ID, module.SUMMARY, module.run)
+    Check(module.ID, module.SUMMARY, module.SCOPE, module.run)
     for module in (
         justfile_check,
         ci_workflow_check,
@@ -33,3 +34,5 @@ ALL: tuple[Check, ...] = tuple(
 )
 
 BY_ID: dict[str, Check] = {check.id: check for check in ALL}
+
+CONTENT: tuple[Check, ...] = tuple(c for c in ALL if c.scope is Scope.CONTENT)

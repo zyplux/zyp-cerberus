@@ -1,7 +1,7 @@
 import shutil
 
 import pytest
-from cerberus import config, gh
+from cerberus import config, context, gh
 from cerberus.checks import (
     ci_workflow_check,
     codeowners_check,
@@ -9,7 +9,6 @@ from cerberus.checks import (
     ruleset_check,
     secrets_check,
 )
-from cerberus.context import Context
 from cerberus.model import Repo, Status
 
 requires_just = pytest.mark.skipif(
@@ -63,7 +62,7 @@ def repo():
 
 @pytest.fixture
 def ctx():
-    return Context(config=config.load())
+    return context.github_context(config.load())
 
 
 @requires_just

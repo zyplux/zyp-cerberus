@@ -3,10 +3,11 @@ from __future__ import annotations
 from typing import Any
 
 from cerberus.context import Context
-from cerberus.model import CheckResult, Repo
+from cerberus.model import CheckResult, Repo, Scope
 
 ID = "ruleset"
 SUMMARY = "default branch protected by the org baseline ruleset"
+SCOPE = Scope.CONTROL_PLANE
 
 
 def _by_type(rules: list[dict[str, Any]]) -> dict[str, dict[str, Any]]:

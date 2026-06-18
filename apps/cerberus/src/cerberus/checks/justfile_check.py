@@ -2,10 +2,11 @@ from __future__ import annotations
 
 from cerberus import justfile
 from cerberus.context import Context
-from cerberus.model import CheckResult, Repo
+from cerberus.model import CheckResult, Repo, Scope
 
 ID = "justfile"
 SUMMARY = "uniform recipe names, aliases, and check pipeline"
+SCOPE = Scope.CONTENT
 
 
 def run(repo: Repo, ctx: Context) -> CheckResult:
