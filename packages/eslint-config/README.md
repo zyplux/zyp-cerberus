@@ -69,10 +69,11 @@ Deprecated, mapped onto `react` for back-compat: `reactFiles` → `react: { dom 
 
 ## What's always on
 
-- Custom `@zyplux` rules: `no-identity-cast`, `no-inferrable-return-type`, `no-type-predicate`, `no-zod-custom`, `prefer-arrow-functions`.
-- Type-checked TypeScript (`strictTypeChecked` + `stylisticTypeChecked`), arrow-only functions, `type` over `interface`, no type assertions.
+- Custom `@zyplux` rules: `no-anonymous-param-type`, `no-arrow-return-type`, `no-identity-cast`, `no-return-array-push`, `no-type-predicate`, `no-zod-custom`, `prefer-arrow-functions`, `prefer-destructured-params`.
+- Type-checked TypeScript (the full `typescript-eslint` `all` preset), arrow-only functions, `type` over `interface`, no type assertions.
 - No parent-relative (`../`) imports — route through a tsconfig `paths` alias (`@/foo`).
 - unicorn + perfectionist (natural sorting); prettier last, so formatting rules are off.
+- Your `.gitignore` is honored — patterns from `<tsconfigRootDir>/.gitignore` become ESLint ignores (flat config doesn't read `.gitignore` on its own).
 
 ## zod at the boundary
 

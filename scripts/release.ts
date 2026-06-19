@@ -1,56 +1,116 @@
-import pkg from '@zyplux/eslint-config/package.json' with { type: 'json' };
+import eslintPkg from '@zyplux/eslint-config/package.json' with { type: 'json' };
 
 import { $ } from './shell-harness';
-import { ensure, poll } from './util';
+import { ensure, poll, readTrimmed } from './util';
 
-const packageName = '@zyplux/eslint-config';
-const { version } = pkg;
-const tag = `v${version}`;
-const spec = `${packageName}@${version}`;
-const registryUrl = `https://registry.npmjs.org/${packageName.replace('/', '%2f')}/${version}`;
+type Target = {
+  isPublished: () => Promise<boolean>;
+  label: string;
+  tag: string;
+  version: string;
+};
 
-const release = async () => {
-  const branch = await $.git.currentBranch();
-  ensure(branch === 'main', `releases are cut from main, not '${branch}'`);
+const httpOk = async (url: string) => {
+  const response = await fetch(url);
+  return response.ok;
+};
 
-  const status = await $.git.status();
-  ensure(status.length === 0, 'working tree is dirty; commit or stash first');
+const splitLines = (text: string) => (text ? text.split('\n') : []);
 
-  await $.git.fetch('origin', 'main');
-  const head = await $.git.revParse('HEAD');
-  const remoteHead = await $.git.revParse('origin/main');
-  ensure(head === remoteHead, 'local main and origin/main differ; push or pull first');
+const releaseExists = async (tag: string) =>
+  (await readTrimmed($.gh.release.list({ jq: `any(.[]; .tagName == "${tag}")`, json: 'tagName' }))) === 'true';
 
-  const exists = await $.gh.release.exists(tag);
-  ensure(!exists, `release ${tag} already exists`);
+const readCerberusVersion = async () => {
+  const pyproject = await Bun.file(new URL('../apps/cerberus/pyproject.toml', import.meta.url)).text();
+  const version = /^version = "([^"]+)"/m.exec(pyproject)?.[1];
+  if (version === undefined) {
+    throw new Error('could not read cerberus version from apps/cerberus/pyproject.toml');
+  }
+  return version;
+};
 
-  const knownRuns = await $.gh.run.ids({ event: 'release', workflow: 'release.yml' });
+const buildTargets = async () => {
+  const cerberusVersion = await readCerberusVersion();
+  return [
+    {
+      isPublished: async () => httpOk(`https://registry.npmjs.org/@zyplux%2feslint-config/${eslintPkg.version}`),
+      label: '@zyplux/eslint-config',
+      tag: `eslint-config-v${eslintPkg.version}`,
+      version: eslintPkg.version,
+    },
+    {
+      isPublished: async () => httpOk(`https://pypi.org/pypi/zyplux-cerberus/${cerberusVersion}/json`),
+      label: 'zyplux-cerberus',
+      tag: `cerberus-v${cerberusVersion}`,
+      version: cerberusVersion,
+    },
+  ];
+};
 
-  console.log(`Cutting release ${tag} from main ...`);
-  await $.gh.release.create(tag, { target: 'main' });
+const publish = async (target: Target, remoteHead: string) => {
+  console.log(`Cutting release ${target.tag} ...`);
+  const knownRuns = splitLines(
+    await readTrimmed(
+      $.gh.run.list({ event: 'release', jq: '.[].databaseId', json: 'databaseId', workflow: 'release.yml' }),
+    ),
+  );
+  await $.gh.release.create(target.tag, { generateNotes: true, target: remoteHead, title: target.tag });
 
   console.log('Watching the publish workflow ...');
+  const newRunQuery = `[.[] | select(.headSha=="${remoteHead}")] | .[].databaseId`;
   const runId = await poll(
-    () => $.gh.run.find({ event: 'release', headSha: remoteHead, knownIds: knownRuns, workflow: 'release.yml' }),
-    30,
-    2000,
+    async () => {
+      const ids = splitLines(
+        await readTrimmed(
+          $.gh.run.list({ event: 'release', jq: newRunQuery, json: 'databaseId,headSha', workflow: 'release.yml' }),
+        ),
+      );
+      return ids.find(id => !knownRuns.includes(id));
+    },
+    { attempts: 30, intervalMs: 2000 },
   );
   if (runId === undefined) {
     throw new Error('publish workflow did not start; check the Actions tab');
   }
-  await $.gh.run.watch(runId);
+  await $.gh.run.watch(runId, { exitStatus: true });
 
-  console.log(`Verifying ${spec} on npm ...`);
-  const published = await poll(
-    async () => {
-      const response = await fetch(registryUrl);
-      return response.ok ? spec : undefined;
-    },
-    10,
-    3000,
-  );
-  ensure(published !== undefined, `${spec} is not visible on npm yet`);
-  console.log(`Published ${spec}`);
+  console.log(`Verifying ${target.label} ${target.version} ...`);
+  const visible = await poll(async () => ((await target.isPublished()) ? true : undefined), {
+    attempts: 10,
+    intervalMs: 3000,
+  });
+  ensure(visible === true, `${target.label} ${target.version} is not visible on its registry yet`);
+  console.log(`Published ${target.label} ${target.version}`);
+};
+
+const release = async () => {
+  const branch = await readTrimmed($.git.revParse('HEAD', { abbrevRef: true }));
+  ensure(branch === 'main', `releases are cut from main, not '${branch}'`);
+
+  const status = await readTrimmed($.git.status({ porcelain: true }));
+  ensure(status.length === 0, 'working tree is dirty; commit or stash first');
+
+  await $.git.fetch('origin', 'main');
+  const head = await readTrimmed($.git.revParse('HEAD'));
+  const remoteHead = await readTrimmed($.git.revParse('origin/main'));
+  ensure(head === remoteHead, 'local main and origin/main differ; push or pull first');
+
+  const pending: Target[] = [];
+  const targets = await buildTargets();
+  for (const target of targets) {
+    if (await target.isPublished()) {
+      console.log(`Skipping ${target.label} ${target.version} (already published)`);
+    } else if (await releaseExists(target.tag)) {
+      console.log(`Skipping ${target.label} ${target.version} (release ${target.tag} already exists)`);
+    } else {
+      pending.push(target);
+    }
+  }
+  ensure(pending.length > 0, 'nothing to release; bump a version first');
+
+  for (const target of pending) {
+    await publish(target, remoteHead);
+  }
 };
 
 try {

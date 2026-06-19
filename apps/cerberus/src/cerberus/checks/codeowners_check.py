@@ -1,10 +1,11 @@
 from __future__ import annotations
 
 from cerberus.context import Context
-from cerberus.model import CheckResult, Repo
+from cerberus.model import CheckResult, Repo, Scope
 
 ID = "codeowners"
 SUMMARY = "CODEOWNERS present and covers /.github/"
+SCOPE = Scope.CONTENT
 
 _LOCATIONS = (".github/CODEOWNERS", "CODEOWNERS", "docs/CODEOWNERS")
 

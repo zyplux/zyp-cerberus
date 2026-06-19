@@ -1,15 +1,15 @@
 import shutil
 
 import pytest
-from cerberus import config, gh
+from cerberus import config, context, gh
 from cerberus.checks import (
     ci_workflow_check,
     codeowners_check,
     justfile_check,
     ruleset_check,
     secrets_check,
+    workflow_tooling_check,
 )
-from cerberus.context import Context
 from cerberus.model import Repo, Status
 
 requires_just = pytest.mark.skipif(
@@ -54,44 +54,63 @@ MISSING_RECOMMENDED = CONFORMING.replace("alias ui := upgrade-interactive\n", ""
 WRONG_CHECK_ORDER = CONFORMING.replace(
     "check: install knip typecheck lint test", "check: install lint knip typecheck test"
 )
+BARE_TOOL_CALL = CONFORMING.replace("lint:\n    bun run lint\n", "lint:\n    rumdl check\n")
+TRAILING_WHITESPACE = CONFORMING.replace(
+    "check: install knip typecheck lint test\n",
+    "check: install knip typecheck lint test   \n",
+)
 
 
 @pytest.fixture
 def repo():
-    return Repo("demo", "zyplux", "main", "public", archived=False, is_fork=False)
+    return Repo("demo", "zyplux", "main", "public")
 
 
 @pytest.fixture
 def ctx():
-    return Context(config=config.load())
+    return context.github_context(config.load())
 
 
 @requires_just
 def test_conforming_justfile_passes(monkeypatch, repo, ctx):
-    monkeypatch.setattr(gh, "raw_file", lambda *a: CONFORMING)
+    monkeypatch.setattr(gh, "raw_file", lambda *_: CONFORMING)
     assert justfile_check.run(repo, ctx).status is Status.PASS
 
 
 def test_missing_justfile_fails(monkeypatch, repo, ctx):
-    monkeypatch.setattr(gh, "raw_file", lambda *a: None)
+    monkeypatch.setattr(gh, "raw_file", lambda *_: None)
     assert justfile_check.run(repo, ctx).status is Status.FAIL
 
 
 @requires_just
 def test_missing_required_alias_fails(monkeypatch, repo, ctx):
-    monkeypatch.setattr(gh, "raw_file", lambda *a: MISSING_REQUIRED_ALIAS)
+    monkeypatch.setattr(gh, "raw_file", lambda *_: MISSING_REQUIRED_ALIAS)
     assert justfile_check.run(repo, ctx).status is Status.FAIL
 
 
 @requires_just
 def test_missing_recommended_only_warns(monkeypatch, repo, ctx):
-    monkeypatch.setattr(gh, "raw_file", lambda *a: MISSING_RECOMMENDED)
+    monkeypatch.setattr(gh, "raw_file", lambda *_: MISSING_RECOMMENDED)
     assert justfile_check.run(repo, ctx).status is Status.WARN
 
 
 @requires_just
 def test_wrong_check_pipeline_order_fails(monkeypatch, repo, ctx):
-    monkeypatch.setattr(gh, "raw_file", lambda *a: WRONG_CHECK_ORDER)
+    monkeypatch.setattr(gh, "raw_file", lambda *_: WRONG_CHECK_ORDER)
+    assert justfile_check.run(repo, ctx).status is Status.FAIL
+
+
+@requires_just
+def test_bare_managed_tool_fails(monkeypatch, repo, ctx):
+    monkeypatch.setattr(gh, "raw_file", lambda *_: BARE_TOOL_CALL)
+    result = justfile_check.run(repo, ctx)
+    assert result.status is Status.FAIL
+    assert any("rumdl" in f.message for f in result.problems)
+
+
+@requires_just
+def test_trailing_whitespace_fails(monkeypatch, repo, ctx):
+    monkeypatch.setattr(gh, "raw_file", lambda *_: TRAILING_WHITESPACE)
     assert justfile_check.run(repo, ctx).status is Status.FAIL
 
 
@@ -119,7 +138,7 @@ def test_secrets_ignores_github_token(monkeypatch, repo, ctx):
 
 
 def test_codeowners_missing_fails(monkeypatch, repo, ctx):
-    monkeypatch.setattr(gh, "raw_file", lambda *a: None)
+    monkeypatch.setattr(gh, "raw_file", lambda *_: None)
     assert codeowners_check.run(repo, ctx).status is Status.FAIL
 
 
@@ -129,12 +148,12 @@ def test_codeowners_covers_github(monkeypatch, repo, ctx):
 
 
 def test_codeowners_wildcard_covers_github(monkeypatch, repo, ctx):
-    monkeypatch.setattr(gh, "raw_file", lambda *a: "* @zyplux/admins\n")
+    monkeypatch.setattr(gh, "raw_file", lambda *_: "* @zyplux/admins\n")
     assert codeowners_check.run(repo, ctx).status is Status.PASS
 
 
 def test_codeowners_lookalike_path_does_not_cover_github(monkeypatch, repo, ctx):
-    monkeypatch.setattr(gh, "raw_file", lambda *a: "docs/.github-notes @zyplux/admins\n")
+    monkeypatch.setattr(gh, "raw_file", lambda *_: "docs/.github-notes @zyplux/admins\n")
     assert codeowners_check.run(repo, ctx).status is Status.WARN
 
 
@@ -187,6 +206,52 @@ def test_ci_workflow_job_id_named_ci_passes(monkeypatch, repo, ctx):
         ctx, "file", _ci_workflow("on: [pull_request, push]\njobs:\n  ci:\n    runs-on: x\n")
     )
     assert ci_workflow_check.run(repo, ctx).status is Status.PASS
+
+
+_CLEAN_WORKFLOW = (
+    "jobs:\n"
+    "  ci:\n"
+    "    steps:\n"
+    "      - uses: actions/checkout@v6\n"
+    "      - uses: astral-sh/setup-uv@v8.2.0\n"
+    "      - uses: oven-sh/setup-bun@v2\n"
+    "      - run: uv sync --locked\n"
+    "      - run: bun install --frozen-lockfile\n"
+)
+
+
+def test_workflow_tooling_passes_on_workspace_toolchain(monkeypatch, repo, ctx):
+    monkeypatch.setattr(ctx, "workflows", lambda r: {"ci.yml": _CLEAN_WORKFLOW})
+    assert workflow_tooling_check.run(repo, ctx).status is Status.PASS
+
+
+def test_workflow_tooling_skips_without_workflows(monkeypatch, repo, ctx):
+    monkeypatch.setattr(ctx, "workflows", lambda r: {})
+    assert workflow_tooling_check.run(repo, ctx).status is Status.SKIP
+
+
+def test_workflow_tooling_flags_setup_node(monkeypatch, repo, ctx):
+    wf = "jobs:\n  ci:\n    steps:\n      - uses: actions/setup-node@v4\n"
+    monkeypatch.setattr(ctx, "workflows", lambda r: {"ci.yml": wf})
+    assert workflow_tooling_check.run(repo, ctx).status is Status.FAIL
+
+
+def test_workflow_tooling_flags_install_action(monkeypatch, repo, ctx):
+    wf = "jobs:\n  ci:\n    steps:\n      - uses: taiki-e/install-action@just\n"
+    monkeypatch.setattr(ctx, "workflows", lambda r: {"ci.yml": wf})
+    assert workflow_tooling_check.run(repo, ctx).status is Status.FAIL
+
+
+def test_workflow_tooling_flags_apt_install(monkeypatch, repo, ctx):
+    wf = "jobs:\n  ci:\n    steps:\n      - run: sudo apt-get install -y just\n"
+    monkeypatch.setattr(ctx, "workflows", lambda r: {"ci.yml": wf})
+    assert workflow_tooling_check.run(repo, ctx).status is Status.FAIL
+
+
+def test_workflow_tooling_allows_npm_publish(monkeypatch, repo, ctx):
+    wf = "jobs:\n  ci:\n    steps:\n      - run: npm publish ./*.tgz --access public\n"
+    monkeypatch.setattr(ctx, "workflows", lambda r: {"ci.yml": wf})
+    assert workflow_tooling_check.run(repo, ctx).status is Status.PASS
 
 
 def _ruleset(*rules):

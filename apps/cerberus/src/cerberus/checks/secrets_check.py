@@ -3,10 +3,11 @@ from __future__ import annotations
 import re
 
 from cerberus.context import Context
-from cerberus.model import CheckResult, Repo
+from cerberus.model import CheckResult, Repo, Scope
 
 ID = "workflow-secrets"
 SUMMARY = "every secret referenced in workflows is provisioned"
+SCOPE = Scope.CONTROL_PLANE
 
 _SECRET_REF = re.compile(r"secrets\.([A-Za-z_][A-Za-z0-9_]*)")
 _ALWAYS_PRESENT = frozenset({"GITHUB_TOKEN"})

@@ -5,10 +5,11 @@ from typing import Any
 import yaml
 
 from cerberus.context import Context
-from cerberus.model import CheckResult, Repo
+from cerberus.model import CheckResult, Repo, Scope
 
 ID = "ci-workflow"
 SUMMARY = "ci.yml exists, exposes a `ci` check, runs on PRs (push to main recommended)"
+SCOPE = Scope.CONTENT
 
 YamlMapping = dict[str | bool, Any]
 ON_KEY_AS_PYYAML_BOOL = True

@@ -19,3 +19,7 @@ ui = "upgrade-interactive"
 required = ["default", "install", "knip", "typecheck", "lint", "test", "check"]
 recommended = ["upgrade", "upgrade-interactive", "clean"]
 check_pipeline = ["install", "knip", "typecheck", "lint", "test"]
+wrapped_tools = ["ruff", "pyrefly", "pytest", "rumdl", "vulture", "cerberus", "eslint", "prettier", "knip", "tsc"]
+
+[ci]
+allowed_setup_actions = ["astral-sh/setup-uv", "oven-sh/setup-bun"]

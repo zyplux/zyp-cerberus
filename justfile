@@ -6,6 +6,7 @@ alias tc := typecheck
 alias l := lint
 alias t := test
 alias c := check
+alias d := dump-rules
 alias u := upgrade
 alias ui := upgrade-interactive
 
@@ -18,34 +19,32 @@ install:
     bun install
     uv sync --all-packages --all-groups
 
-# Report unused files, dependencies, and exports via knip (JS workspace).
+# Report unused files, deps, and exports: knip (JS workspace) + vulture (Python).
 knip:
     bun run knip
+    uv run vulture
 
 # Type-check both workspaces: tsc/bun for .ts, pyrefly for .py.
 typecheck:
     bun run typecheck
     uv run pyrefly check
 
-# Lint and format both workspaces with autofix: eslint --fix + prettier, ruff --fix + ruff format.
+# Lint and format both workspaces with autofix, then verify org invariants with cerberus.
 lint:
     bun run lint:fix
     bun run format
+    uv run rumdl check --fix
     uv run ruff check --fix
     uv run ruff format
+    uv run cerberus --fix
 
-# Run tests for both workspaces: bun for .ts, pytest for .py.
-test:
-    bun run test
-    uv run pytest
+# Run tests for both workspaces. Optional arg filters by test name; never fails when nothing matches.
+test name='':
+    bun run test {{ if name == '' { '' } else { '-t "' + name + '" --passWithNoTests --pass-with-no-tests' } }}
+    uv run pytest {{ if name == '' { '' } else { '-k "' + name + '"' } }} || [ "$?" -eq 5 ]
 
 # Full gate across both workspaces: install, knip, typecheck, lint, test — autofix throughout.
 check: install knip typecheck lint test
-
-# Auto-format both workspaces: prettier for .ts, ruff format for .py.
-format:
-    bun run format
-    uv run ruff format
 
 # Upgrade JS dependencies across the workspace via ncu (catalog-aware). Forwards extra args (e.g. `just u -i`).
 upgrade *args='':
@@ -56,7 +55,7 @@ upgrade-interactive:
     bun run upgrade -- -i
     bun install
 
-# Cut a GitHub release for the current package version, then watch the publish workflow and verify it on npm.
+# Publish any bumped workspace package (eslint-config → npm, cerberus → PyPI) via GitHub releases.
 release:
     bun run release
 
@@ -69,3 +68,10 @@ clean:
     rm -rf node_modules packages/*/node_modules tests/*/node_modules
     rm -rf .venv .pytest_cache .ruff_cache .rumdl_cache
     find . -type d -name __pycache__ -prune -exec rm -rf {} +
+
+clone repo ref="":
+    bun run clone -- {{ repo }} {{ ref }}
+
+# Dump the fully-resolved ESLint config (all rules) to packages/eslint-config/rules.json.
+dump-rules:
+    bun run --cwd packages/eslint-config dump-rules

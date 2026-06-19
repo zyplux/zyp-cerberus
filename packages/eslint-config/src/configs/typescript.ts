@@ -1,10 +1,47 @@
+import type { Linter } from 'eslint';
+
 import tseslint from 'typescript-eslint';
 
 import type { ConfigWithExtends } from './types';
 
+const allOverrides: Linter.RulesRecord = {
+  '@typescript-eslint/consistent-return': 'off', // recommended noImplicitReturns over this rule https://typescript-eslint.io/rules/consistent-return
+  '@typescript-eslint/explicit-function-return-type': 'off',
+  '@typescript-eslint/explicit-module-boundary-types': 'off',
+  '@typescript-eslint/naming-convention': 'off',
+  '@typescript-eslint/no-magic-numbers': [
+    'error',
+    {
+      ignore: [-1, 0, 1],
+      ignoreNumericLiteralTypes: true,
+      ignoreTypeIndexes: true,
+    },
+  ],
+  '@typescript-eslint/prefer-readonly-parameter-types': 'off',
+};
+
+const strictStylisticOverrides: Linter.RulesRecord = {
+  '@typescript-eslint/consistent-type-assertions': ['error', { assertionStyle: 'never' }],
+  '@typescript-eslint/consistent-type-definitions': ['error', 'type'],
+  '@typescript-eslint/no-restricted-imports': [
+    'error',
+    {
+      patterns: [
+        {
+          message: 'No parent-relative (../) imports — route through a tsconfig "paths" alias (e.g. @/foo) instead.',
+          regex: String.raw`^\.\.`,
+        },
+      ],
+    },
+  ],
+  '@typescript-eslint/prefer-destructuring': 'off',
+  '@typescript-eslint/restrict-template-expressions': ['error', { allowNumber: true }],
+};
+
 export const typescript = (tsconfigRootDir: string) =>
   ({
-    extends: [tseslint.configs.strictTypeChecked, tseslint.configs.stylisticTypeChecked],
+    //extends: [tseslint.configs.strictTypeChecked, tseslint.configs.stylisticTypeChecked],
+    extends: [tseslint.configs.all],
     files: ['**/*.{ts,tsx}'],
     languageOptions: {
       parserOptions: {
@@ -13,20 +50,7 @@ export const typescript = (tsconfigRootDir: string) =>
       },
     },
     rules: {
-      '@typescript-eslint/consistent-type-assertions': ['error', { assertionStyle: 'never' }],
-      '@typescript-eslint/consistent-type-definitions': ['error', 'type'],
-      '@typescript-eslint/no-restricted-imports': [
-        'error',
-        {
-          patterns: [
-            {
-              message:
-                'No parent-relative (../) imports — route through a tsconfig "paths" alias (e.g. @/foo) instead.',
-              regex: String.raw`^\.\.`,
-            },
-          ],
-        },
-      ],
-      '@typescript-eslint/restrict-template-expressions': ['error', { allowNumber: true }],
+      ...allOverrides,
+      ...strictStylisticOverrides,
     },
   }) satisfies ConfigWithExtends;

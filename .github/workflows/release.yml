@@ -9,8 +9,9 @@ concurrency:
   cancel-in-progress: false
 
 jobs:
-  publish:
+  npm:
     name: publish to npm
+    if: startsWith(github.event.release.tag_name, 'eslint-config-v')
     runs-on: ubuntu-latest
     permissions:
       contents: read
@@ -24,7 +25,7 @@ jobs:
         working-directory: packages/eslint-config
         run: |
           version="$(bun --print "require('./package.json').version")"
-          tag="${GITHUB_REF_NAME#v}"
+          tag="${GITHUB_REF_NAME#eslint-config-v}"
           if [ "$version" != "$tag" ]; then
             echo "::error::release tag '$GITHUB_REF_NAME' does not match package version '$version'"
             exit 1
@@ -38,3 +39,28 @@ jobs:
         run: |
           bun pm pack
           npm publish ./*.tgz --access public
+
+  pypi:
+    name: publish to PyPI
+    if: startsWith(github.event.release.tag_name, 'cerberus-v')
+    runs-on: ubuntu-latest
+    environment: pypi
+    permissions:
+      id-token: write
+      contents: read
+    steps:
+      - uses: actions/checkout@v6
+      - uses: astral-sh/setup-uv@v8.2.0
+      - name: Assert release tag matches package version
+        working-directory: apps/cerberus
+        run: |
+          version="$(uv version --short)"
+          tag="${GITHUB_REF_NAME#cerberus-v}"
+          if [ "$version" != "$tag" ]; then
+            echo "::error::release tag '$GITHUB_REF_NAME' does not match package version '$version'"
+            exit 1
+          fi
+      - name: Build
+        run: uv build --package zyplux-cerberus
+      - name: Publish
+        run: uv publish

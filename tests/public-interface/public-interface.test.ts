@@ -3,14 +3,6 @@ import { describe, expect, test } from 'bun:test';
 
 type Config = ReturnType<typeof zyplux>;
 
-const customRuleNames = [
-  'no-identity-cast',
-  'no-inferrable-return-type',
-  'no-type-predicate',
-  'no-zod-custom',
-  'prefer-arrow-functions',
-];
-
 const hasReactSettings = (config: Config) =>
   config.some(entry => entry.settings !== undefined && 'react' in entry.settings);
 
@@ -19,32 +11,37 @@ const hasRouteRule = (config: Config) =>
 
 const reactVersion = (config: Config) => {
   for (const entry of config) {
-    const settings = entry.settings;
+    const { settings } = entry;
     if (settings === undefined || !('react' in settings)) continue;
-    const react = settings.react;
+    const { react } = settings;
     if (react !== null && typeof react === 'object' && 'version' in react) return react.version;
   }
   return;
 };
 
-const turnsOffRule = (config: Config, ruleName: string) => config.some(entry => entry.rules?.[ruleName] === 'off');
+const isRuleDisabled = (config: Config, ruleName: string) => config.some(entry => entry.rules?.[ruleName] === 'off');
 
 const reactSettingsFiles = (config: Config) =>
-  config.filter(entry => entry.settings !== undefined && 'react' in entry.settings).flatMap(entry => entry.files ?? []);
+  config.flatMap(entry => (entry.settings !== undefined && 'react' in entry.settings ? (entry.files ?? []) : []));
 
 const offRuleFiles = (config: Config, ruleName: string) =>
-  config.filter(entry => entry.rules?.[ruleName] === 'off').flatMap(entry => entry.files ?? []);
+  config.flatMap(entry => (entry.rules?.[ruleName] === 'off' ? (entry.files ?? []) : []));
 
 describe('zyplux', () => {
   test('returns a non-empty flat config array', () => {
     expect(zyplux().length).toBeGreaterThan(0);
   });
 
-  test('registers the @zyplux plugin and its rules', () => {
+  test('enables exactly the rules the @zyplux plugin exports', () => {
     const config = zyplux();
     const entry = config.find(item => item.plugins !== undefined && '@zyplux' in item.plugins);
     expect(entry).toBeDefined();
-    expect(Object.keys(entry?.rules ?? {})).toEqual(customRuleNames.map(name => `@zyplux/${name}`));
+    const exported = Object.keys(plugin.rules).toSorted((a, b) => a.localeCompare(b));
+    const enabled = Object.keys(entry?.rules ?? {})
+      .map(name => name.replace('@zyplux/', ''))
+      .toSorted((a, b) => a.localeCompare(b));
+    expect(exported.length).toBeGreaterThan(0);
+    expect(enabled).toEqual(exported);
   });
 
   test('React config is opt-in', () => {
@@ -63,11 +60,11 @@ describe('zyplux', () => {
   });
 
   test('nonDomReactFiles requires react and turns off react/no-unknown-property', () => {
-    expect(turnsOffRule(zyplux(), 'react/no-unknown-property')).toBe(false);
-    expect(turnsOffRule(zyplux({ nonDomReactFiles: ['apps/tui/**'] }), 'react/no-unknown-property')).toBe(false);
-    expect(turnsOffRule(zyplux({ nonDomReactFiles: ['apps/tui/**'], react: true }), 'react/no-unknown-property')).toBe(
-      true,
-    );
+    expect(isRuleDisabled(zyplux(), 'react/no-unknown-property')).toBe(false);
+    expect(isRuleDisabled(zyplux({ nonDomReactFiles: ['apps/tui/**'] }), 'react/no-unknown-property')).toBe(false);
+    expect(
+      isRuleDisabled(zyplux({ nonDomReactFiles: ['apps/tui/**'], react: true }), 'react/no-unknown-property'),
+    ).toBe(true);
   });
 });
 
@@ -89,7 +86,7 @@ describe('renderer presets', () => {
   test('a non-DOM renderer alone enables react and turns off react/no-unknown-property', () => {
     const config = zyplux({ react: { opentui: ['apps/tui/**'] } });
     expect(hasReactSettings(config)).toBe(true);
-    expect(turnsOffRule(config, 'react/no-unknown-property')).toBe(true);
+    expect(isRuleDisabled(config, 'react/no-unknown-property')).toBe(true);
   });
 
   test('an empty renderer map is treated as no react', () => {
@@ -107,11 +104,5 @@ describe('withDefaults', () => {
   test('a per-call option overrides the shared default', () => {
     const tv = zyplux.withDefaults({ react: true });
     expect(hasReactSettings(tv({ react: false }))).toBe(false);
-  });
-});
-
-describe('plugin', () => {
-  test('exposes the custom rules', () => {
-    expect(Object.keys(plugin.rules).toSorted()).toEqual(customRuleNames.toSorted());
   });
 });

@@ -1,30 +1,30 @@
-import { zyplux } from '@zyplux/eslint-config';
 import { describe, expect, it } from 'bun:test';
 import { Linter } from 'eslint';
 
-const config = zyplux();
-const arrowOnlyEntry = config.find(entry => entry.rules?.['no-restricted-syntax'] !== undefined);
-const arrowOnlyRule = arrowOnlyEntry?.rules?.['no-restricted-syntax'] ?? 'off';
+import { getMergedRule } from './merged-rule';
+
+const arrowOnlyRule = await getMergedRule('no-restricted-syntax');
 
 const linter = new Linter();
 
-const arrowOnlyErrorCount = (code: string) =>
-  linter.verify(code, { rules: { 'no-restricted-syntax': arrowOnlyRule } }).length;
+const arrowOnlyErrors = (code: string) => linter.verify(code, { rules: { 'no-restricted-syntax': arrowOnlyRule } });
+
+const bannedSyntax = [{ ruleId: 'no-restricted-syntax' }];
 
 describe('arrow-only no-restricted-syntax', () => {
   it('still bans function declarations', () => {
-    expect(arrowOnlyErrorCount('function foo() {}')).toBe(1);
+    expect(arrowOnlyErrors('function foo() {}')).toMatchObject(bannedSyntax);
   });
 
   it('still bans standalone function expressions', () => {
-    expect(arrowOnlyErrorCount('const f = function () {};')).toBe(1);
+    expect(arrowOnlyErrors('const f = function () {};')).toMatchObject(bannedSyntax);
   });
 
   it('exempts generator declarations — they have no arrow form', () => {
-    expect(arrowOnlyErrorCount('function* gen() { yield 1; }')).toBe(0);
+    expect(arrowOnlyErrors('function* gen() { yield 1; }')).toBeEmpty();
   });
 
   it('exempts async generator expressions', () => {
-    expect(arrowOnlyErrorCount('const stream = async function* () { yield 1; };')).toBe(0);
+    expect(arrowOnlyErrors('const stream = async function* () { yield 1; };')).toBeEmpty();
   });
 });

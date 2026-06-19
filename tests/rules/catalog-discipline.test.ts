@@ -20,7 +20,8 @@ const dependencyKeys = ['dependencies', 'devDependencies', 'peerDependencies', '
 const collectWorkspaceManifests = () => {
   const paths = [path.join(repoRoot, 'package.json')];
   for (const group of ['packages', 'tests']) {
-    for (const name of readdirSync(path.join(repoRoot, group))) {
+    const names = readdirSync(path.join(repoRoot, group));
+    for (const name of names) {
       const manifestPath = path.join(repoRoot, group, name, 'package.json');
       if (existsSync(manifestPath)) paths.push(manifestPath);
     }
@@ -28,24 +29,24 @@ const collectWorkspaceManifests = () => {
   return paths;
 };
 
-const findOffenders = () => {
+const manifestOffenders = (manifestPath: string) => {
+  const raw: unknown = JSON.parse(readFileSync(manifestPath, 'utf8'));
+  const manifest = manifestSchema.parse(raw);
+  const label = path.relative(repoRoot, manifestPath);
   const offenders: string[] = [];
-  for (const manifestPath of collectWorkspaceManifests()) {
-    const raw: unknown = JSON.parse(readFileSync(manifestPath, 'utf8'));
-    const manifest = manifestSchema.parse(raw);
-    const label = path.relative(repoRoot, manifestPath);
-    for (const key of dependencyKeys) {
-      const deps = manifest[key];
-      if (!deps) continue;
-      for (const [name, spec] of Object.entries(deps)) {
-        if (!spec.startsWith('catalog:') && !spec.startsWith('workspace:')) {
-          offenders.push(`${label} → ${key}.${name} = "${spec}"`);
-        }
+  for (const key of dependencyKeys) {
+    const deps = manifest[key];
+    if (!deps) continue;
+    for (const [name, spec] of Object.entries(deps)) {
+      if (!spec.startsWith('catalog:') && !spec.startsWith('workspace:')) {
+        offenders.push(`${label} → ${key}.${name} = "${spec}"`);
       }
     }
   }
   return offenders;
 };
+
+const findOffenders = () => collectWorkspaceManifests().flatMap(manifestPath => manifestOffenders(manifestPath));
 
 describe('workspace dependency discipline', () => {
   it('every dependency entry in a workspace package.json uses catalog: or workspace:', () => {

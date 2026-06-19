@@ -12,13 +12,16 @@ class Status(Enum):
     ERROR = auto()
 
     @property
-    def label(self) -> str:
-        return self.name.lower()
-
-    @property
     def rank(self) -> int:
         order = (Status.PASS, Status.SKIP, Status.WARN, Status.FAIL, Status.ERROR)
         return order.index(self)
+
+
+class Scope(Enum):
+    """Where a check's facts live, hence where it can run."""
+
+    CONTENT = auto()  # in the checkout — runnable as a per-repo CI linter
+    CONTROL_PLANE = auto()  # GitHub org/admin state — only the central org scan
 
 
 @dataclass(frozen=True)
@@ -27,8 +30,6 @@ class Repo:
     owner: str
     default_branch: str
     visibility: str
-    archived: bool
-    is_fork: bool
 
     @property
     def full_name(self) -> str:

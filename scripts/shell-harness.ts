@@ -1,55 +1,74 @@
-const readTrimmed = async (output: Promise<string>) => {
-  const text = await output;
-  return text.trim();
+type BranchFlags = { delete?: boolean; force?: boolean };
+
+type CloneFlags = { branch?: string; depth?: number; singleBranch?: boolean };
+
+type FlagValue = boolean | number | string | undefined;
+
+type PrCreateFlags = { base: string; body: string; draft?: boolean; title: string };
+
+type PrListFlags = { head?: string; jq?: string; json?: string; state?: string };
+
+type PrMergeFlags = { auto?: boolean; deleteBranch?: boolean; squash?: boolean };
+
+type PrViewFlags = { jq?: string; json?: string };
+
+type PullFlags = { ffOnly?: boolean };
+
+type PushFlags = { setUpstream?: boolean };
+
+type ReleaseCreateFlags = { generateNotes?: boolean; target?: string; title?: string };
+
+type ReleaseListFlags = { jq?: string; json?: string };
+
+type RevParseFlags = { abbrevRef?: boolean };
+
+type RunListFlags = { event?: string; jq?: string; json?: string; workflow?: string };
+
+type RunWatchFlags = { exitStatus?: boolean };
+
+type StatusFlags = { porcelain?: boolean };
+
+const toKebab = (name: string) => name.replaceAll(/[A-Z]/g, char => `-${char.toLowerCase()}`);
+
+const flag = (name: string, value: FlagValue) => {
+  if (value === undefined || value === false) return [];
+  if (value === true) return [`--${toKebab(name)}`];
+  return [`--${toKebab(name)}`, String(value)];
 };
+
+const toArgs = (flags: Record<string, FlagValue>) =>
+  Object.entries(flags).flatMap(([name, value]) => flag(name, value));
 
 const gh = {
   pr: {
-    create: (base: string, title: string) => Bun.$`gh pr create --base ${base} --title ${title} --body ${''} --draft`,
-    isDraft: async () => (await readTrimmed(Bun.$`gh pr view --json isDraft --jq .isDraft`.text())) === 'true',
-    merge: () => Bun.$`gh pr merge --squash --delete-branch`,
-    mergeAuto: () => Bun.$`gh pr merge --auto --squash --delete-branch`,
-    mergeState: () => readTrimmed(Bun.$`gh pr view --json mergeStateStatus --jq .mergeStateStatus`.text()),
-    ready: () => Bun.$`gh pr ready`,
-    state: (branch: string) =>
-      readTrimmed(Bun.$`gh pr list --head ${branch} --state all --json state --jq ${'.[0].state // ""'}`.text()),
-    url: () => readTrimmed(Bun.$`gh pr view --json url --jq .url`.text()),
+    create: async (flags: PrCreateFlags) => Bun.$`gh ${['pr', 'create', ...toArgs(flags)]}`,
+    list: async (flags: PrListFlags = {}) => Bun.$`gh ${['pr', 'list', ...toArgs(flags)]}`,
+    merge: async (flags: PrMergeFlags = {}) => Bun.$`gh ${['pr', 'merge', ...toArgs(flags)]}`,
+    ready: async () => Bun.$`gh ${['pr', 'ready']}`,
+    view: async (flags: PrViewFlags = {}) => Bun.$`gh ${['pr', 'view', ...toArgs(flags)]}`,
   },
   release: {
-    create: (tag: string, options: { target: string }) =>
-      Bun.$`gh release create ${tag} --target ${options.target} --title ${tag} --generate-notes`,
-    exists: async (tag: string) =>
-      (await readTrimmed(Bun.$`gh release list --json tagName --jq ${`any(.[]; .tagName == "${tag}")`}`.text())) ===
-      'true',
+    create: async (tag: string, flags: ReleaseCreateFlags = {}) =>
+      Bun.$`gh ${['release', 'create', tag, ...toArgs(flags)]}`,
+    list: async (flags: ReleaseListFlags = {}) => Bun.$`gh ${['release', 'list', ...toArgs(flags)]}`,
   },
   run: {
-    find: async (options: { event: string; headSha: string; knownIds: string[]; workflow: string }) => {
-      const query = `[.[] | select(.headSha=="${options.headSha}")] | .[].databaseId`;
-      const listed = await readTrimmed(
-        Bun.$`gh run list --workflow=${options.workflow} --event=${options.event} --json databaseId,headSha --jq ${query}`.text(),
-      );
-      const ids = listed ? listed.split('\n') : [];
-      return ids.find(id => !options.knownIds.includes(id));
-    },
-    ids: async (options: { event: string; workflow: string }) => {
-      const listed = await readTrimmed(
-        Bun.$`gh run list --workflow=${options.workflow} --event=${options.event} --json databaseId --jq ${'.[].databaseId'}`.text(),
-      );
-      return listed ? listed.split('\n') : [];
-    },
-    watch: (runId: string) => Bun.$`gh run watch ${runId} --exit-status`,
+    list: async (flags: RunListFlags = {}) => Bun.$`gh ${['run', 'list', ...toArgs(flags)]}`,
+    watch: async (runId: string, flags: RunWatchFlags = {}) => Bun.$`gh ${['run', 'watch', runId, ...toArgs(flags)]}`,
   },
 };
 
 const git = {
-  checkout: (ref: string) => Bun.$`git checkout ${ref}`,
-  currentBranch: () => readTrimmed(Bun.$`git rev-parse --abbrev-ref HEAD`.text()),
-  deleteBranch: (branch: string) => Bun.$`git branch -D ${branch}`,
-  fetch: (remote: string, branch: string) => Bun.$`git fetch ${remote} ${branch}`,
-  pull: () => Bun.$`git pull --ff-only`,
-  push: (remote: string, branch: string) => Bun.$`git push -u ${remote} ${branch}`,
-  revParse: (rev: string) => readTrimmed(Bun.$`git rev-parse ${rev}`.text()),
-  status: () => readTrimmed(Bun.$`git status --porcelain`.text()),
+  branch: async (name: string, flags: BranchFlags = {}) => Bun.$`git ${['branch', ...toArgs(flags), name]}`,
+  checkout: async (ref: string) => Bun.$`git ${['checkout', ref]}`,
+  clone: async (url: string, dest: string, flags: CloneFlags = {}) =>
+    Bun.$`git ${['clone', ...toArgs(flags), url, dest]}`,
+  fetch: async (remote: string, branch: string) => Bun.$`git ${['fetch', remote, branch]}`,
+  pull: async (flags: PullFlags = {}) => Bun.$`git ${['pull', ...toArgs(flags)]}`,
+  push: async (remote: string, branch: string, flags: PushFlags = {}) =>
+    Bun.$`git ${['push', ...toArgs(flags), remote, branch]}`,
+  revParse: async (rev: string, flags: RevParseFlags = {}) => Bun.$`git ${['rev-parse', ...toArgs(flags), rev]}`,
+  status: async (flags: StatusFlags = {}) => Bun.$`git ${['status', ...toArgs(flags)]}`,
 };
 
 export const $ = Object.assign(Bun.$, { gh, git });
