@@ -441,7 +441,7 @@
     "@typescript-eslint/parameter-properties": [2],
     "@typescript-eslint/prefer-as-const": [2],
     "prefer-destructuring": [0],
-    "@typescript-eslint/prefer-destructuring": [2],
+    "@typescript-eslint/prefer-destructuring": [0],
     "@typescript-eslint/prefer-enum-initializers": [2],
     "@typescript-eslint/prefer-find": [2],
     "@typescript-eslint/prefer-for-of": [2],
