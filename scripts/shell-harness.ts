@@ -1,6 +1,6 @@
 type BranchFlags = { delete?: boolean; force?: boolean };
 
-type CloneFlags = { depth?: number; shallowExclude?: string; singleBranch?: boolean };
+type CloneFlags = { branch?: string; depth?: number; singleBranch?: boolean };
 
 type FlagValue = boolean | number | string | undefined;
 

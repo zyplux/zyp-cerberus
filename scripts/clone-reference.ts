@@ -8,7 +8,7 @@ import { ensure } from './util';
 const clone = async () => {
   const cliArgsStart = 2;
   const [repo, ref = '', ...extraArgs] = process.argv.slice(cliArgsStart);
-  ensure(repo !== undefined && extraArgs.length === 0, 'usage: clone-reference.ts <owner/name|url> [ref]');
+  ensure(repo !== undefined && extraArgs.length === 0, 'usage: clone-reference.ts <owner/name|url> [branch|tag]');
 
   const isUrl = repo.includes('://') || repo.startsWith('git@');
   const url = isUrl ? repo : `https://github.com/${repo}.git`;
@@ -19,7 +19,7 @@ const clone = async () => {
     await rm(dest, { force: true, recursive: true });
   }
 
-  await $.git.clone(url, dest, ref ? { shallowExclude: ref, singleBranch: true } : { depth: 1, singleBranch: true });
+  await $.git.clone(url, dest, { depth: 1, singleBranch: true, ...(ref && { branch: ref }) });
 };
 
 try {

@@ -13,14 +13,15 @@ SCOPE = Scope.CONTENT
 
 _SEGMENT_SPLIT = re.compile(r"&&|\|\||[|;]")
 _RECIPE_LINE_PREFIXES = "@-"
+_TRAILING_WS = re.compile(r"[ \t]+(?=\r?\n|\Z)")
 
 
 def _trailing_ws_lines(content: str) -> list[int]:
-    return [n for n, line in enumerate(content.split("\n"), start=1) if line != line.rstrip(" \t")]
+    return [n for n, line in enumerate(content.splitlines(), start=1) if line != line.rstrip(" \t")]
 
 
 def _strip_trailing_ws(content: str) -> str:
-    return "\n".join(line.rstrip(" \t") for line in content.split("\n"))
+    return _TRAILING_WS.sub("", content)
 
 
 def _leading_command(segment: str) -> str | None:

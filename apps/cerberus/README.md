@@ -16,7 +16,7 @@ uv run cerberus            # lint the current directory
 uv run cerberus PATH       # lint a checkout at PATH
 ```
 
-Runs the content checks (`justfile`, `ci-workflow`, `codeowners`) against the checkout and exits non-zero when a check fails — errors fail, warnings do not — so it drops into CI like any linter. Control-plane checks (`ruleset`, `workflow-secrets`) read GitHub org/admin state the checkout cannot see, so they are skipped here and reported by `cerberus org`.
+Runs the content checks (`justfile`, `ci-workflow`, `codeowners`) against the checkout and exits non-zero on any failure or error — warnings do not fail the run — so it drops into CI like any linter. Control-plane checks (`ruleset`, `workflow-secrets`) read GitHub org/admin state the checkout cannot see, so they are skipped here and reported by `cerberus org`.
 
 Run `cerberus list` to see every check, its scope, and what it verifies.
 
@@ -36,7 +36,7 @@ uv run cerberus org github.com/zyplux       # same, org given as a URL
 uv run cerberus org zyplux --repo api       # scan only the named repo(s)
 ```
 
-Runs all checks, including the control-plane ones the local linter skips. Accepts `--repo`/`-r` and `--check`. A failure exits non-zero (errors only).
+Runs all checks, including the control-plane ones the local linter skips. Accepts `--repo`/`-r` and `--check`. A failure or error exits non-zero; warnings do not.
 
 ## Checks
 

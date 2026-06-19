@@ -137,9 +137,9 @@ def lint(
 
     Control-plane checks (rulesets, secret provisioning) are skipped here — they
     live in `cerberus org` because the checkout cannot see them. Exits non-zero
-    when a content check fails (errors fail, warnings do not), so it drops
-    straight into CI like any linter. `--fix` rewrites what it can (trailing
-    whitespace) and leaves the rest to report.
+    on any FAIL or ERROR (warnings do not fail the run), so it drops straight
+    into CI like any linter. `--fix` rewrites what it can (trailing whitespace)
+    and leaves the rest to report.
     """
     ctx = context.local_context(config.load(config_path), path, fix=fix)
     repo = ctx.repos()[0]
@@ -185,8 +185,8 @@ def org_scan(
     """Scan every repo in ORG and report findings per repo.
 
     Runs all checks, including the control-plane ones the local linter skips.
-    Exits non-zero when any check fails (errors only). Needs `gh` authenticated
-    with admin scope on the org.
+    Exits non-zero on any FAIL or ERROR (warnings do not fail the run). Needs
+    `gh` authenticated with admin scope on the org.
     """
     try:
         login = parse_org_ref(org)
