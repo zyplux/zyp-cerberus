@@ -1,6 +1,5 @@
 from __future__ import annotations
 
-import json
 from dataclasses import replace
 from pathlib import Path
 from typing import Annotated, Any
@@ -17,7 +16,7 @@ from cerberus.source import parse_org_ref
 
 
 class LinterGroup(TyperGroup):
-    """Make `cerberus [PATH]` lint (ESLint-style) while keeping `cerberus org ...`.
+    """Make `cerberus [PATH]` lint (ESLint-style) while keeping the named commands.
 
     A bare invocation, a path, or an option falls through to the `lint` command;
     a known subcommand (`org`, `list`, `version`, `lint`) dispatches normally.
@@ -39,12 +38,6 @@ app = typer.Typer(
     add_completion=False,
     help="Lint a repo against org invariants; `cerberus org <ORG>` scans a whole org.",
 )
-org_app = typer.Typer(
-    no_args_is_help=False,
-    add_completion=False,
-    help="Scan every repo in a GitHub org (needs gh auth with admin scope).",
-)
-app.add_typer(org_app, name="org")
 
 console = Console()
 err = Console(stderr=True)
@@ -60,7 +53,6 @@ _GLYPH = {
 ConfigOpt = Annotated[Path | None, typer.Option("--config", help="Path to a cerberus.toml.")]
 RepoOpt = Annotated[list[str] | None, typer.Option("--repo", "-r", help="Limit to repo(s).")]
 CheckOpt = Annotated[list[str] | None, typer.Option("--check", help="Limit to named check(s).")]
-JsonOpt = Annotated[bool, typer.Option("--json", help="Emit JSON instead of a table.")]
 OrgArg = Annotated[
     str, typer.Argument(metavar="ORG", help="GitHub org: bare name, github.com/<org>, or full URL.")
 ]
@@ -100,10 +92,9 @@ def _run_check(check: checks.Check, repo: Repo, ctx: Context) -> CheckResult:
 def _evaluate(
     ctx: Context, repos: list[Repo], selected: list[checks.Check]
 ) -> dict[str, dict[str, CheckResult]]:
-    matrix: dict[str, dict[str, CheckResult]] = {}
-    for repo in repos:
-        matrix[repo.name] = {check.id: _run_check(check, repo, ctx) for check in selected}
-    return matrix
+    return {
+        repo.name: {check.id: _run_check(check, repo, ctx) for check in selected} for repo in repos
+    }
 
 
 def _failed(results: list[CheckResult]) -> bool:
@@ -112,21 +103,6 @@ def _failed(results: list[CheckResult]) -> bool:
 
 def _matrix_failed(matrix: dict[str, dict[str, CheckResult]]) -> bool:
     return _failed([r for row in matrix.values() for r in row.values()])
-
-
-def _result_json(result: CheckResult) -> dict[str, object]:
-    return {
-        "status": result.status.label,
-        "findings": [{"status": f.status.label, "message": f.message} for f in result.findings],
-    }
-
-
-def _matrix_json(matrix: dict[str, dict[str, CheckResult]]) -> str:
-    payload = {
-        repo: {cid: _result_json(result) for cid, result in row.items()}
-        for repo, row in matrix.items()
-    }
-    return json.dumps(payload, indent=2)
 
 
 @app.command()
@@ -155,22 +131,17 @@ def lint(
     ] = Path("."),
     config_path: ConfigOpt = None,
     check: CheckOpt = None,
-    json_out: JsonOpt = False,
-    fix: Annotated[
-        bool, typer.Option("--fix", help="Auto-fix problems where possible (not yet implemented).")
-    ] = False,
+    fix: Annotated[bool, typer.Option("--fix", help="Auto-fix fixable problems in place.")] = False,
 ) -> None:
     """Lint a repository checkout against org invariants.
 
     Control-plane checks (rulesets, secret provisioning) are skipped here — they
     live in `cerberus org` because the checkout cannot see them. Exits non-zero
     when a content check fails (errors fail, warnings do not), so it drops
-    straight into CI like any linter.
+    straight into CI like any linter. `--fix` rewrites what it can (trailing
+    whitespace) and leaves the rest to report.
     """
-    if fix:
-        err.print("[yellow]--fix is not yet implemented; running checks only.[/yellow]")
-
-    ctx = context.local_context(config.load(config_path), path)
+    ctx = context.local_context(config.load(config_path), path, fix=fix)
     repo = ctx.repos()[0]
     selected = _select_checks(check)
 
@@ -183,13 +154,7 @@ def lint(
         else:
             results.append(_run_check(chk, repo, ctx))
 
-    if json_out:
-        console.print_json(
-            json.dumps({chk.id: _result_json(r) for chk, r in zip(selected, results, strict=True)})
-        )
-    else:
-        _render_lint(repo, results)
-
+    _render_lint(repo, results)
     if _failed(results):
         raise typer.Exit(code=1)
 
@@ -210,93 +175,40 @@ def _render_lint(repo: Repo, results: list[CheckResult]) -> None:
         )
 
 
-@org_app.callback(invoke_without_command=True)
-def org_main(ctx: typer.Context, org: OrgArg, config_path: ConfigOpt = None) -> None:
-    """Scan every repo in ORG. With no subcommand, reports findings per repo."""
+@app.command(name="org")
+def org_scan(
+    org: OrgArg,
+    config_path: ConfigOpt = None,
+    repo: RepoOpt = None,
+    check: CheckOpt = None,
+) -> None:
+    """Scan every repo in ORG and report findings per repo.
+
+    Runs all checks, including the control-plane ones the local linter skips.
+    Exits non-zero when any check fails (errors only). Needs `gh` authenticated
+    with admin scope on the org.
+    """
     try:
         login = parse_org_ref(org)
     except ValueError as exc:
         raise typer.BadParameter(str(exc)) from exc
-    ctx.obj = context.github_context(replace(config.load(config_path), org=login))
-    if ctx.invoked_subcommand is None:
-        _org_verify(ctx.obj, repo=None, check=None, json_out=False)
 
-
-@org_app.command(name="repos")
-def org_repos(ctx: typer.Context) -> None:
-    """List the repos cerberus governs."""
-    gh_ctx: Context = ctx.obj
-    table = Table(title=f"{gh_ctx.org} — governed repos")
-    table.add_column("repo")
-    table.add_column("visibility")
-    table.add_column("default branch")
-    for repo in gh_ctx.repos():
-        table.add_row(repo.name, repo.visibility, repo.default_branch)
-    console.print(table)
-
-
-@org_app.command(name="scorecard")
-def org_scorecard(
-    ctx: typer.Context,
-    repo: RepoOpt = None,
-    check: CheckOpt = None,
-    json_out: JsonOpt = False,
-) -> None:
-    """Cross-repo pass/fail matrix."""
-    gh_ctx: Context = ctx.obj
-    repos = _select_repos(gh_ctx, repo)
+    ctx = context.github_context(replace(config.load(config_path), org=login))
+    repos = _select_repos(ctx, repo)
     selected = _select_checks(check)
-    matrix = _evaluate(gh_ctx, repos, selected)
+    matrix = _evaluate(ctx, repos, selected)
 
-    if json_out:
-        console.print_json(_matrix_json(matrix))
-    else:
-        table = Table(title=f"{gh_ctx.org} — cerberus scorecard")
-        table.add_column("repo", no_wrap=True)
-        for chk in selected:
-            table.add_column(chk.id, justify="center")
-        for repo_obj in repos:
-            row = matrix[repo_obj.name]
-            cells = [_GLYPH[row[chk.id].status] for chk in selected]
-            table.add_row(repo_obj.name, *cells)
-        console.print(table)
-        console.print(
-            "legend  "
-            "[green]✓[/green] pass  [yellow]●[/yellow] warn  "
-            "[red]✗[/red] fail  [magenta]‼[/magenta] error  [dim]○[/dim] skip"
-        )
-
+    _render_org(repos, selected, matrix)
     if _matrix_failed(matrix):
         raise typer.Exit(code=1)
 
 
-@org_app.command(name="verify")
-def org_verify_command(
-    ctx: typer.Context,
-    repo: RepoOpt = None,
-    check: CheckOpt = None,
-    json_out: JsonOpt = False,
+def _render_org(
+    repos: list[Repo], selected: list[checks.Check], matrix: dict[str, dict[str, CheckResult]]
 ) -> None:
-    """Run checks and report every finding."""
-    _org_verify(ctx.obj, repo=repo, check=check, json_out=json_out)
-
-
-def _org_verify(
-    gh_ctx: Context, repo: list[str] | None, check: list[str] | None, json_out: bool
-) -> None:
-    repos = _select_repos(gh_ctx, repo)
-    selected = _select_checks(check)
-    matrix = _evaluate(gh_ctx, repos, selected)
-
-    if json_out:
-        console.print_json(_matrix_json(matrix))
-        if _matrix_failed(matrix):
-            raise typer.Exit(code=1)
-        return
-
-    for repo_obj in repos:
-        row = matrix[repo_obj.name]
-        console.print(f"\n[bold]{repo_obj.name}[/bold]")
+    for repo in repos:
+        row = matrix[repo.name]
+        console.print(f"\n[bold]{repo.name}[/bold]")
         for chk in selected:
             result = row[chk.id]
             shown = result.problems or [f for f in result.findings if f.status is Status.SKIP]
@@ -306,6 +218,3 @@ def _org_verify(
             console.print(f"  {_GLYPH[result.status]} {chk.id}")
             for finding in shown:
                 console.print(f"      {_GLYPH[finding.status]} {finding.message}")
-
-    if _matrix_failed(matrix):
-        raise typer.Exit(code=1)

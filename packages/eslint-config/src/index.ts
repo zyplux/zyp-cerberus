@@ -2,6 +2,7 @@ import prettier from 'eslint-config-prettier';
 import { defineConfig, globalIgnores } from 'eslint/config';
 
 import { base } from './configs/base';
+import { gitignore } from './configs/gitignore';
 import { perfectionistConfig } from './configs/perfectionist';
 import { reactPresets, type RendererGlobs } from './configs/react';
 import { tanstackRoutes } from './configs/tanstack';
@@ -54,20 +55,21 @@ const create = (options: ZypluxOptions = {}) => {
     react = false,
     reactFiles = defaultDomFiles,
     reactVersion = 'detect',
-    tanstack = false,
+    tanstack: isTanstack = false,
     tsconfigRootDir = process.cwd(),
   } = options;
 
   const renderers = resolveRenderers(react, reactFiles, nonDomReactFiles);
 
   return defineConfig(
+    gitignore(tsconfigRootDir),
     globalIgnores([...defaultIgnores, ...ignores]),
     base,
     typescript(tsconfigRootDir),
     ...reactPresets(renderers, reactVersion),
     perfectionistConfig,
     unicornConfig,
-    ...(tanstack ? [tanstackRoutes] : []),
+    ...(isTanstack ? [tanstackRoutes] : []),
     zypluxRules,
     prettier,
   );

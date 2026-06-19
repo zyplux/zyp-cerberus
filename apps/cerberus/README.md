@@ -5,8 +5,9 @@ Verifies repository invariants — CI workflows, branch-protection rulesets, COD
 ## Requirements
 
 - [`uv`](https://docs.astral.sh/uv/) and Python 3.14
-- [`just`](https://just.systems/) (the `justfile` check shells out to it)
 - [`gh`](https://cli.github.com/), authenticated against the org — only for `cerberus org`
+
+The `justfile` check shells out to `just`, which ships with the package (via [`rust-just`](https://pypi.org/project/rust-just/)) — no separate install.
 
 ## Lint a repo
 
@@ -19,35 +20,34 @@ Runs the content checks (`justfile`, `ci-workflow`, `codeowners`) against the ch
 
 Run `cerberus list` to see every check, its scope, and what it verifies.
 
-| Option          | Description                                  |
-| --------------- | -------------------------------------------- |
-| `--check NAME`  | Limit to named check(s); repeatable          |
-| `--config PATH` | Use a `cerberus.toml` other than the bundled |
-| `--json`        | Emit JSON instead of a table                 |
-| `--fix`         | Auto-fix problems where possible (planned)   |
+| Option          | Description                                          |
+| --------------- | ---------------------------------------------------- |
+| `--check NAME`  | Limit to named check(s); repeatable                  |
+| `--config PATH` | Use a `cerberus.toml` other than the bundled         |
+| `--fix`         | Auto-fix fixable problems (e.g. trailing whitespace) |
 
 ## Scan the org
 
 `cerberus org` takes the org as a required argument — a bare name, `github.com/<org>`, or a full URL.
 
 ```sh
-uv run cerberus org zyplux                  # every finding, per repo (default)
+uv run cerberus org zyplux                  # scan every repo, report findings
 uv run cerberus org github.com/zyplux       # same, org given as a URL
-uv run cerberus org zyplux scorecard        # cross-repo pass/fail matrix
-uv run cerberus org zyplux repos            # list the repos cerberus governs
+uv run cerberus org zyplux --repo api       # scan only the named repo(s)
 ```
 
-`scorecard` and the default view accept `--repo`/`-r`, `--check`, and `--json`, and run all checks including the control-plane ones. A failure exits non-zero (errors only).
+Runs all checks, including the control-plane ones the local linter skips. Accepts `--repo`/`-r` and `--check`. A failure exits non-zero (errors only).
 
 ## Checks
 
-| ID                 | Scope         | Verifies                                             |
-| ------------------ | ------------- | ---------------------------------------------------- |
-| `justfile`         | content       | Uniform recipe names, aliases, and `check` pipeline  |
-| `ci-workflow`      | content       | `ci.yml` exists, exposes a `ci` check, runs on PRs   |
-| `codeowners`       | content       | `CODEOWNERS` present and covers `/.github/`          |
-| `ruleset`          | control-plane | Default branch protected by the org baseline ruleset |
-| `workflow-secrets` | control-plane | Every secret referenced in workflows is provisioned  |
+| ID                 | Scope         | Verifies                                                                            |
+| ------------------ | ------------- | ----------------------------------------------------------------------------------- |
+| `justfile`         | content       | Recipe names, aliases, `check` pipeline, wrapped tool calls, no trailing whitespace |
+| `ci-workflow`      | content       | `ci.yml` exists, exposes a `ci` check, runs on PRs                                  |
+| `workflow-tooling` | content       | Workflows set up only the workspace toolchain (uv, bun), not extra tools            |
+| `codeowners`       | content       | `CODEOWNERS` present and covers `/.github/`                                         |
+| `ruleset`          | control-plane | Default branch protected by the org baseline ruleset                                |
+| `workflow-secrets` | control-plane | Every secret referenced in workflows is provisioned                                 |
 
 ## Config
 

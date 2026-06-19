@@ -9,6 +9,7 @@ from cerberus.checks import (
     justfile_check,
     ruleset_check,
     secrets_check,
+    workflow_tooling_check,
 )
 from cerberus.context import Context
 from cerberus.model import CheckResult, Repo, Scope
@@ -27,6 +28,7 @@ ALL: tuple[Check, ...] = tuple(
     for module in (
         justfile_check,
         ci_workflow_check,
+        workflow_tooling_check,
         ruleset_check,
         secrets_check,
         codeowners_check,

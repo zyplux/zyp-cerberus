@@ -4,8 +4,9 @@ import { describe, expect, test } from 'bun:test';
 type Config = ReturnType<typeof zyplux>;
 
 const customRuleNames = [
+  'no-arrow-return-type',
   'no-identity-cast',
-  'no-inferrable-return-type',
+  'no-return-array-push',
   'no-type-predicate',
   'no-zod-custom',
   'prefer-arrow-functions',
@@ -27,13 +28,13 @@ const reactVersion = (config: Config) => {
   return;
 };
 
-const turnsOffRule = (config: Config, ruleName: string) => config.some(entry => entry.rules?.[ruleName] === 'off');
+const isRuleDisabled = (config: Config, ruleName: string) => config.some(entry => entry.rules?.[ruleName] === 'off');
 
 const reactSettingsFiles = (config: Config) =>
-  config.filter(entry => entry.settings !== undefined && 'react' in entry.settings).flatMap(entry => entry.files ?? []);
+  config.flatMap(entry => (entry.settings !== undefined && 'react' in entry.settings ? (entry.files ?? []) : []));
 
 const offRuleFiles = (config: Config, ruleName: string) =>
-  config.filter(entry => entry.rules?.[ruleName] === 'off').flatMap(entry => entry.files ?? []);
+  config.flatMap(entry => (entry.rules?.[ruleName] === 'off' ? (entry.files ?? []) : []));
 
 describe('zyplux', () => {
   test('returns a non-empty flat config array', () => {
@@ -63,11 +64,11 @@ describe('zyplux', () => {
   });
 
   test('nonDomReactFiles requires react and turns off react/no-unknown-property', () => {
-    expect(turnsOffRule(zyplux(), 'react/no-unknown-property')).toBe(false);
-    expect(turnsOffRule(zyplux({ nonDomReactFiles: ['apps/tui/**'] }), 'react/no-unknown-property')).toBe(false);
-    expect(turnsOffRule(zyplux({ nonDomReactFiles: ['apps/tui/**'], react: true }), 'react/no-unknown-property')).toBe(
-      true,
-    );
+    expect(isRuleDisabled(zyplux(), 'react/no-unknown-property')).toBe(false);
+    expect(isRuleDisabled(zyplux({ nonDomReactFiles: ['apps/tui/**'] }), 'react/no-unknown-property')).toBe(false);
+    expect(
+      isRuleDisabled(zyplux({ nonDomReactFiles: ['apps/tui/**'], react: true }), 'react/no-unknown-property'),
+    ).toBe(true);
   });
 });
 
@@ -89,7 +90,7 @@ describe('renderer presets', () => {
   test('a non-DOM renderer alone enables react and turns off react/no-unknown-property', () => {
     const config = zyplux({ react: { opentui: ['apps/tui/**'] } });
     expect(hasReactSettings(config)).toBe(true);
-    expect(turnsOffRule(config, 'react/no-unknown-property')).toBe(true);
+    expect(isRuleDisabled(config, 'react/no-unknown-property')).toBe(true);
   });
 
   test('an empty renderer map is treated as no react', () => {
@@ -112,6 +113,8 @@ describe('withDefaults', () => {
 
 describe('plugin', () => {
   test('exposes the custom rules', () => {
-    expect(Object.keys(plugin.rules).toSorted()).toEqual(customRuleNames.toSorted());
+    expect(Object.keys(plugin.rules).toSorted((a, b) => a.localeCompare(b))).toEqual(
+      customRuleNames.toSorted((a, b) => a.localeCompare(b)),
+    );
   });
 });

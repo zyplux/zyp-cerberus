@@ -4,10 +4,7 @@ version = "0.2.0"
 description = "Cross-repo invariant verifier for the zyplux organization"
 readme = "README.md"
 requires-python = ">=3.14"
-dependencies = [
-    "pyyaml>=6.0.3",
-    "typer>=0.20",
-]
+dependencies = ["pyyaml>=6.0.3", "rust-just>=1.53", "typer>=0.20"]
 
 [project.scripts]
 cerberus = "cerberus.cli:app"

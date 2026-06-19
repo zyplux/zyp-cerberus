@@ -42,6 +42,15 @@ test:
 check: install knip typecheck lint test
 """
 
+JUSTFILE_WITH_TRAILING_WS = CONFORMING_JUSTFILE.replace(
+    "check: install knip typecheck lint test\n",
+    "check: install knip typecheck lint test   \n",
+)
+
+JUSTFILE_WITH_BARE_TOOL = CONFORMING_JUSTFILE.replace(
+    "lint:\n    echo lint\n", "lint:\n    rumdl check\n"
+)
+
 CONFORMING_CI = """\
 on:
   pull_request:
@@ -98,32 +107,64 @@ def test_lint_defaults_to_current_directory(
 @requires_just
 def test_lint_skips_control_plane_checks(tmp_path: Path) -> None:
     _make_conforming_repo(tmp_path)
-    result = runner.invoke(app, [str(tmp_path), "--json"])
+    result = runner.invoke(app, [str(tmp_path), "--check", "ruleset"])
     assert result.exit_code == 0, result.output
-    assert '"ruleset"' in result.output
-    assert '"workflow-secrets"' in result.output
-    assert '"skip"' in result.output
+    assert "all checks pass" in result.output.lower()
 
 
 @requires_just
-def test_fix_flag_warns_not_implemented(tmp_path: Path) -> None:
+def test_lint_fails_on_trailing_whitespace(tmp_path: Path) -> None:
     _make_conforming_repo(tmp_path)
+    (tmp_path / "justfile").write_text(JUSTFILE_WITH_TRAILING_WS)
+    result = runner.invoke(app, [str(tmp_path)])
+    assert result.exit_code == 1
+    assert "whitespace" in result.output.lower()
+
+
+@requires_just
+def test_fix_strips_trailing_whitespace(tmp_path: Path) -> None:
+    _make_conforming_repo(tmp_path)
+    justfile = tmp_path / "justfile"
+    justfile.write_text(JUSTFILE_WITH_TRAILING_WS)
     result = runner.invoke(app, [str(tmp_path), "--fix"])
     assert result.exit_code == 0, result.output
-    assert "fix" in result.output.lower()
+    fixed = justfile.read_text()
+    assert all(line == line.rstrip(" \t") for line in fixed.split("\n"))
 
 
-def test_org_subcommands_are_registered() -> None:
-    result = runner.invoke(app, ["org", "--help"])
-    assert result.exit_code == 0
-    assert "scorecard" in result.output
-    assert "verify" in result.output
+@requires_just
+def test_lint_fails_on_bare_managed_tool(tmp_path: Path) -> None:
+    _make_conforming_repo(tmp_path)
+    (tmp_path / "justfile").write_text(JUSTFILE_WITH_BARE_TOOL)
+    result = runner.invoke(app, [str(tmp_path)])
+    assert result.exit_code == 1
+    assert "rumdl" in result.output.lower()
+
+
+def test_lint_has_no_json_flag(tmp_path: Path) -> None:
+    _make_conforming_repo(tmp_path)
+    result = runner.invoke(app, [str(tmp_path), "--json"])
+    assert result.exit_code == 2
+    assert "json" in result.output.lower()
+
+
+def test_org_rejects_removed_subcommands() -> None:
+    for removed in ("scorecard", "repos"):
+        result = runner.invoke(app, ["org", "zyplux", removed])
+        assert result.exit_code == 2, f"{removed}: {result.output}"
 
 
 def test_list_command_lists_every_check() -> None:
     result = runner.invoke(app, ["list"])
     assert result.exit_code == 0
-    for check_id in ("justfile", "ci-workflow", "codeowners", "ruleset", "workflow-secrets"):
+    for check_id in (
+        "justfile",
+        "ci-workflow",
+        "workflow-tooling",
+        "codeowners",
+        "ruleset",
+        "workflow-secrets",
+    ):
         assert check_id in result.output
 
 

@@ -11,5 +11,7 @@ __pycache__/
 .ruff_cache/
 .rumdl_cache/
 
+reference_clones/
+
 # OS
 .DS_Store

@@ -45,7 +45,7 @@ const buildTargets = async () => {
 const publish = async (target: Target, remoteHead: string) => {
   console.log(`Cutting release ${target.tag} ...`);
   const knownRuns = await $.gh.run.ids({ event: 'release', workflow: 'release.yml' });
-  await $.gh.release.create(target.tag, { target: 'main' });
+  await $.gh.release.create(target.tag, { target: remoteHead });
 
   console.log('Watching the publish workflow ...');
   const runId = await poll(
@@ -77,7 +77,8 @@ const release = async () => {
   ensure(head === remoteHead, 'local main and origin/main differ; push or pull first');
 
   const pending: Target[] = [];
-  for (const target of await buildTargets()) {
+  const targets = await buildTargets();
+  for (const target of targets) {
     if (await target.isPublished()) {
       console.log(`Skipping ${target.label} ${target.version} (already published)`);
     } else if (await $.gh.release.exists(target.tag)) {

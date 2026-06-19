@@ -14,6 +14,7 @@ from cerberus.source import GitHubSource, LocalSource, RepoSource
 class Context:
     config: Config
     source: RepoSource
+    fix: bool = False
     _cache: dict[Any, Any] = field(default_factory=dict)
 
     @property
@@ -30,6 +31,10 @@ class Context:
 
     def file(self, repo: Repo, path: str) -> str | None:
         return self._cached(("file", repo.name, path), lambda: self.source.file(repo, path))
+
+    def write_file(self, repo: Repo, path: str, content: str) -> None:
+        self.source.write_file(repo, path, content)
+        self._cache[("file", repo.name, path)] = content
 
     def workflows(self, repo: Repo) -> dict[str, str]:
         return self._cached(("workflows", repo.name), lambda: self.source.workflows(repo))
@@ -70,5 +75,5 @@ def github_context(config: Config) -> Context:
     return Context(config=config, source=GitHubSource(config))
 
 
-def local_context(config: Config, root: Path) -> Context:
-    return Context(config=config, source=LocalSource(root))
+def local_context(config: Config, root: Path, fix: bool = False) -> Context:
+    return Context(config=config, source=LocalSource(root), fix=fix)

@@ -36,6 +36,7 @@ class RepoSource(Protocol):
 
     def repos(self) -> list[Repo]: ...
     def file(self, repo: Repo, path: str) -> str | None: ...
+    def write_file(self, repo: Repo, path: str, content: str) -> None: ...
     def workflows(self, repo: Repo) -> dict[str, str]: ...
     def branch_rules(self, repo: Repo) -> list[dict[str, Any]]: ...
     def repo_secrets(self, repo: Repo) -> set[str]: ...
@@ -66,14 +67,15 @@ class GitHubSource:
                     owner=self.org,
                     default_branch=branch,
                     visibility=str(raw["visibility"]).lower(),
-                    archived=bool(raw.get("isArchived")),
-                    is_fork=bool(raw.get("isFork")),
                 )
             )
         return sorted(out, key=lambda r: r.name)
 
     def file(self, repo: Repo, path: str) -> str | None:
         return gh.raw_file(repo.owner, repo.name, path)
+
+    def write_file(self, repo: Repo, path: str, content: str) -> None:
+        raise NotImplementedError("the org scan is read-only; --fix runs only on a local checkout")
 
     def workflows(self, repo: Repo) -> dict[str, str]:
         try:
@@ -152,8 +154,6 @@ class LocalSource:
                 owner=owner,
                 default_branch=branch,
                 visibility="unknown",
-                archived=False,
-                is_fork=False,
             )
         ]
 
@@ -162,6 +162,9 @@ class LocalSource:
             return (self.root / path).read_text()
         except OSError:
             return None
+
+    def write_file(self, repo: Repo, path: str, content: str) -> None:
+        (self.root / path).write_text(content)
 
     def workflows(self, repo: Repo) -> dict[str, str]:
         workflow_dir = self.root / ".github" / "workflows"

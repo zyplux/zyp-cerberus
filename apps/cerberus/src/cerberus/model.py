@@ -12,10 +12,6 @@ class Status(Enum):
     ERROR = auto()
 
     @property
-    def label(self) -> str:
-        return self.name.lower()
-
-    @property
     def rank(self) -> int:
         order = (Status.PASS, Status.SKIP, Status.WARN, Status.FAIL, Status.ERROR)
         return order.index(self)
@@ -34,8 +30,6 @@ class Repo:
     owner: str
     default_branch: str
     visibility: str
-    archived: bool
-    is_fork: bool
 
     @property
     def full_name(self) -> str:

@@ -16,4 +16,4 @@ just install   # bun + uv workspaces
 just check     # install, knip, typecheck, lint, test — both workspaces
 ```
 
-Individual recipes: `just lint`, `just typecheck`, `just test`, `just format`, `just knip`. Run `just` for the full list.
+Individual recipes: `just lint`, `just typecheck`, `just test`, `just knip`. Run `just` for the full list.

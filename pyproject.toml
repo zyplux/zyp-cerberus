@@ -32,14 +32,21 @@ testpaths = ["tests/cerberus"]
 project-includes = ["apps/cerberus/src", "tests/cerberus"]
 search-path = ["apps/cerberus/src"]
 
+[tool.vulture]
+paths = ["apps/cerberus/src", "tests/cerberus"]
+ignore_decorators = ["@app.command"]
+ignore_names = ["pytestmark"]
+
 [dependency-groups]
 lint = [
     "ruff>=0.15.17",
     "rumdl>=0.2.16",
+    "vulture>=2.16",
 ]
 test = [
     "pytest>=9.1.0",
 ]
 type = [
     "pyrefly>=1.0.0",
+    "types-pyyaml>=6.0.12.20260518",
 ]

@@ -1,7 +1,7 @@
 import { $ } from './shell-harness';
 import { ensure, poll } from './util';
 
-const ready = process.argv.includes('--ready') || process.argv.includes('-r');
+const isReady = process.argv.includes('--ready') || process.argv.includes('-r');
 
 const push = async () => {
   const branch = await $.git.currentBranch();
@@ -22,12 +22,12 @@ const push = async () => {
   if (existing !== 'OPEN') {
     await $.gh.pr.create('main', branch);
   }
-  if (ready && (await $.gh.pr.isDraft())) {
+  if (isReady && (await $.gh.pr.isDraft())) {
     await $.gh.pr.ready();
   }
 
   const url = await $.gh.pr.url();
-  if (!ready) {
+  if (!isReady) {
     console.log(`PR (draft): ${url}`);
     return;
   }

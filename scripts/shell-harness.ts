@@ -43,6 +43,8 @@ const gh = {
 
 const git = {
   checkout: (ref: string) => Bun.$`git checkout ${ref}`,
+  clone: (url: string, dest: string, ref: string) =>
+    Bun.$`git clone ${ref ? ['--shallow-exclude', ref] : ['--depth', '1']} --single-branch ${url} ${dest}`,
   currentBranch: () => readTrimmed(Bun.$`git rev-parse --abbrev-ref HEAD`.text()),
   deleteBranch: (branch: string) => Bun.$`git branch -D ${branch}`,
   fetch: (remote: string, branch: string) => Bun.$`git fetch ${remote} ${branch}`,

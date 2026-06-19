@@ -18,9 +18,10 @@ install:
     bun install
     uv sync --all-packages --all-groups
 
-# Report unused files, dependencies, and exports via knip (JS workspace).
+# Report unused files, deps, and exports: knip (JS workspace) + vulture (Python).
 knip:
     bun run knip
+    uv run vulture
 
 # Type-check both workspaces: tsc/bun for .ts, pyrefly for .py.
 typecheck:
@@ -31,10 +32,10 @@ typecheck:
 lint:
     bun run lint:fix
     bun run format
-    rumdl check --fix
+    uv run rumdl check --fix
     uv run ruff check --fix
     uv run ruff format
-    uv run cerberus    
+    uv run cerberus --fix
 
 # Run tests for both workspaces: bun for .ts, pytest for .py.
 test:
@@ -66,3 +67,6 @@ clean:
     rm -rf node_modules packages/*/node_modules tests/*/node_modules
     rm -rf .venv .pytest_cache .ruff_cache .rumdl_cache
     find . -type d -name __pycache__ -prune -exec rm -rf {} +
+
+clone repo ref="":
+    bun run clone -- {{ repo }} {{ ref }}
