@@ -4,8 +4,7 @@ import { AST_NODE_TYPES } from '@typescript-eslint/utils';
 
 import { createRule } from '#create-rule';
 
-const getFunctionName = (node: TSESTree.ArrowFunctionExpression) => {
-  const parent = node.parent;
+const getFunctionName = ({ parent }: TSESTree.ArrowFunctionExpression) => {
   if (parent.type === AST_NODE_TYPES.VariableDeclarator && parent.id.type === AST_NODE_TYPES.Identifier) {
     return parent.id.name;
   }
@@ -15,7 +14,7 @@ const getFunctionName = (node: TSESTree.ArrowFunctionExpression) => {
 const ignoredKeys: ReadonlySet<string> = new Set(['loc', 'parent', 'range']);
 
 const childNodes = (node: object) => {
-  const entries: ReadonlyMap<string, unknown> = new Map(Object.entries(node));
+  const entries = new Map(Object.entries(node));
   const children: object[] = [];
   for (const [key, value] of entries) {
     if (ignoredKeys.has(key)) continue;
@@ -37,10 +36,10 @@ const isIdentifierNamed = (node: object, isWanted: (name: string) => boolean) =>
   typeof node.name === 'string' &&
   isWanted(node.name);
 
-const collectTypeParamNames = (node: TSESTree.ArrowFunctionExpression) => {
+const collectTypeParamNames = (typeParamsDeclaration: TSESTree.TSTypeParameterDeclaration | undefined) => {
   const names = new Set<string>();
-  if (node.typeParameters) {
-    for (const param of node.typeParameters.params) {
+  if (typeParamsDeclaration) {
+    for (const param of typeParamsDeclaration.params) {
       names.add(param.name.name);
     }
   }
@@ -81,8 +80,7 @@ const declarationContainers: ReadonlySet<TSESTree.Node['type']> = new Set([
   AST_NODE_TYPES.VariableDeclarator,
 ]);
 
-const hasExportedAncestor = (node: TSESTree.Node): boolean => {
-  const parent = node.parent;
+const hasExportedAncestor = ({ parent }: TSESTree.Node): boolean => {
   if (!parent) return false;
   if (
     parent.type === AST_NODE_TYPES.ExportNamedDeclaration ||
@@ -93,13 +91,13 @@ const hasExportedAncestor = (node: TSESTree.Node): boolean => {
   return declarationContainers.has(parent.type) && hasExportedAncestor(parent);
 };
 
-const isReExportedAtTopLevel = (node: TSESTree.ArrowFunctionExpression, exportedNames: ReadonlySet<string>) => {
+const isReExportedAtTopLevel = ({ parent }: TSESTree.ArrowFunctionExpression, exportedNames: ReadonlySet<string>) => {
   if (exportedNames.size === 0) return false;
-  const declarator = node.parent;
-  if (declarator.type !== AST_NODE_TYPES.VariableDeclarator || declarator.id.type !== AST_NODE_TYPES.Identifier) {
+
+  if (parent.type !== AST_NODE_TYPES.VariableDeclarator || parent.id.type !== AST_NODE_TYPES.Identifier) {
     return false;
   }
-  return declarator.parent.parent.type === AST_NODE_TYPES.Program && exportedNames.has(declarator.id.name);
+  return parent.parent.parent.type === AST_NODE_TYPES.Program && exportedNames.has(parent.id.name);
 };
 
 const isAtModuleBoundary = (node: TSESTree.ArrowFunctionExpression, exportedNames: ReadonlySet<string>) =>
@@ -131,7 +129,7 @@ export const noArrowReturnType = createRule({
 
       if (isAtModuleBoundary(arrowFn, exportedNames)) return;
 
-      const typeParamNames = collectTypeParamNames(arrowFn);
+      const typeParamNames = collectTypeParamNames(arrowFn.typeParameters);
       if (typeParamNames.size > 0 && hasTypeParamReference(returnAnnotationTypeNode, typeParamNames)) return;
 
       if (isRecursive(arrowFn)) return;

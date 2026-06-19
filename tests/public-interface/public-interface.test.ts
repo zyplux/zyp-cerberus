@@ -20,9 +20,9 @@ const hasRouteRule = (config: Config) =>
 
 const reactVersion = (config: Config) => {
   for (const entry of config) {
-    const settings = entry.settings;
+    const { settings } = entry;
     if (settings === undefined || !('react' in settings)) continue;
-    const react = settings.react;
+    const { react } = settings;
     if (react !== null && typeof react === 'object' && 'version' in react) return react.version;
   }
   return;

@@ -1,14 +1,6 @@
-import { RuleTester } from '@typescript-eslint/rule-tester';
-import { afterAll, describe, it } from 'vitest';
-
 import { noArrowReturnType } from '#rules/no-arrow-return-type';
 
-RuleTester.afterAll = afterAll;
-RuleTester.describe = describe;
-RuleTester.it = it;
-RuleTester.itOnly = it.only;
-
-const ruleTester = new RuleTester();
+import { ruleTester } from './rule-tester';
 
 ruleTester.run('no-arrow-return-type', noArrowReturnType, {
   invalid: [

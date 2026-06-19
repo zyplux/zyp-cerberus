@@ -28,13 +28,13 @@ const buildTargets = async () => {
   const cerberusVersion = await readCerberusVersion();
   return [
     {
-      isPublished: () => httpOk(`https://registry.npmjs.org/@zyplux%2feslint-config/${eslintPkg.version}`),
+      isPublished: async () => httpOk(`https://registry.npmjs.org/@zyplux%2feslint-config/${eslintPkg.version}`),
       label: '@zyplux/eslint-config',
       tag: `eslint-config-v${eslintPkg.version}`,
       version: eslintPkg.version,
     },
     {
-      isPublished: () => httpOk(`https://pypi.org/pypi/zyplux-cerberus/${cerberusVersion}/json`),
+      isPublished: async () => httpOk(`https://pypi.org/pypi/zyplux-cerberus/${cerberusVersion}/json`),
       label: 'zyplux-cerberus',
       tag: `cerberus-v${cerberusVersion}`,
       version: cerberusVersion,
@@ -49,9 +49,8 @@ const publish = async (target: Target, remoteHead: string) => {
 
   console.log('Watching the publish workflow ...');
   const runId = await poll(
-    () => $.gh.run.find({ event: 'release', headSha: remoteHead, knownIds: knownRuns, workflow: 'release.yml' }),
-    30,
-    2000,
+    async () => $.gh.run.find({ event: 'release', headSha: remoteHead, knownIds: knownRuns, workflow: 'release.yml' }),
+    { attempts: 30, intervalMs: 2000 },
   );
   if (runId === undefined) {
     throw new Error('publish workflow did not start; check the Actions tab');
@@ -59,7 +58,10 @@ const publish = async (target: Target, remoteHead: string) => {
   await $.gh.run.watch(runId);
 
   console.log(`Verifying ${target.label} ${target.version} ...`);
-  const visible = await poll(async () => ((await target.isPublished()) ? true : undefined), 10, 3000);
+  const visible = await poll(async () => ((await target.isPublished()) ? true : undefined), {
+    attempts: 10,
+    intervalMs: 3000,
+  });
   ensure(visible === true, `${target.label} ${target.version} is not visible on its registry yet`);
   console.log(`Published ${target.label} ${target.version}`);
 };

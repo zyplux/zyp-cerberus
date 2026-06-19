@@ -5,18 +5,19 @@ const readTrimmed = async (output: Promise<string>) => {
 
 const gh = {
   pr: {
-    create: (base: string, title: string) => Bun.$`gh pr create --base ${base} --title ${title} --body ${''} --draft`,
+    create: async (base: string, title: string) =>
+      Bun.$`gh pr create --base ${base} --title ${title} --body ${''} --draft`,
     isDraft: async () => (await readTrimmed(Bun.$`gh pr view --json isDraft --jq .isDraft`.text())) === 'true',
-    merge: () => Bun.$`gh pr merge --squash --delete-branch`,
-    mergeAuto: () => Bun.$`gh pr merge --auto --squash --delete-branch`,
-    mergeState: () => readTrimmed(Bun.$`gh pr view --json mergeStateStatus --jq .mergeStateStatus`.text()),
-    ready: () => Bun.$`gh pr ready`,
-    state: (branch: string) =>
+    merge: async () => Bun.$`gh pr merge --squash --delete-branch`,
+    mergeAuto: async () => Bun.$`gh pr merge --auto --squash --delete-branch`,
+    mergeState: async () => readTrimmed(Bun.$`gh pr view --json mergeStateStatus --jq .mergeStateStatus`.text()),
+    ready: async () => Bun.$`gh pr ready`,
+    state: async (branch: string) =>
       readTrimmed(Bun.$`gh pr list --head ${branch} --state all --json state --jq ${'.[0].state // ""'}`.text()),
-    url: () => readTrimmed(Bun.$`gh pr view --json url --jq .url`.text()),
+    url: async () => readTrimmed(Bun.$`gh pr view --json url --jq .url`.text()),
   },
   release: {
-    create: (tag: string, options: { target: string }) =>
+    create: async (tag: string, options: { target: string }) =>
       Bun.$`gh release create ${tag} --target ${options.target} --title ${tag} --generate-notes`,
     exists: async (tag: string) =>
       (await readTrimmed(Bun.$`gh release list --json tagName --jq ${`any(.[]; .tagName == "${tag}")`}`.text())) ===
@@ -37,21 +38,21 @@ const gh = {
       );
       return listed ? listed.split('\n') : [];
     },
-    watch: (runId: string) => Bun.$`gh run watch ${runId} --exit-status`,
+    watch: async (runId: string) => Bun.$`gh run watch ${runId} --exit-status`,
   },
 };
 
 const git = {
-  checkout: (ref: string) => Bun.$`git checkout ${ref}`,
-  clone: (url: string, dest: string, ref: string) =>
+  checkout: async (ref: string) => Bun.$`git checkout ${ref}`,
+  clone: async (url: string, dest: string, ref: string) =>
     Bun.$`git clone ${ref ? ['--shallow-exclude', ref] : ['--depth', '1']} --single-branch ${url} ${dest}`,
-  currentBranch: () => readTrimmed(Bun.$`git rev-parse --abbrev-ref HEAD`.text()),
-  deleteBranch: (branch: string) => Bun.$`git branch -D ${branch}`,
-  fetch: (remote: string, branch: string) => Bun.$`git fetch ${remote} ${branch}`,
-  pull: () => Bun.$`git pull --ff-only`,
-  push: (remote: string, branch: string) => Bun.$`git push -u ${remote} ${branch}`,
-  revParse: (rev: string) => readTrimmed(Bun.$`git rev-parse ${rev}`.text()),
-  status: () => readTrimmed(Bun.$`git status --porcelain`.text()),
+  currentBranch: async () => readTrimmed(Bun.$`git rev-parse --abbrev-ref HEAD`.text()),
+  deleteBranch: async (branch: string) => Bun.$`git branch -D ${branch}`,
+  fetch: async (remote: string, branch: string) => Bun.$`git fetch ${remote} ${branch}`,
+  pull: async () => Bun.$`git pull --ff-only`,
+  push: async (remote: string, branch: string) => Bun.$`git push -u ${remote} ${branch}`,
+  revParse: async (rev: string) => readTrimmed(Bun.$`git rev-parse ${rev}`.text()),
+  status: async () => readTrimmed(Bun.$`git status --porcelain`.text()),
 };
 
 export const $ = Object.assign(Bun.$, { gh, git });

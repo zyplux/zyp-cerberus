@@ -6,8 +6,9 @@ import { $ } from './shell-harness';
 import { ensure } from './util';
 
 const clone = async () => {
-  const [repo, ref = ''] = process.argv.slice(2);
-  ensure(repo !== undefined && process.argv.length <= 4, 'usage: clone-reference.ts <owner/name|url> [ref]');
+  const cliArgsStart = 2;
+  const [repo, ref = '', ...extraArgs] = process.argv.slice(cliArgsStart);
+  ensure(repo !== undefined && extraArgs.length === 0, 'usage: clone-reference.ts <owner/name|url> [ref]');
 
   const isUrl = repo.includes('://') || repo.startsWith('git@');
   const url = isUrl ? repo : `https://github.com/${repo}.git`;

@@ -38,8 +38,7 @@ const push = async () => {
         const state = await $.gh.pr.mergeState();
         return state === 'UNKNOWN' ? undefined : state;
       },
-      10,
-      1000,
+      { attempts: 10, intervalMs: 1000 },
     )) ?? 'UNKNOWN';
   ensure(mergeState !== 'UNKNOWN', 'merge state stayed UNKNOWN; check the PR on GitHub');
   ensure(mergeState !== 'DIRTY', 'merge conflict with main — rebase or resolve, then retry');

@@ -1,30 +1,8 @@
-import { RuleTester } from '@typescript-eslint/rule-tester';
-import path from 'node:path';
-import { fileURLToPath } from 'node:url';
-import { afterAll, describe, it } from 'vitest';
-
 import { noReturnArrayPush } from '#rules/no-return-array-push';
 
-RuleTester.afterAll = afterAll;
-RuleTester.describe = describe;
-RuleTester.it = it;
-RuleTester.itOnly = it.only;
+import { typeAwareRuleTester } from './rule-tester';
 
-const packageRoot = path.join(path.dirname(fileURLToPath(import.meta.url)), '..');
-
-const ruleTester = new RuleTester({
-  languageOptions: {
-    parserOptions: {
-      projectService: {
-        allowDefaultProject: ['*.ts*'],
-        defaultProject: 'tsconfig.json',
-      },
-      tsconfigRootDir: packageRoot,
-    },
-  },
-});
-
-ruleTester.run('no-return-array-push', noReturnArrayPush, {
+typeAwareRuleTester.run('no-return-array-push', noReturnArrayPush, {
   invalid: [
     {
       code: 'declare const items: number[]; const length = items.push(1);',

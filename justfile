@@ -6,6 +6,7 @@ alias tc := typecheck
 alias l := lint
 alias t := test
 alias c := check
+alias d := dump-rules
 alias u := upgrade
 alias ui := upgrade-interactive
 
@@ -37,10 +38,10 @@ lint:
     uv run ruff format
     uv run cerberus --fix
 
-# Run tests for both workspaces: bun for .ts, pytest for .py.
-test:
-    bun run test
-    uv run pytest
+# Run tests for both workspaces. Optional arg filters by test name; never fails when nothing matches.
+test name='':
+    bun run test {{ if name == '' { '' } else { '-t "' + name + '" --passWithNoTests --pass-with-no-tests' } }}
+    uv run pytest {{ if name == '' { '' } else { '-k "' + name + '"' } }} || [ "$?" -eq 5 ]
 
 # Full gate across both workspaces: install, knip, typecheck, lint, test — autofix throughout.
 check: install knip typecheck lint test
@@ -70,3 +71,7 @@ clean:
 
 clone repo ref="":
     bun run clone -- {{ repo }} {{ ref }}
+
+# Dump the fully-resolved ESLint config (all rules) to packages/eslint-config/rules.json.
+dump-rules:
+    bun run --cwd packages/eslint-config dump-rules

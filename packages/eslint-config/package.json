@@ -46,6 +46,7 @@
   },
   "scripts": {
     "typecheck": "tsc --noEmit -p tsconfig.json",
+    "dump-rules": "eslint --print-config src/index.ts > rules.json && prettier --write rules.json",
     "test": "vitest run"
   },
   "dependencies": {

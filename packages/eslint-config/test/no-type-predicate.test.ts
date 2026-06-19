@@ -1,14 +1,6 @@
-import { RuleTester } from '@typescript-eslint/rule-tester';
-import { afterAll, describe, it } from 'vitest';
-
 import { noTypePredicate } from '#rules/no-type-predicate';
 
-RuleTester.afterAll = afterAll;
-RuleTester.describe = describe;
-RuleTester.it = it;
-RuleTester.itOnly = it.only;
-
-const ruleTester = new RuleTester();
+import { ruleTester } from './rule-tester';
 
 ruleTester.run('no-type-predicate', noTypePredicate, {
   invalid: [
