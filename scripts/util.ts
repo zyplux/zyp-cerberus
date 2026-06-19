@@ -4,6 +4,13 @@ export const ensure: (isMet: boolean, message: string) => asserts isMet = (isMet
   }
 };
 
+type CommandOutput = { text: () => string };
+
+export const readTrimmed = async (command: Promise<CommandOutput>) => {
+  const output = await command;
+  return output.text().trim();
+};
+
 type PollOptions = { attempts: number; intervalMs: number };
 
 export const poll = async <T>(probe: () => Promise<T | undefined>, { attempts, intervalMs }: PollOptions) => {

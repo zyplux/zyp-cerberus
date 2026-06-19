@@ -171,7 +171,7 @@ def _render_lint(repo: Repo, results: list[CheckResult]) -> None:
         fails = sum(1 for _, f in problems if f.status.rank >= Status.FAIL.rank)
         warns = sum(1 for _, f in problems if f.status is Status.WARN)
         console.print(
-            f"\n[bold]✖ {len(problems)} problems ({fails} errors, {warns} warnings)[/bold]"
+            f"\n[bold]✖ {len(problems)} problems ({fails} failures, {warns} warnings)[/bold]"
         )
 
 

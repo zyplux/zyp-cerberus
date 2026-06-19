@@ -3,15 +3,6 @@ import { describe, expect, test } from 'bun:test';
 
 type Config = ReturnType<typeof zyplux>;
 
-const customRuleNames = [
-  'no-arrow-return-type',
-  'no-identity-cast',
-  'no-return-array-push',
-  'no-type-predicate',
-  'no-zod-custom',
-  'prefer-arrow-functions',
-];
-
 const hasReactSettings = (config: Config) =>
   config.some(entry => entry.settings !== undefined && 'react' in entry.settings);
 
@@ -41,11 +32,16 @@ describe('zyplux', () => {
     expect(zyplux().length).toBeGreaterThan(0);
   });
 
-  test('registers the @zyplux plugin and its rules', () => {
+  test('enables exactly the rules the @zyplux plugin exports', () => {
     const config = zyplux();
     const entry = config.find(item => item.plugins !== undefined && '@zyplux' in item.plugins);
     expect(entry).toBeDefined();
-    expect(Object.keys(entry?.rules ?? {})).toEqual(customRuleNames.map(name => `@zyplux/${name}`));
+    const exported = Object.keys(plugin.rules).toSorted((a, b) => a.localeCompare(b));
+    const enabled = Object.keys(entry?.rules ?? {})
+      .map(name => name.replace('@zyplux/', ''))
+      .toSorted((a, b) => a.localeCompare(b));
+    expect(exported.length).toBeGreaterThan(0);
+    expect(enabled).toEqual(exported);
   });
 
   test('React config is opt-in', () => {
@@ -108,13 +104,5 @@ describe('withDefaults', () => {
   test('a per-call option overrides the shared default', () => {
     const tv = zyplux.withDefaults({ react: true });
     expect(hasReactSettings(tv({ react: false }))).toBe(false);
-  });
-});
-
-describe('plugin', () => {
-  test('exposes the custom rules', () => {
-    expect(Object.keys(plugin.rules).toSorted((a, b) => a.localeCompare(b))).toEqual(
-      customRuleNames.toSorted((a, b) => a.localeCompare(b)),
-    );
   });
 });

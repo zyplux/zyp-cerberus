@@ -6,8 +6,7 @@ import { createRule } from '#create-rule';
 
 type FunctionLike = TSESTree.ArrowFunctionExpression | TSESTree.FunctionDeclaration | TSESTree.FunctionExpression;
 
-const returnsParameterUnchanged = (node: FunctionLike, parameterName: string) => {
-  const body = node.body;
+const returnsParameterUnchanged = ({ body }: FunctionLike, parameterName: string) => {
   if (body.type === AST_NODE_TYPES.Identifier) {
     return body.name === parameterName;
   }

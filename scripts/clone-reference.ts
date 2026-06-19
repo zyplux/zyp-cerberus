@@ -19,7 +19,7 @@ const clone = async () => {
     await rm(dest, { force: true, recursive: true });
   }
 
-  await $.git.clone(url, dest, ref);
+  await $.git.clone(url, dest, ref ? { shallowExclude: ref, singleBranch: true } : { depth: 1, singleBranch: true });
 };
 
 try {

@@ -103,9 +103,9 @@ const isReExportedAtTopLevel = ({ parent }: TSESTree.ArrowFunctionExpression, ex
 const isAtModuleBoundary = (node: TSESTree.ArrowFunctionExpression, exportedNames: ReadonlySet<string>) =>
   hasExportedAncestor(node) || isReExportedAtTopLevel(node, exportedNames);
 
-const collectExportedNames = (program: TSESTree.Program) => {
+const collectExportedNames = ({ body }: TSESTree.Program) => {
   const names = new Set<string>();
-  for (const statement of program.body) {
+  for (const statement of body) {
     if (statement.type !== AST_NODE_TYPES.ExportNamedDeclaration) continue;
     if (statement.source) continue;
     for (const specifier of statement.specifiers) {
