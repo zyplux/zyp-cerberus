@@ -1,16 +1,9 @@
 {
-  "linterOptions": {
-    "reportUnusedDisableDirectives": 1
-  },
+  "linterOptions": { "reportUnusedDisableDirectives": 1 },
   "rules": {
     "constructor-super": [0],
     "for-direction": [2],
-    "getter-return": [
-      0,
-      {
-        "allowImplicit": false
-      }
-    ],
+    "getter-return": [0, { "allowImplicit": false }],
     "no-async-promise-executor": [2],
     "no-case-declarations": [2],
     "no-class-assign": [0],
@@ -18,12 +11,7 @@
     "no-cond-assign": [2, "except-parens"],
     "no-const-assign": [0],
     "no-constant-binary-expression": [2],
-    "no-constant-condition": [
-      2,
-      {
-        "checkLoops": "allExceptWhileTrue"
-      }
-    ],
+    "no-constant-condition": [2, { "checkLoops": "allExceptWhileTrue" }],
     "no-control-regex": [2],
     "no-debugger": [2],
     "no-delete-var": [2],
@@ -32,36 +20,15 @@
     "no-dupe-else-if": [2],
     "no-dupe-keys": [0],
     "no-duplicate-case": [2],
-    "no-empty": [
-      2,
-      {
-        "allowEmptyCatch": false
-      }
-    ],
+    "no-empty": [2, { "allowEmptyCatch": false }],
     "no-empty-character-class": [2],
-    "no-empty-pattern": [
-      2,
-      {
-        "allowObjectPatternsAsParameters": true
-      }
-    ],
+    "no-empty-pattern": [2, { "allowObjectPatternsAsParameters": true }],
     "no-empty-static-block": [2],
     "no-ex-assign": [2],
     "no-extra-boolean-cast": [2, {}],
-    "no-fallthrough": [
-      2,
-      {
-        "allowEmptyCase": false,
-        "reportUnusedFallthroughComment": false
-      }
-    ],
+    "no-fallthrough": [2, { "allowEmptyCase": false, "reportUnusedFallthroughComment": false }],
     "no-func-assign": [0],
-    "no-global-assign": [
-      2,
-      {
-        "exceptions": []
-      }
-    ],
+    "no-global-assign": [2, { "exceptions": [] }],
     "no-import-assign": [0],
     "no-invalid-regexp": [2, {}],
     "no-irregular-whitespace": [
@@ -75,61 +42,26 @@
       }
     ],
     "no-loss-of-precision": [2],
-    "no-misleading-character-class": [
-      2,
-      {
-        "allowEscape": false
-      }
-    ],
+    "no-misleading-character-class": [2, { "allowEscape": false }],
     "no-new-native-nonconstructor": [0],
     "no-nonoctal-decimal-escape": [2],
     "no-obj-calls": [0],
     "no-octal": [2],
     "no-prototype-builtins": [2],
-    "no-redeclare": [
-      0,
-      {
-        "builtinGlobals": true
-      }
-    ],
+    "no-redeclare": [0, { "builtinGlobals": true }],
     "no-regex-spaces": [2],
-    "no-self-assign": [
-      2,
-      {
-        "props": true
-      }
-    ],
+    "no-self-assign": [2, { "props": true }],
     "no-setter-return": [0],
-    "no-shadow-restricted-names": [
-      2,
-      {
-        "reportGlobalThis": true
-      }
-    ],
+    "no-shadow-restricted-names": [2, { "reportGlobalThis": true }],
     "no-sparse-arrays": [2],
     "no-this-before-super": [0],
     "no-unassigned-vars": [2],
-    "no-undef": [
-      0,
-      {
-        "typeof": false
-      }
-    ],
+    "no-undef": [0, { "typeof": false }],
     "no-unexpected-multiline": [0],
     "no-unreachable": [0],
     "no-unsafe-finally": [2],
-    "no-unsafe-negation": [
-      0,
-      {
-        "enforceForOrderingRelations": false
-      }
-    ],
-    "no-unsafe-optional-chaining": [
-      2,
-      {
-        "disallowArithmeticOperators": false
-      }
-    ],
+    "no-unsafe-negation": [0, { "enforceForOrderingRelations": false }],
+    "no-unsafe-optional-chaining": [2, { "disallowArithmeticOperators": false }],
     "no-unused-labels": [2],
     "no-unused-private-class-members": [0],
     "no-unused-vars": [
@@ -147,33 +79,12 @@
     "no-useless-assignment": [2],
     "no-useless-backreference": [2],
     "no-useless-catch": [2],
-    "no-useless-escape": [
-      2,
-      {
-        "allowRegexCharacters": []
-      }
-    ],
+    "no-useless-escape": [2, { "allowRegexCharacters": [] }],
     "no-with": [0],
-    "preserve-caught-error": [
-      2,
-      {
-        "requireCatchParameter": false
-      }
-    ],
+    "preserve-caught-error": [2, { "requireCatchParameter": false }],
     "require-yield": [2],
-    "use-isnan": [
-      2,
-      {
-        "enforceForIndexOf": false,
-        "enforceForSwitchCase": true
-      }
-    ],
-    "valid-typeof": [
-      2,
-      {
-        "requireStringLiterals": false
-      }
-    ],
+    "use-isnan": [2, { "enforceForIndexOf": false, "enforceForSwitchCase": true }],
+    "valid-typeof": [2, { "requireStringLiterals": false }],
     "no-restricted-syntax": [
       2,
       {
@@ -187,13 +98,7 @@
     ],
     "no-new-symbol": [0],
     "no-var": [2],
-    "prefer-const": [
-      2,
-      {
-        "destructuring": "any",
-        "ignoreReadBeforeAssign": false
-      }
-    ],
+    "prefer-const": [2, { "destructuring": "any", "ignoreReadBeforeAssign": false }],
     "prefer-rest-params": [2],
     "prefer-spread": [2],
     "@typescript-eslint/adjacent-overload-signatures": [2],
@@ -213,36 +118,15 @@
     "@typescript-eslint/class-methods-use-this": [2],
     "@typescript-eslint/consistent-generic-constructors": [2],
     "@typescript-eslint/consistent-indexed-object-style": [2],
-    "consistent-return": [
-      0,
-      {
-        "treatUndefinedAsUnspecified": false
-      }
-    ],
-    "@typescript-eslint/consistent-return": [
-      0,
-      {
-        "treatUndefinedAsUnspecified": false
-      }
-    ],
-    "@typescript-eslint/consistent-type-assertions": [
-      2,
-      {
-        "assertionStyle": "never"
-      }
-    ],
+    "consistent-return": [0, { "treatUndefinedAsUnspecified": false }],
+    "@typescript-eslint/consistent-return": [0, { "treatUndefinedAsUnspecified": false }],
+    "@typescript-eslint/consistent-type-assertions": [2, { "assertionStyle": "never" }],
     "@typescript-eslint/consistent-type-definitions": [2, "type"],
     "@typescript-eslint/consistent-type-exports": [2],
     "@typescript-eslint/consistent-type-imports": [2],
     "default-param-last": [0],
     "@typescript-eslint/default-param-last": [2],
-    "dot-notation": [
-      0,
-      {
-        "allowKeywords": true,
-        "allowPattern": ""
-      }
-    ],
+    "dot-notation": [0, { "allowKeywords": true, "allowPattern": "" }],
     "@typescript-eslint/dot-notation": [
       2,
       {
@@ -274,18 +158,8 @@
     "@typescript-eslint/no-duplicate-enum-values": [2],
     "@typescript-eslint/no-duplicate-type-constituents": [2],
     "@typescript-eslint/no-dynamic-delete": [2],
-    "no-empty-function": [
-      0,
-      {
-        "allow": []
-      }
-    ],
-    "@typescript-eslint/no-empty-function": [
-      2,
-      {
-        "allow": []
-      }
-    ],
+    "no-empty-function": [0, { "allow": [] }],
+    "@typescript-eslint/no-empty-function": [2, { "allow": [] }],
     "@typescript-eslint/no-empty-object-type": [2],
     "@typescript-eslint/no-explicit-any": [2],
     "@typescript-eslint/no-extra-non-null-assertion": [2],
@@ -296,18 +170,8 @@
     "@typescript-eslint/no-implied-eval": [2],
     "@typescript-eslint/no-import-type-side-effects": [2],
     "@typescript-eslint/no-inferrable-types": [2],
-    "no-invalid-this": [
-      0,
-      {
-        "capIsConstructor": true
-      }
-    ],
-    "@typescript-eslint/no-invalid-this": [
-      2,
-      {
-        "capIsConstructor": true
-      }
-    ],
+    "no-invalid-this": [0, { "capIsConstructor": true }],
+    "@typescript-eslint/no-invalid-this": [2, { "capIsConstructor": true }],
     "@typescript-eslint/no-invalid-void-type": [2],
     "no-loop-func": [0],
     "@typescript-eslint/no-loop-func": [2],
@@ -451,12 +315,7 @@
     "@typescript-eslint/prefer-namespace-keyword": [2],
     "@typescript-eslint/prefer-nullish-coalescing": [2],
     "@typescript-eslint/prefer-optional-chain": [2],
-    "prefer-promise-reject-errors": [
-      0,
-      {
-        "allowEmptyReject": false
-      }
-    ],
+    "prefer-promise-reject-errors": [0, { "allowEmptyReject": false }],
     "@typescript-eslint/prefer-promise-reject-errors": [2],
     "@typescript-eslint/prefer-readonly": [2],
     "@typescript-eslint/prefer-readonly-parameter-types": [0],
@@ -470,12 +329,7 @@
     "require-await": [0],
     "@typescript-eslint/require-await": [2],
     "@typescript-eslint/restrict-plus-operands": [2],
-    "@typescript-eslint/restrict-template-expressions": [
-      2,
-      {
-        "allowNumber": true
-      }
-    ],
+    "@typescript-eslint/restrict-template-expressions": [2, { "allowNumber": true }],
     "no-return-await": [0],
     "@typescript-eslint/return-await": [2],
     "@typescript-eslint/strict-boolean-expressions": [2],
@@ -485,179 +339,35 @@
     "@typescript-eslint/unbound-method": [2],
     "@typescript-eslint/unified-signatures": [2],
     "@typescript-eslint/use-unknown-in-catch-callback-variable": [2],
-    "perfectionist/sort-variable-declarations": [
-      2,
-      {
-        "type": "natural",
-        "order": "asc"
-      }
-    ],
-    "perfectionist/sort-intersection-types": [
-      2,
-      {
-        "type": "natural",
-        "order": "asc"
-      }
-    ],
-    "perfectionist/sort-import-attributes": [
-      2,
-      {
-        "type": "natural",
-        "order": "asc"
-      }
-    ],
-    "perfectionist/sort-export-attributes": [
-      2,
-      {
-        "type": "natural",
-        "order": "asc"
-      }
-    ],
-    "perfectionist/sort-heritage-clauses": [
-      2,
-      {
-        "type": "natural",
-        "order": "asc"
-      }
-    ],
-    "perfectionist/sort-array-includes": [
-      2,
-      {
-        "type": "natural",
-        "order": "asc"
-      }
-    ],
-    "perfectionist/sort-named-imports": [
-      2,
-      {
-        "type": "natural",
-        "order": "asc"
-      }
-    ],
-    "perfectionist/sort-named-exports": [
-      2,
-      {
-        "type": "natural",
-        "order": "asc"
-      }
-    ],
-    "perfectionist/sort-object-types": [
-      2,
-      {
-        "type": "natural",
-        "order": "asc"
-      }
-    ],
-    "perfectionist/sort-union-types": [
-      2,
-      {
-        "type": "natural",
-        "order": "asc"
-      }
-    ],
-    "perfectionist/sort-switch-case": [
-      2,
-      {
-        "type": "natural",
-        "order": "asc"
-      }
-    ],
-    "perfectionist/sort-decorators": [
-      2,
-      {
-        "type": "natural",
-        "order": "asc"
-      }
-    ],
-    "perfectionist/sort-interfaces": [
-      2,
-      {
-        "type": "natural",
-        "order": "asc"
-      }
-    ],
-    "perfectionist/sort-jsx-props": [
-      2,
-      {
-        "type": "natural",
-        "order": "asc"
-      }
-    ],
-    "perfectionist/sort-modules": [
-      2,
-      {
-        "type": "natural",
-        "order": "asc"
-      }
-    ],
-    "perfectionist/sort-classes": [
-      2,
-      {
-        "type": "natural",
-        "order": "asc"
-      }
-    ],
-    "perfectionist/sort-imports": [
-      2,
-      {
-        "type": "natural",
-        "order": "asc"
-      }
-    ],
-    "perfectionist/sort-exports": [
-      2,
-      {
-        "type": "natural",
-        "order": "asc"
-      }
-    ],
-    "perfectionist/sort-objects": [
-      2,
-      {
-        "type": "natural",
-        "order": "asc"
-      }
-    ],
-    "perfectionist/sort-enums": [
-      2,
-      {
-        "type": "natural",
-        "order": "asc"
-      }
-    ],
-    "perfectionist/sort-sets": [
-      2,
-      {
-        "type": "natural",
-        "order": "asc"
-      }
-    ],
-    "perfectionist/sort-maps": [
-      2,
-      {
-        "type": "natural",
-        "order": "asc"
-      }
-    ],
+    "perfectionist/sort-variable-declarations": [2, { "type": "natural", "order": "asc" }],
+    "perfectionist/sort-intersection-types": [2, { "type": "natural", "order": "asc" }],
+    "perfectionist/sort-import-attributes": [2, { "type": "natural", "order": "asc" }],
+    "perfectionist/sort-export-attributes": [2, { "type": "natural", "order": "asc" }],
+    "perfectionist/sort-heritage-clauses": [2, { "type": "natural", "order": "asc" }],
+    "perfectionist/sort-array-includes": [2, { "type": "natural", "order": "asc" }],
+    "perfectionist/sort-named-imports": [2, { "type": "natural", "order": "asc" }],
+    "perfectionist/sort-named-exports": [2, { "type": "natural", "order": "asc" }],
+    "perfectionist/sort-object-types": [2, { "type": "natural", "order": "asc" }],
+    "perfectionist/sort-union-types": [2, { "type": "natural", "order": "asc" }],
+    "perfectionist/sort-switch-case": [2, { "type": "natural", "order": "asc" }],
+    "perfectionist/sort-decorators": [2, { "type": "natural", "order": "asc" }],
+    "perfectionist/sort-interfaces": [2, { "type": "natural", "order": "asc" }],
+    "perfectionist/sort-jsx-props": [2, { "type": "natural", "order": "asc" }],
+    "perfectionist/sort-modules": [2, { "type": "natural", "order": "asc" }],
+    "perfectionist/sort-classes": [2, { "type": "natural", "order": "asc" }],
+    "perfectionist/sort-imports": [2, { "type": "natural", "order": "asc" }],
+    "perfectionist/sort-exports": [2, { "type": "natural", "order": "asc" }],
+    "perfectionist/sort-objects": [2, { "type": "natural", "order": "asc" }],
+    "perfectionist/sort-enums": [2, { "type": "natural", "order": "asc" }],
+    "perfectionist/sort-sets": [2, { "type": "natural", "order": "asc" }],
+    "perfectionist/sort-maps": [2, { "type": "natural", "order": "asc" }],
     "logical-assignment-operators": [0, "always"],
     "no-negated-condition": [0],
     "no-nested-ternary": [0],
     "no-process-exit": [0],
     "unicorn/better-dom-traversing": [2],
-    "unicorn/catch-error-name": [
-      0,
-      {
-        "name": "error",
-        "ignore": []
-      }
-    ],
-    "unicorn/class-reference-in-static-methods": [
-      2,
-      {
-        "preferThis": true,
-        "preferSuper": true
-      }
-    ],
+    "unicorn/catch-error-name": [0, { "name": "error", "ignore": [] }],
+    "unicorn/class-reference-in-static-methods": [2, { "preferThis": true, "preferSuper": true }],
     "unicorn/comment-content": [
       0,
       {
@@ -689,12 +399,7 @@
     "unicorn/consistent-empty-array-spread": [2],
     "unicorn/consistent-existence-index-check": [2],
     "unicorn/consistent-export-decorator-position": [2, "above"],
-    "unicorn/consistent-function-scoping": [
-      2,
-      {
-        "checkArrowFunctions": true
-      }
-    ],
+    "unicorn/consistent-function-scoping": [2, { "checkArrowFunctions": true }],
     "unicorn/consistent-function-style": [
       0,
       {
@@ -711,12 +416,7 @@
     "unicorn/consistent-optional-chaining": [2],
     "unicorn/consistent-template-literal-escape": [2],
     "unicorn/custom-error-definition": [0],
-    "unicorn/dom-node-dataset": [
-      2,
-      {
-        "preferAttributes": false
-      }
-    ],
+    "unicorn/dom-node-dataset": [2, { "preferAttributes": false }],
     "unicorn/empty-brace-spaces": [0],
     "unicorn/error-message": [2],
     "unicorn/escape-case": [2, "uppercase"],
@@ -730,12 +430,7 @@
         "allowWarningComments": true
       }
     ],
-    "unicorn/explicit-length-check": [
-      2,
-      {
-        "non-zero": "greater-than"
-      }
-    ],
+    "unicorn/explicit-length-check": [2, { "non-zero": "greater-than" }],
     "unicorn/explicit-timer-delay": [2, "always"],
     "unicorn/filename-case": [2],
     "unicorn/id-match": [
@@ -760,43 +455,18 @@
       }
     ],
     "unicorn/logical-assignment-operators": [2, "always"],
-    "unicorn/max-nested-calls": [
-      2,
-      {
-        "max": 3
-      }
-    ],
+    "unicorn/max-nested-calls": [2, { "max": 3 }],
     "unicorn/new-for-builtins": [2],
     "unicorn/no-abusive-eslint-disable": [2],
     "unicorn/no-accessor-recursion": [2],
     "unicorn/no-anonymous-default-export": [2],
-    "unicorn/no-array-callback-reference": [
-      2,
-      {
-        "ignore": []
-      }
-    ],
+    "unicorn/no-array-callback-reference": [2, { "ignore": [] }],
     "unicorn/no-array-fill-with-reference-type": [2],
     "unicorn/no-array-from-fill": [2],
     "unicorn/no-array-method-this-argument": [2],
-    "unicorn/no-array-reduce": [
-      2,
-      {
-        "allowSimpleOperations": true
-      }
-    ],
-    "unicorn/no-array-reverse": [
-      2,
-      {
-        "allowExpressionStatement": true
-      }
-    ],
-    "unicorn/no-array-sort": [
-      2,
-      {
-        "allowExpressionStatement": true
-      }
-    ],
+    "unicorn/no-array-reduce": [2, { "allowSimpleOperations": true }],
+    "unicorn/no-array-reverse": [2, { "allowExpressionStatement": true }],
+    "unicorn/no-array-sort": [2, { "allowExpressionStatement": true }],
     "unicorn/no-array-splice": [2],
     "unicorn/no-asterisk-prefix-in-documentation-comments": [0],
     "unicorn/no-await-expression-member": [2],
@@ -812,12 +482,7 @@
     "unicorn/no-document-cookie": [2],
     "unicorn/no-duplicate-loops": [2],
     "unicorn/no-duplicate-set-values": [2],
-    "unicorn/no-empty-file": [
-      2,
-      {
-        "allowComments": false
-      }
-    ],
+    "unicorn/no-empty-file": [2, { "allowComments": false }],
     "unicorn/no-error-property-assignment": [2],
     "unicorn/no-exports-in-scripts": [2],
     "unicorn/no-for-each": [2],
@@ -847,12 +512,7 @@
     "unicorn/no-mismatched-map-key": [2],
     "unicorn/no-named-default": [2],
     "unicorn/no-negated-array-predicate": [2],
-    "unicorn/no-negated-comparison": [
-      2,
-      {
-        "checkLogicalExpressions": false
-      }
-    ],
+    "unicorn/no-negated-comparison": [2, { "checkLogicalExpressions": false }],
     "unicorn/no-negated-condition": [2],
     "unicorn/no-negation-in-equality-check": [2],
     "unicorn/no-nested-ternary": [0],
@@ -864,13 +524,7 @@
         "verbs": ["get", "set", "unset", "delete", "add", "remove", "destroy", "create"]
       }
     ],
-    "unicorn/no-null": [
-      2,
-      {
-        "checkArguments": true,
-        "checkStrictEquality": false
-      }
-    ],
+    "unicorn/no-null": [2, { "checkArguments": true, "checkStrictEquality": false }],
     "unicorn/no-object-as-default-parameter": [2],
     "unicorn/no-object-methods-with-collections": [2],
     "unicorn/no-optional-chaining-on-undeclared-variable": [2],
@@ -885,12 +539,7 @@
     "unicorn/no-this-outside-of-class": [2],
     "unicorn/no-top-level-assignment-in-function": [2],
     "unicorn/no-top-level-side-effects": [2],
-    "unicorn/no-typeof-undefined": [
-      2,
-      {
-        "checkGlobalVariables": false
-      }
-    ],
+    "unicorn/no-typeof-undefined": [2, { "checkGlobalVariables": false }],
     "unicorn/no-uncalled-method": [2],
     "unicorn/no-undeclared-class-members": [2],
     "unicorn/no-unnecessary-array-flat-depth": [2],
@@ -901,12 +550,7 @@
     "unicorn/no-unnecessary-polyfills": [2, {}],
     "unicorn/no-unnecessary-slice-end": [2],
     "unicorn/no-unnecessary-splice": [2],
-    "unicorn/no-unreadable-array-destructuring": [
-      2,
-      {
-        "maximumIgnoredElements": 1
-      }
-    ],
+    "unicorn/no-unreadable-array-destructuring": [2, { "maximumIgnoredElements": 1 }],
     "unicorn/no-unreadable-for-of-expression": [2],
     "unicorn/no-unreadable-iife": [2],
     "unicorn/no-unreadable-new-expression": [0],
@@ -924,12 +568,7 @@
     "unicorn/no-useless-continue": [2],
     "unicorn/no-useless-else": [2],
     "unicorn/no-useless-error-capture-stack-trace": [2],
-    "unicorn/no-useless-fallback-in-spread": [
-      2,
-      {
-        "checkTernary": true
-      }
-    ],
+    "unicorn/no-useless-fallback-in-spread": [2, { "checkTernary": true }],
     "unicorn/no-useless-iterator-to-array": [2],
     "unicorn/no-useless-length-check": [2],
     "unicorn/no-useless-override": [2],
@@ -938,36 +577,16 @@
     "unicorn/no-useless-spread": [2],
     "unicorn/no-useless-switch-case": [2],
     "unicorn/no-useless-template-literals": [2],
-    "unicorn/no-useless-undefined": [
-      2,
-      {
-        "checkArguments": true,
-        "checkArrowFunctionBody": true
-      }
-    ],
+    "unicorn/no-useless-undefined": [2, { "checkArguments": true, "checkArrowFunctionBody": true }],
     "unicorn/no-zero-fractions": [2],
-    "unicorn/number-literal-case": [
-      0,
-      {
-        "hexadecimalValue": "uppercase"
-      }
-    ],
+    "unicorn/number-literal-case": [0, { "hexadecimalValue": "uppercase" }],
     "unicorn/numeric-separators-style": [
       2,
       {
         "onlyIfContainsSeparator": false,
-        "binary": {
-          "minimumDigits": 0,
-          "groupLength": 4
-        },
-        "octal": {
-          "minimumDigits": 0,
-          "groupLength": 4
-        },
-        "hexadecimal": {
-          "minimumDigits": 0,
-          "groupLength": 2
-        },
+        "binary": { "minimumDigits": 0, "groupLength": 4 },
+        "octal": { "minimumDigits": 0, "groupLength": 4 },
+        "hexadecimal": { "minimumDigits": 0, "groupLength": 2 },
         "number": {
           "minimumDigits": 5,
           "groupLength": 3,
@@ -976,38 +595,17 @@
       }
     ],
     "unicorn/operator-assignment": [2, "always"],
-    "unicorn/prefer-add-event-listener": [
-      2,
-      {
-        "excludedPackages": ["koa", "sax"]
-      }
-    ],
+    "unicorn/prefer-add-event-listener": [2, { "excludedPackages": ["koa", "sax"] }],
     "unicorn/prefer-add-event-listener-options": [2],
-    "unicorn/prefer-array-find": [
-      2,
-      {
-        "checkFromLast": true
-      }
-    ],
-    "unicorn/prefer-array-flat": [
-      2,
-      {
-        "functions": []
-      }
-    ],
+    "unicorn/prefer-array-find": [2, { "checkFromLast": true }],
+    "unicorn/prefer-array-flat": [2, { "functions": [] }],
     "unicorn/prefer-array-flat-map": [2],
     "unicorn/prefer-array-from-map": [2],
     "unicorn/prefer-array-index-of": [2],
     "unicorn/prefer-array-last-methods": [2],
     "unicorn/prefer-array-slice": [2],
     "unicorn/prefer-array-some": [2],
-    "unicorn/prefer-at": [
-      2,
-      {
-        "getLastElementFunctions": [],
-        "checkAllIndexAccess": false
-      }
-    ],
+    "unicorn/prefer-at": [2, { "getLastElementFunctions": [], "checkAllIndexAccess": false }],
     "unicorn/prefer-await": [2],
     "unicorn/prefer-bigint-literals": [2],
     "unicorn/prefer-blob-reading-methods": [2],
@@ -1022,20 +620,10 @@
     "unicorn/prefer-dom-node-html-methods": [0],
     "unicorn/prefer-dom-node-remove": [2],
     "unicorn/prefer-dom-node-text-content": [2],
-    "unicorn/prefer-early-return": [
-      2,
-      {
-        "maximumStatements": 1
-      }
-    ],
+    "unicorn/prefer-early-return": [2, { "maximumStatements": 1 }],
     "unicorn/prefer-else-if": [2],
     "unicorn/prefer-event-target": [2],
-    "unicorn/prefer-export-from": [
-      2,
-      {
-        "checkUsedVariables": true
-      }
-    ],
+    "unicorn/prefer-export-from": [2, { "checkUsedVariables": true }],
     "unicorn/prefer-get-or-insert-computed": [2],
     "unicorn/prefer-global-number-constants": [2],
     "unicorn/prefer-global-this": [2],
@@ -1044,12 +632,7 @@
     "unicorn/prefer-identifier-import-export-specifiers": [2],
     "unicorn/prefer-import-meta-properties": [0],
     "unicorn/prefer-includes": [2],
-    "unicorn/prefer-includes-over-repeated-comparisons": [
-      2,
-      {
-        "minimumComparisons": 3
-      }
-    ],
+    "unicorn/prefer-includes-over-repeated-comparisons": [2, { "minimumComparisons": 3 }],
     "unicorn/prefer-iterable-in-constructor": [2],
     "unicorn/prefer-iterator-concat": [0],
     "unicorn/prefer-iterator-to-array": [2],
@@ -1061,12 +644,7 @@
     "unicorn/prefer-math-abs": [2],
     "unicorn/prefer-math-min-max": [2],
     "unicorn/prefer-math-trunc": [2],
-    "unicorn/prefer-minimal-ternary": [
-      2,
-      {
-        "checkComputedMemberAccess": false
-      }
-    ],
+    "unicorn/prefer-minimal-ternary": [2, { "checkComputedMemberAccess": false }],
     "unicorn/prefer-modern-dom-apis": [2],
     "unicorn/prefer-modern-math-apis": [2],
     "unicorn/prefer-module": [2],
@@ -1075,60 +653,28 @@
     "unicorn/prefer-node-protocol": [2],
     "unicorn/prefer-number-coercion": [2],
     "unicorn/prefer-number-is-safe-integer": [2],
-    "unicorn/prefer-number-properties": [
-      2,
-      {
-        "checkInfinity": false,
-        "checkNaN": false
-      }
-    ],
+    "unicorn/prefer-number-properties": [2, { "checkInfinity": false, "checkNaN": false }],
     "unicorn/prefer-object-define-properties": [2],
     "unicorn/prefer-object-destructuring-defaults": [2],
-    "unicorn/prefer-object-from-entries": [
-      2,
-      {
-        "functions": []
-      }
-    ],
+    "unicorn/prefer-object-from-entries": [2, { "functions": [] }],
     "unicorn/prefer-object-iterable-methods": [2],
     "unicorn/prefer-optional-catch-binding": [2],
     "unicorn/prefer-path2d": [2],
     "unicorn/prefer-private-class-fields": [2],
     "unicorn/prefer-prototype-methods": [2],
-    "unicorn/prefer-query-selector": [
-      2,
-      {
-        "allowWithVariables": false
-      }
-    ],
-    "unicorn/prefer-queue-microtask": [
-      2,
-      {
-        "checkSetImmediate": false,
-        "checkSetTimeout": false
-      }
-    ],
+    "unicorn/prefer-query-selector": [2, { "allowWithVariables": false }],
+    "unicorn/prefer-queue-microtask": [2, { "checkSetImmediate": false, "checkSetTimeout": false }],
     "unicorn/prefer-reflect-apply": [2],
     "unicorn/prefer-regexp-test": [2],
     "unicorn/prefer-response-static-json": [2],
     "unicorn/prefer-scoped-selector": [2],
-    "unicorn/prefer-set-has": [
-      2,
-      {
-        "minimumItems": 0
-      }
-    ],
+    "unicorn/prefer-set-has": [2, { "minimumItems": 0 }],
     "unicorn/prefer-set-size": [2],
     "unicorn/prefer-short-arrow-method": [2],
     "unicorn/prefer-simple-condition-first": [2],
     "unicorn/prefer-simple-sort-comparator": [2],
     "unicorn/prefer-single-array-predicate": [2],
-    "unicorn/prefer-single-call": [
-      2,
-      {
-        "ignore": []
-      }
-    ],
+    "unicorn/prefer-single-call": [2, { "ignore": [] }],
     "unicorn/prefer-single-object-destructuring": [2],
     "unicorn/prefer-smaller-scope": [2],
     "unicorn/prefer-split-limit": [2],
@@ -1136,37 +682,14 @@
     "unicorn/prefer-string-match-all": [2],
     "unicorn/prefer-string-pad-start-end": [2],
     "unicorn/prefer-string-raw": [2],
-    "unicorn/prefer-string-repeat": [
-      2,
-      {
-        "minimumRepetitions": 3
-      }
-    ],
+    "unicorn/prefer-string-repeat": [2, { "minimumRepetitions": 3 }],
     "unicorn/prefer-string-replace-all": [2],
     "unicorn/prefer-string-slice": [2],
     "unicorn/prefer-string-starts-ends-with": [2],
     "unicorn/prefer-string-trim-start-end": [2],
-    "unicorn/prefer-structured-clone": [
-      2,
-      {
-        "functions": []
-      }
-    ],
-    "unicorn/prefer-switch": [
-      2,
-      {
-        "minimumCases": 3,
-        "emptyDefaultCase": "no-default-comment"
-      }
-    ],
-    "unicorn/prefer-temporal": [
-      0,
-      {
-        "checkDateNow": false,
-        "checkReferences": false,
-        "checkMethods": false
-      }
-    ],
+    "unicorn/prefer-structured-clone": [2, { "functions": [] }],
+    "unicorn/prefer-switch": [2, { "minimumCases": 3, "emptyDefaultCase": "no-default-comment" }],
+    "unicorn/prefer-temporal": [0, { "checkDateNow": false, "checkReferences": false, "checkMethods": false }],
     "unicorn/prefer-ternary": [2, "always"],
     "unicorn/prefer-top-level-await": [2],
     "unicorn/prefer-type-error": [2],
@@ -1178,25 +701,14 @@
     "unicorn/relative-url-style": [2, "never"],
     "unicorn/require-array-join-separator": [2],
     "unicorn/require-array-sort-compare": [2],
-    "unicorn/require-css-escape": [
-      2,
-      {
-        "checkAllSelectors": false
-      }
-    ],
+    "unicorn/require-css-escape": [2, { "checkAllSelectors": false }],
     "unicorn/require-module-attributes": [2],
     "unicorn/require-module-specifiers": [2],
     "unicorn/require-number-to-fixed-digits-argument": [2],
     "unicorn/require-passive-events": [2],
     "unicorn/require-post-message-target-origin": [0],
     "unicorn/require-proxy-trap-boolean-return": [2],
-    "unicorn/string-content": [
-      0,
-      {
-        "patterns": {},
-        "selectors": []
-      }
-    ],
+    "unicorn/string-content": [0, { "patterns": {}, "selectors": [] }],
     "unicorn/switch-case-braces": [2, "always"],
     "unicorn/switch-case-break-position": [2],
     "unicorn/template-indent": [
@@ -1208,19 +720,9 @@
         "comments": ["HTML", "indent"]
       }
     ],
-    "unicorn/text-encoding-identifier-case": [
-      2,
-      {
-        "withDash": false
-      }
-    ],
+    "unicorn/text-encoding-identifier-case": [2, { "withDash": false }],
     "unicorn/throw-new-error": [2],
-    "unicorn/try-complexity": [
-      0,
-      {
-        "max": 1
-      }
-    ],
+    "unicorn/try-complexity": [0, { "max": 1 }],
     "@zyplux/no-anonymous-param-type": [2],
     "@zyplux/no-arrow-return-type": [2],
     "@zyplux/no-identity-cast": [2],
@@ -1606,10 +1108,7 @@
     "sourceType": "module",
     "ecmaVersion": 2026,
     "parser": "typescript-eslint/parser@8.61.1",
-    "parserOptions": {
-      "projectService": true,
-      "tsconfigRootDir": "/home/srg/Documents/proj/ProjBiz/zyp-cerberus"
-    },
+    "parserOptions": { "projectService": true, "tsconfigRootDir": "<rootDir>" },
     "globals": {
       "AggregateError": false,
       "Array": false,

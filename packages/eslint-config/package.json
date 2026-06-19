@@ -26,6 +26,7 @@
     "./package.json": "./package.json"
   },
   "imports": {
+    "#scripts/normalize-rules": "./scripts/normalize-rules.ts",
     "#create-rule": "./src/create-rule.ts",
     "#plugin": "./src/plugin.ts",
     "#package.json": "./package.json",
@@ -48,7 +49,7 @@
   },
   "scripts": {
     "typecheck": "tsc --noEmit -p tsconfig.json",
-    "dump-rules": "eslint --print-config src/index.ts > rules.json && prettier --write rules.json",
+    "dump-rules": "bun run scripts/dump-rules.ts",
     "test": "vitest run"
   },
   "dependencies": {

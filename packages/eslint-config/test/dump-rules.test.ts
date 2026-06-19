@@ -3,6 +3,8 @@ import { readFileSync } from 'node:fs';
 import { fileURLToPath } from 'node:url';
 import { expect, it } from 'vitest';
 
+import { normalizeRules } from '#scripts/normalize-rules';
+
 const packageDir = fileURLToPath(new URL('..', import.meta.url));
 
 it('rules.json matches the current ESLint config (run `just dump-rules`)', () => {
@@ -12,5 +14,5 @@ it('rules.json matches the current ESLint config (run `just dump-rules`)', () =>
   });
   const committed = readFileSync(new URL('../rules.json', import.meta.url), 'utf8');
 
-  expect(JSON.parse(printed)).toStrictEqual(JSON.parse(committed));
+  expect(normalizeRules(JSON.parse(printed))).toStrictEqual(JSON.parse(committed));
 });
