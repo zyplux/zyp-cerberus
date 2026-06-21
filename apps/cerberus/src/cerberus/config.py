@@ -19,12 +19,16 @@ class Config:
     check_pipeline: tuple[str, ...]
     wrapped_tools: tuple[str, ...]
     allowed_setup_actions: tuple[str, ...]
+    ci_image: str
+    ci_required_ts: tuple[str, ...]
+    ci_required_python: tuple[str, ...]
 
 
 def _from_dict(data: dict) -> Config:
     aliases = data.get("aliases", {})
     recipes = data.get("recipes", {})
     ci = data.get("ci", {})
+    ci_required = ci.get("required", {})
     return Config(
         org=data["org"],
         exclude_repos=tuple(data.get("exclude_repos", [])),
@@ -37,6 +41,9 @@ def _from_dict(data: dict) -> Config:
         check_pipeline=tuple(recipes.get("check_pipeline", [])),
         wrapped_tools=tuple(recipes.get("wrapped_tools", [])),
         allowed_setup_actions=tuple(ci.get("allowed_setup_actions", [])),
+        ci_image=ci.get("image", ""),
+        ci_required_ts=tuple(ci_required.get("ts", [])),
+        ci_required_python=tuple(ci_required.get("python", [])),
     )
 
 

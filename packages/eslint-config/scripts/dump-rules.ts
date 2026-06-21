@@ -1,11 +1,12 @@
 import { execFileSync } from 'node:child_process';
 import { writeFileSync } from 'node:fs';
 import { fileURLToPath } from 'node:url';
-import { format } from 'prettier';
+import { format, resolveConfig } from 'prettier';
 
 import { normalizeRules } from '#scripts/normalize-rules';
 
 const packageDir = fileURLToPath(new URL('..', import.meta.url));
+const rulesPath = new URL('../rules.json', import.meta.url);
 
 const printed = execFileSync('eslint', ['--print-config', 'src/index.ts'], {
   cwd: packageDir,
@@ -13,6 +14,11 @@ const printed = execFileSync('eslint', ['--print-config', 'src/index.ts'], {
 });
 
 const normalized = normalizeRules(JSON.parse(printed));
-const formatted = await format(JSON.stringify(normalized), { parser: 'json' });
+const prettierOptions = await resolveConfig(fileURLToPath(rulesPath));
+const formatted = await format(JSON.stringify(normalized), {
+  ...prettierOptions,
+  objectWrap: 'collapse',
+  parser: 'json',
+});
 
-writeFileSync(new URL('../rules.json', import.meta.url), formatted);
+writeFileSync(rulesPath, formatted);

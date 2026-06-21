@@ -4,6 +4,7 @@ import shutil
 from pathlib import Path
 
 import pytest
+from cerberus.checks.rumdl_config_check import CANONICAL as RUMDL_CANONICAL
 from cerberus.cli import app
 from typer.testing import CliRunner
 
@@ -61,6 +62,7 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - run: echo ci
+      - run: uvx zyplux-cerberus
 """
 
 CONFORMING_CODEOWNERS = """\
@@ -75,6 +77,7 @@ def _make_conforming_repo(root: Path) -> Path:
     workflows.mkdir(parents=True)
     (workflows / "ci.yml").write_text(CONFORMING_CI)
     (root / ".github" / "CODEOWNERS").write_text(CONFORMING_CODEOWNERS)
+    (root / ".rumdl.toml").write_text(RUMDL_CANONICAL)
     return root
 
 
@@ -160,7 +163,9 @@ def test_list_command_lists_every_check() -> None:
     for check_id in (
         "justfile",
         "ci-workflow",
+        "cerberus-step",
         "workflow-tooling",
+        "rumdl-config",
         "codeowners",
         "ruleset",
         "workflow-secrets",

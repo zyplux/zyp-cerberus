@@ -23,3 +23,23 @@ wrapped_tools = ["ruff", "pyrefly", "pytest", "rumdl", "vulture", "cerberus", "e
 
 [ci]
 allowed_setup_actions = ["astral-sh/setup-uv", "oven-sh/setup-bun"]
+image = "ghcr.io/zyplux/ci"
+
+[ci.required]
+ts = [
+    "bun install --frozen-lockfile",
+    "bun run knip",
+    "bun run typecheck",
+    "bun run lint",
+    "prettier --check",
+    "bun run test",
+]
+python = [
+    "uv sync --locked",
+    "vulture",
+    "rumdl check",
+    "ruff check",
+    "ruff format --check",
+    "pyrefly check",
+    "pytest",
+]

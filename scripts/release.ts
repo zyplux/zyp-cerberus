@@ -15,6 +15,23 @@ const httpOk = async (url: string) => {
   return response.ok;
 };
 
+const ghcrImagePublished = async (repo: string, tag: string) => {
+  const tokenResponse = await fetch(`https://ghcr.io/token?scope=repository:${repo}:pull`);
+  if (!tokenResponse.ok) return false;
+  const body: unknown = await tokenResponse.json();
+  if (typeof body !== 'object' || body === null || !('token' in body)) return false;
+  const { token } = body;
+  if (typeof token !== 'string') return false;
+  const manifest = await fetch(`https://ghcr.io/v2/${repo}/manifests/${tag}`, {
+    headers: {
+      Accept: 'application/vnd.oci.image.index.v1+json, application/vnd.docker.distribution.manifest.v2+json',
+      Authorization: `Bearer ${token}`,
+    },
+    method: 'HEAD',
+  });
+  return manifest.ok;
+};
+
 const splitLines = (text: string) => (text ? text.split('\n') : []);
 
 const releaseExists = async (tag: string) =>
@@ -29,8 +46,18 @@ const readCerberusVersion = async () => {
   return version;
 };
 
+const readImageVersion = async () => {
+  const containerfile = await Bun.file(new URL('../containers/ci/Containerfile', import.meta.url)).text();
+  const version = /^LABEL org\.opencontainers\.image\.version="([^"]+)"/m.exec(containerfile)?.[1];
+  if (version === undefined) {
+    throw new Error('could not read image version from containers/ci/Containerfile');
+  }
+  return version;
+};
+
 const buildTargets = async () => {
   const cerberusVersion = await readCerberusVersion();
+  const imageVersion = await readImageVersion();
   return [
     {
       isPublished: async () => httpOk(`https://registry.npmjs.org/@zyplux%2feslint-config/${eslintPkg.version}`),
@@ -43,6 +70,12 @@ const buildTargets = async () => {
       label: 'zyplux-cerberus',
       tag: `cerberus-v${cerberusVersion}`,
       version: cerberusVersion,
+    },
+    {
+      isPublished: async () => ghcrImagePublished('zyplux/ci', imageVersion),
+      label: 'ghcr.io/zyplux/ci',
+      tag: `ci-image-v${imageVersion}`,
+      version: imageVersion,
     },
   ];
 };

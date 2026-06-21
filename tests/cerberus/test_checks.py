@@ -3,10 +3,13 @@ import shutil
 import pytest
 from cerberus import config, context, gh
 from cerberus.checks import (
+    cerberus_step_check,
+    ci_sequence_check,
     ci_workflow_check,
     codeowners_check,
     justfile_check,
     ruleset_check,
+    rumdl_config_check,
     secrets_check,
     workflow_tooling_check,
 )
@@ -332,3 +335,178 @@ def test_ruleset_missing_ci_context_fails(monkeypatch, repo, ctx):
 def test_ruleset_missing_guards_warn(monkeypatch, repo, ctx):
     _wire_ruleset(monkeypatch, ctx, rules=_ruleset(_pr_rule(), _status_checks_rule("ci")))
     assert ruleset_check.run(repo, ctx).status is Status.WARN
+
+
+_RUMDL_CANONICAL = (
+    "[global]\n"
+    "disable = [\n"
+    '    "MD013", # line-length\n'
+    '    "MD022", # blanks-around-headings\n'
+    '    "MD031", # blanks-around-fences\n'
+    '    "MD032", # blanks-around-lists\n'
+    '    "MD033", # no-inline-html\n'
+    "]\n"
+    "\n"
+    "# no-duplicate-heading\n"
+    "[MD024]\n"
+    "siblings-only = true\n"
+)
+_RUMDL_OLD = '[global]\ndisable = ["MD033", "MD013"]\n\n[MD024]\nsiblings-only = true\n'
+
+
+def test_rumdl_canonical_passes(monkeypatch, repo, ctx):
+    monkeypatch.setattr(gh, "raw_file", lambda *_: _RUMDL_CANONICAL)
+    assert rumdl_config_check.run(repo, ctx).status is Status.PASS
+
+
+def test_rumdl_exclude_is_allowed(monkeypatch, repo, ctx):
+    content = _RUMDL_CANONICAL.replace("]\n", ']\nexclude = ["reference_clones"]\n', 1)
+    monkeypatch.setattr(gh, "raw_file", lambda *_: content)
+    assert rumdl_config_check.run(repo, ctx).status is Status.PASS
+
+
+def test_rumdl_old_config_fails(monkeypatch, repo, ctx):
+    monkeypatch.setattr(gh, "raw_file", lambda *_: _RUMDL_OLD)
+    assert rumdl_config_check.run(repo, ctx).status is Status.FAIL
+
+
+def test_rumdl_missing_fails(monkeypatch, repo, ctx):
+    monkeypatch.setattr(gh, "raw_file", lambda *_: None)
+    assert rumdl_config_check.run(repo, ctx).status is Status.FAIL
+
+
+def test_rumdl_fix_normalizes_and_preserves_exclude(tmp_path):
+    (tmp_path / ".rumdl.toml").write_text(
+        '[global]\ndisable = ["MD033", "MD013"]\nexclude = ["reference_clones"]\n\n'
+        "[MD024]\nsiblings-only = true\n"
+    )
+    fixer = context.local_context(config.load(), tmp_path, fix=True)
+    target = fixer.repos()[0]
+    rumdl_config_check.run(target, fixer)
+    fixed = (tmp_path / ".rumdl.toml").read_text()
+    assert 'exclude = ["reference_clones"]' in fixed
+    assert "MD022" in fixed
+    verifier = context.local_context(config.load(), tmp_path)
+    assert rumdl_config_check.run(verifier.repos()[0], verifier).status is Status.PASS
+
+
+def _wf(run_step):
+    return {"ci.yml": f"jobs:\n  ci:\n    steps:\n      - run: {run_step}\n"}
+
+
+def test_cerberus_step_present_passes(monkeypatch, repo, ctx):
+    monkeypatch.setattr(ctx, "workflows", lambda r: _wf("uv run cerberus"))
+    assert cerberus_step_check.run(repo, ctx).status is Status.PASS
+
+
+def test_cerberus_step_uvx_form_passes(monkeypatch, repo, ctx):
+    monkeypatch.setattr(ctx, "workflows", lambda r: _wf("uvx zyplux-cerberus"))
+    assert cerberus_step_check.run(repo, ctx).status is Status.PASS
+
+
+def test_cerberus_step_absent_fails(monkeypatch, repo, ctx):
+    monkeypatch.setattr(ctx, "workflows", lambda r: _wf("bun run test"))
+    assert cerberus_step_check.run(repo, ctx).status is Status.FAIL
+
+
+def test_cerberus_step_no_workflows_fails(monkeypatch, repo, ctx):
+    monkeypatch.setattr(ctx, "workflows", lambda r: {})
+    assert cerberus_step_check.run(repo, ctx).status is Status.FAIL
+
+
+def test_cerberus_step_broken_yaml_errors(monkeypatch, repo, ctx):
+    monkeypatch.setattr(ctx, "workflows", lambda r: {"ci.yml": "jobs: [unterminated"})
+    assert cerberus_step_check.run(repo, ctx).status is Status.ERROR
+
+
+_PY_CI = (
+    "jobs:\n  ci:\n    steps:\n"
+    "      - run: uv sync --locked --all-groups\n"
+    "      - run: uv run --no-sync vulture\n"
+    "      - run: uv run --no-sync rumdl check\n"
+    "      - run: uv run --no-sync ruff check\n"
+    "      - run: uv run --no-sync ruff format --check\n"
+    "      - run: uv run --no-sync pyrefly check\n"
+    "      - run: uv run --no-sync pytest\n"
+)
+_TS_CI = (
+    "jobs:\n  ci:\n    container: ghcr.io/zyplux/ci:1.3.14\n    steps:\n"
+    "      - run: bun install --frozen-lockfile\n"
+    "      - run: bun run knip\n"
+    "      - run: bun run typecheck\n"
+    "      - run: bun run lint\n"
+    "      - run: bunx prettier --check .\n"
+    "      - run: bun run test\n"
+)
+
+
+def _ci_files(*, python=False, ts=False, ci=""):
+    def lookup(r, path):
+        if path == "pyproject.toml":
+            return "x" if python else None
+        if path == "package.json":
+            return "{}" if ts else None
+        if path.endswith((".yml", ".yaml")):
+            return ci or None
+        return None
+
+    return lookup
+
+
+def test_ci_sequence_skips_without_manifest(monkeypatch, repo, ctx):
+    monkeypatch.setattr(ctx, "file", _ci_files(ci=_PY_CI))
+    assert ci_sequence_check.run(repo, ctx).status is Status.SKIP
+
+
+def test_ci_sequence_python_canonical_passes(monkeypatch, repo, ctx):
+    monkeypatch.setattr(ctx, "file", _ci_files(python=True, ci=_PY_CI))
+    assert ci_sequence_check.run(repo, ctx).status is Status.PASS
+
+
+def test_ci_sequence_python_missing_step_fails(monkeypatch, repo, ctx):
+    ci = _PY_CI.replace("      - run: uv run --no-sync pytest\n", "")
+    monkeypatch.setattr(ctx, "file", _ci_files(python=True, ci=ci))
+    assert ci_sequence_check.run(repo, ctx).status is Status.FAIL
+
+
+def test_ci_sequence_python_unlocked_sync_fails(monkeypatch, repo, ctx):
+    ci = _PY_CI.replace("uv sync --locked --all-groups", "uv sync --all-groups")
+    monkeypatch.setattr(ctx, "file", _ci_files(python=True, ci=ci))
+    assert ci_sequence_check.run(repo, ctx).status is Status.FAIL
+
+
+def test_ci_sequence_python_out_of_order_fails(monkeypatch, repo, ctx):
+    ci = (
+        "jobs:\n  ci:\n    steps:\n"
+        "      - run: uv sync --locked --all-groups\n"
+        "      - run: uv run --no-sync pyrefly check\n"
+        "      - run: uv run --no-sync vulture\n"
+        "      - run: uv run --no-sync rumdl check\n"
+        "      - run: uv run --no-sync ruff check\n"
+        "      - run: uv run --no-sync ruff format --check\n"
+        "      - run: uv run --no-sync pytest\n"
+    )
+    monkeypatch.setattr(ctx, "file", _ci_files(python=True, ci=ci))
+    assert ci_sequence_check.run(repo, ctx).status is Status.FAIL
+
+
+def test_ci_sequence_ts_in_container_passes(monkeypatch, repo, ctx):
+    monkeypatch.setattr(ctx, "file", _ci_files(ts=True, ci=_TS_CI))
+    assert ci_sequence_check.run(repo, ctx).status is Status.PASS
+
+
+def test_ci_sequence_ts_without_container_warns(monkeypatch, repo, ctx):
+    ci = _TS_CI.replace("    container: ghcr.io/zyplux/ci:1.3.14\n", "")
+    monkeypatch.setattr(ctx, "file", _ci_files(ts=True, ci=ci))
+    assert ci_sequence_check.run(repo, ctx).status is Status.WARN
+
+
+def test_ci_sequence_ts_missing_step_fails(monkeypatch, repo, ctx):
+    ci = _TS_CI.replace("      - run: bun run knip\n", "")
+    monkeypatch.setattr(ctx, "file", _ci_files(ts=True, ci=ci))
+    assert ci_sequence_check.run(repo, ctx).status is Status.FAIL
+
+
+def test_ci_sequence_missing_ci_file_fails(monkeypatch, repo, ctx):
+    monkeypatch.setattr(ctx, "file", _ci_files(python=True, ci=""))
+    assert ci_sequence_check.run(repo, ctx).status is Status.FAIL

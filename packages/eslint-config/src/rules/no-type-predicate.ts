@@ -1,10 +1,8 @@
-import type { TSESTree } from '@typescript-eslint/utils';
-
 import { createRule } from '#create-rule';
 
 export const noTypePredicate = createRule({
   create: context => ({
-    TSTypePredicate: (node: TSESTree.TSTypePredicate) => {
+    TSTypePredicate: node => {
       if (node.asserts) return;
       context.report({
         messageId: 'noTypePredicate',

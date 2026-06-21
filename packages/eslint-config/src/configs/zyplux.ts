@@ -7,9 +7,9 @@ export const zypluxRules: ConfigWithExtends = {
   plugins: { '@zyplux': plugin },
   rules: {
     '@zyplux/no-anonymous-param-type': 'error',
-    '@zyplux/no-arrow-return-type': 'error',
     '@zyplux/no-identity-cast': 'error',
     '@zyplux/no-return-array-push': 'error',
+    '@zyplux/no-type-annotations': 'error',
     '@zyplux/no-type-predicate': 'error',
     '@zyplux/no-zod-custom': 'error',
     '@zyplux/prefer-arrow-functions': ['error', { returnStyle: 'implicit' }],
