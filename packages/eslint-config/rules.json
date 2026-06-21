@@ -687,11 +687,9 @@
     "unicorn/throw-new-error": [2],
     "unicorn/try-complexity": [0, { "max": 1 }],
     "@zyplux/no-anonymous-param-type": [2],
-    "@zyplux/no-arrow-return-type": [2],
     "@zyplux/no-identity-cast": [2],
     "@zyplux/no-return-array-push": [2],
     "@zyplux/no-type-annotations": [2],
-    "@zyplux/no-type-narrowing": [2],
     "@zyplux/no-type-predicate": [2],
     "@zyplux/no-zod-custom": [2],
     "@zyplux/prefer-arrow-functions": [
@@ -1066,7 +1064,7 @@
     "@typescript-eslint:@typescript-eslint/eslint-plugin@8.61.1",
     "perfectionist:eslint-plugin-perfectionist@5.9.1",
     "unicorn:eslint-plugin-unicorn@67.0.0",
-    "@zyplux:@zyplux/eslint-config@0.4.0"
+    "@zyplux:@zyplux/eslint-config@0.5.0"
   ],
   "language": "@/js",
   "languageOptions": {
