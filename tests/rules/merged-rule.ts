@@ -7,7 +7,7 @@ import * as z from 'zod';
 const severityLevel = { error: 2, off: 0, warn: 1 } as const;
 const severity = z.union([z.literal(Object.values(severityLevel)), z.enum(['off', 'warn', 'error'])]);
 
-const ruleEntry: z.ZodType<Linter.RuleEntry> = z.union([severity, z.tuple([severity]).rest(z.unknown())]);
+const ruleEntry = z.union([severity, z.tuple([severity]).rest(z.unknown())]) satisfies z.ZodType<Linter.RuleEntry>;
 
 const resolvedConfig = z.object({ rules: z.record(z.string(), ruleEntry) });
 

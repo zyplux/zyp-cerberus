@@ -5,9 +5,9 @@ import { AST_NODE_TYPES, ESLintUtils } from '@typescript-eslint/utils';
 
 import { createRule } from '#create-rule';
 
-const lengthReturningMethods: ReadonlySet<string> = new Set(['push', 'unshift']);
+const lengthReturningMethods = new Set<string>(['push', 'unshift']);
 
-const passthroughParents: ReadonlySet<TSESTree.Node['type']> = new Set([
+const passthroughParents = new Set<TSESTree.Node['type']>([
   AST_NODE_TYPES.ChainExpression,
   AST_NODE_TYPES.TSAsExpression,
   AST_NODE_TYPES.TSNonNullExpression,
@@ -15,7 +15,7 @@ const passthroughParents: ReadonlySet<TSESTree.Node['type']> = new Set([
   AST_NODE_TYPES.TSTypeAssertion,
 ]);
 
-const statementGluingChars: ReadonlySet<string> = new Set(['(', '*', '+', ',', '-', '.', '/', '[', '`']);
+const statementGluingChars = new Set<string>(['(', '*', '+', ',', '-', '.', '/', '[', '`']);
 
 const outermostResult = (call: TSESTree.CallExpression) => {
   let node: TSESTree.Node = call;

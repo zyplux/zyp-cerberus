@@ -33,13 +33,7 @@
     "no-invalid-regexp": [2, {}],
     "no-irregular-whitespace": [
       2,
-      {
-        "skipComments": false,
-        "skipJSXText": false,
-        "skipRegExps": false,
-        "skipStrings": true,
-        "skipTemplates": false
-      }
+      { "skipComments": false, "skipJSXText": false, "skipRegExps": false, "skipStrings": true, "skipTemplates": false }
     ],
     "no-loss-of-precision": [2],
     "no-misleading-character-class": [2, { "allowEscape": false }],
@@ -109,11 +103,7 @@
     "@typescript-eslint/class-literal-property-style": [2],
     "class-methods-use-this": [
       0,
-      {
-        "enforceForClassFields": true,
-        "exceptMethods": [],
-        "ignoreOverrideMethods": false
-      }
+      { "enforceForClassFields": true, "exceptMethods": [], "ignoreOverrideMethods": false }
     ],
     "@typescript-eslint/class-methods-use-this": [2],
     "@typescript-eslint/consistent-generic-constructors": [2],
@@ -273,11 +263,7 @@
     ],
     "@typescript-eslint/no-unused-expressions": [
       2,
-      {
-        "allowShortCircuit": false,
-        "allowTaggedTemplates": false,
-        "allowTernary": false
-      }
+      { "allowShortCircuit": false, "allowTaggedTemplates": false, "allowTernary": false }
     ],
     "@typescript-eslint/no-unused-private-class-members": [2],
     "@typescript-eslint/no-unused-vars": [2],
@@ -368,14 +354,7 @@
     "unicorn/better-dom-traversing": [2],
     "unicorn/catch-error-name": [0, { "name": "error", "ignore": [] }],
     "unicorn/class-reference-in-static-methods": [2, { "preferThis": true, "preferSuper": true }],
-    "unicorn/comment-content": [
-      0,
-      {
-        "checkUniformCase": true,
-        "extendDefaultReplacements": true,
-        "replacements": {}
-      }
-    ],
+    "unicorn/comment-content": [0, { "checkUniformCase": true, "extendDefaultReplacements": true, "replacements": {} }],
     "unicorn/consistent-assert": [2],
     "unicorn/consistent-boolean-name": [2, {}],
     "unicorn/consistent-class-member-order": [
@@ -447,12 +426,7 @@
     "unicorn/import-style": [2, {}],
     "unicorn/isolated-functions": [
       2,
-      {
-        "functions": ["makeSynchronous"],
-        "selectors": [],
-        "comments": ["@isolated"],
-        "overrideGlobals": {}
-      }
+      { "functions": ["makeSynchronous"], "selectors": [], "comments": ["@isolated"], "overrideGlobals": {} }
     ],
     "unicorn/logical-assignment-operators": [2, "always"],
     "unicorn/max-nested-calls": [2, { "max": 3 }],
@@ -493,12 +467,7 @@
     "unicorn/no-incorrect-template-string-interpolation": [2],
     "unicorn/no-instanceof-builtins": [
       2,
-      {
-        "useErrorIsError": false,
-        "strategy": "loose",
-        "include": [],
-        "exclude": []
-      }
+      { "useErrorIsError": false, "strategy": "loose", "include": [], "exclude": [] }
     ],
     "unicorn/no-invalid-argument-count": [2, {}],
     "unicorn/no-invalid-fetch-options": [2],
@@ -520,9 +489,7 @@
     "unicorn/no-new-buffer": [2],
     "unicorn/no-non-function-verb-prefix": [
       2,
-      {
-        "verbs": ["get", "set", "unset", "delete", "add", "remove", "destroy", "create"]
-      }
+      { "verbs": ["get", "set", "unset", "delete", "add", "remove", "destroy", "create"] }
     ],
     "unicorn/no-null": [2, { "checkArguments": true, "checkStrictEquality": false }],
     "unicorn/no-object-as-default-parameter": [2],
@@ -587,11 +554,7 @@
         "binary": { "minimumDigits": 0, "groupLength": 4 },
         "octal": { "minimumDigits": 0, "groupLength": 4 },
         "hexadecimal": { "minimumDigits": 0, "groupLength": 2 },
-        "number": {
-          "minimumDigits": 5,
-          "groupLength": 3,
-          "fractionGroupLength": null
-        }
+        "number": { "minimumDigits": 5, "groupLength": 3, "fractionGroupLength": null }
       }
     ],
     "unicorn/operator-assignment": [2, "always"],
@@ -727,6 +690,8 @@
     "@zyplux/no-arrow-return-type": [2],
     "@zyplux/no-identity-cast": [2],
     "@zyplux/no-return-array-push": [2],
+    "@zyplux/no-type-annotations": [2],
+    "@zyplux/no-type-narrowing": [2],
     "@zyplux/no-type-predicate": [2],
     "@zyplux/no-zod-custom": [2],
     "@zyplux/prefer-arrow-functions": [

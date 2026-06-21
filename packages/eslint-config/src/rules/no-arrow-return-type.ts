@@ -11,14 +11,14 @@ const getFunctionName = ({ parent }: TSESTree.ArrowFunctionExpression) => {
   return;
 };
 
-const ignoredKeys: ReadonlySet<string> = new Set(['loc', 'parent', 'range']);
+const ignoredKeys = new Set<string>(['loc', 'parent', 'range']);
 
 const childNodes = (node: object) => {
   const entries = new Map(Object.entries(node));
   const children: object[] = [];
   for (const [key, value] of entries) {
     if (ignoredKeys.has(key)) continue;
-    const items: readonly unknown[] = Array.isArray(value) ? value : [value];
+    const items: unknown[] = Array.isArray(value) ? value : [value];
     for (const item of items) {
       if (item !== null && typeof item === 'object') children.push(item);
     }
@@ -66,7 +66,7 @@ const isRecursive = (node: TSESTree.ArrowFunctionExpression) => {
   );
 };
 
-const declarationContainers: ReadonlySet<TSESTree.Node['type']> = new Set([
+const declarationContainers = new Set<TSESTree.Node['type']>([
   AST_NODE_TYPES.AccessorProperty,
   AST_NODE_TYPES.ArrayExpression,
   AST_NODE_TYPES.ClassBody,

@@ -55,7 +55,7 @@ upgrade-interactive:
     bun run upgrade -- -i
     bun install
 
-# Publish any bumped workspace package (eslint-config → npm, cerberus → PyPI) via GitHub releases.
+# Publish any bumped release target (eslint-config → npm, cerberus → PyPI, ci image → GHCR) via GitHub releases.
 release:
     bun run release
 

@@ -4,10 +4,13 @@ from collections.abc import Callable
 from dataclasses import dataclass
 
 from cerberus.checks import (
+    cerberus_step_check,
+    ci_sequence_check,
     ci_workflow_check,
     codeowners_check,
     justfile_check,
     ruleset_check,
+    rumdl_config_check,
     secrets_check,
     workflow_tooling_check,
 )
@@ -28,7 +31,10 @@ ALL: tuple[Check, ...] = tuple(
     for module in (
         justfile_check,
         ci_workflow_check,
+        ci_sequence_check,
+        cerberus_step_check,
         workflow_tooling_check,
+        rumdl_config_check,
         ruleset_check,
         secrets_check,
         codeowners_check,

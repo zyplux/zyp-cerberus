@@ -64,3 +64,31 @@ jobs:
         run: uv build --package zyplux-cerberus
       - name: Publish
         run: uv publish
+
+  ghcr:
+    name: publish CI image to GHCR
+    if: startsWith(github.event.release.tag_name, 'ci-image-v')
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      packages: write
+    steps:
+      - uses: actions/checkout@v6
+      - name: Assert release tag matches image version
+        run: |
+          version="$(grep -oP 'org\.opencontainers\.image\.version="\K[^"]+' containers/ci/Containerfile)"
+          tag="${GITHUB_REF_NAME#ci-image-v}"
+          if [ "$version" != "$tag" ]; then
+            echo "::error::release tag '$GITHUB_REF_NAME' does not match image version '$version'"
+            exit 1
+          fi
+      - name: Log in to GHCR
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: echo "$GH_TOKEN" | podman login ghcr.io -u "${{ github.actor }}" --password-stdin
+      - name: Build and push
+        run: |
+          version="${GITHUB_REF_NAME#ci-image-v}"
+          podman build -t "ghcr.io/zyplux/ci:${version}" -t ghcr.io/zyplux/ci:latest containers/ci
+          podman push "ghcr.io/zyplux/ci:${version}"
+          podman push ghcr.io/zyplux/ci:latest

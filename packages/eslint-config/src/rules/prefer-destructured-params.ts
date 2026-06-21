@@ -25,7 +25,7 @@ type PropertyRead = {
   property: string;
 };
 
-const reservedBindingNames: ReadonlySet<string> = new Set([
+const reservedBindingNames = new Set<string>([
   'arguments',
   'await',
   'break',

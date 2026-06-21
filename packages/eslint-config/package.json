@@ -36,6 +36,8 @@
     "#rules/no-arrow-return-type": "./src/rules/no-arrow-return-type.ts",
     "#rules/no-identity-cast": "./src/rules/no-identity-cast.ts",
     "#rules/no-return-array-push": "./src/rules/no-return-array-push.ts",
+    "#rules/no-type-annotations": "./src/rules/no-type-annotations.ts",
+    "#rules/no-type-narrowing": "./src/rules/no-type-narrowing.ts",
     "#rules/no-type-predicate": "./src/rules/no-type-predicate.ts",
     "#rules/no-zod-custom": "./src/rules/no-zod-custom.ts",
     "#rules/prefer-destructured-params": "./src/rules/prefer-destructured-params.ts"
