@@ -414,6 +414,11 @@ def test_cerberus_step_no_workflows_fails(monkeypatch, repo, ctx):
     assert cerberus_step_check.run(repo, ctx).status is Status.FAIL
 
 
+def test_cerberus_step_broken_yaml_errors(monkeypatch, repo, ctx):
+    monkeypatch.setattr(ctx, "workflows", lambda r: {"ci.yml": "jobs: [unterminated"})
+    assert cerberus_step_check.run(repo, ctx).status is Status.ERROR
+
+
 _PY_CI = (
     "jobs:\n  ci:\n    steps:\n"
     "      - run: uv sync --locked --all-groups\n"

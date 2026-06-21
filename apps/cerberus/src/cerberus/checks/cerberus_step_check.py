@@ -14,11 +14,7 @@ SCOPE = Scope.CONTENT
 _CERBERUS_CALL = re.compile(r"\bcerberus\b")
 
 
-def _runs_cerberus(workflow: str) -> bool:
-    try:
-        doc = yaml.safe_load(workflow)
-    except yaml.YAMLError:
-        return False
+def _runs_cerberus(doc: object) -> bool:
     if not isinstance(doc, dict):
         return False
     jobs = doc.get("jobs")
@@ -37,8 +33,15 @@ def _runs_cerberus(workflow: str) -> bool:
 
 def run(repo: Repo, ctx: Context) -> CheckResult:
     res = CheckResult(ID, repo.name)
-    if any(_runs_cerberus(content) for content in ctx.workflows(repo).values()):
-        res.ok("CI runs cerberus")
-    else:
+    for name, content in ctx.workflows(repo).items():
+        try:
+            doc = yaml.safe_load(content)
+        except yaml.YAMLError as err:
+            res.error(f"{name} is not valid YAML: {err}")
+            continue
+        if _runs_cerberus(doc):
+            res.ok("CI runs cerberus")
+            return res
+    if not res.problems:
         res.fail("no CI workflow runs cerberus (add `uvx zyplux-cerberus` to ci)")
     return res
