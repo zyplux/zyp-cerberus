@@ -15,6 +15,13 @@ const httpOk = async (url: string) => {
   return response.ok;
 };
 
+const MANIFEST_MEDIA_TYPES = [
+  'application/vnd.oci.image.index.v1+json',
+  'application/vnd.oci.image.manifest.v1+json',
+  'application/vnd.docker.distribution.manifest.list.v2+json',
+  'application/vnd.docker.distribution.manifest.v2+json',
+].join(', ');
+
 const ghcrImagePublished = async (repo: string, tag: string) => {
   const tokenResponse = await fetch(`https://ghcr.io/token?scope=repository:${repo}:pull`);
   if (!tokenResponse.ok) return false;
@@ -24,7 +31,7 @@ const ghcrImagePublished = async (repo: string, tag: string) => {
   if (typeof token !== 'string') return false;
   const manifest = await fetch(`https://ghcr.io/v2/${repo}/manifests/${tag}`, {
     headers: {
-      Accept: 'application/vnd.oci.image.index.v1+json, application/vnd.docker.distribution.manifest.v2+json',
+      Accept: MANIFEST_MEDIA_TYPES,
       Authorization: `Bearer ${token}`,
     },
     method: 'HEAD',
