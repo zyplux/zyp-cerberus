@@ -14,7 +14,7 @@ alias ui := upgrade-interactive
 default:
     @just --list
 
-# Install both workspaces: bun (prepare installs git hooks via lefthook) + uv.
+# Install both workspaces: bun + uv.
 install:
     bun install
     uv sync --all-packages --all-groups
@@ -34,6 +34,7 @@ lint:
     bun run lint:fix
     bun run format
     uv run rumdl check --fix
+    uv run rumdl fmt
     uv run ruff check --fix
     uv run ruff format
     uv run cerberus --fix

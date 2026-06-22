@@ -26,7 +26,6 @@
       "eslint-plugin-react-hooks": "^7.1.1",
       "eslint-plugin-unicorn": "^67.0.0",
       "knip": "^6.17.1",
-      "lefthook": "^2.1.9",
       "npm-check-updates": "^22.2.3",
       "prettier": "^3.8.4",
       "typescript": "^6.0.3",
@@ -36,12 +35,11 @@
     }
   },
   "scripts": {
-    "prepare": "lefthook install",
     "knip": "knip",
-    "format": "prettier --write .",
+    "format": "prettier --write --cache --log-level warn .",
     "typecheck": "tsc -p . && bun --elide-lines=0 --filter '*' typecheck",
-    "lint": "eslint .",
-    "lint:fix": "eslint . --fix",
+    "lint": "eslint . --cache",
+    "lint:fix": "bun run lint --fix",
     "test": "bun --elide-lines=0 --filter '*' test",
     "upgrade": "npm-check-updates --root --workspaces --format group",
     "release": "bun scripts/release.ts",
@@ -53,7 +51,6 @@
     "bun-types": "catalog:",
     "eslint": "catalog:",
     "knip": "catalog:",
-    "lefthook": "catalog:",
     "npm-check-updates": "catalog:",
     "prettier": "catalog:",
     "typescript": "catalog:"

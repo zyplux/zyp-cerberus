@@ -2,6 +2,7 @@
 node_modules/
 dist/
 *.tsbuildinfo
+.eslintcache
 
 # Python / uv
 .venv/

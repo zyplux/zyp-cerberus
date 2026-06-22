@@ -29,6 +29,7 @@ jobs:
       - run: uv run --no-sync vulture
       - run: bun run typecheck
       - run: uv run --no-sync rumdl check
+      - run: uv run --no-sync rumdl fmt --check
       - run: bun run lint
       - run: bunx prettier --check .
       - run: uv run --no-sync ruff check
