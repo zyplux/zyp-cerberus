@@ -5,8 +5,9 @@
     "": {
       "name": "totvibe-eslint",
       "devDependencies": {
+        "@types/bun": "catalog:",
         "@zyplux/eslint-config": "workspace:*",
-        "bun-types": "catalog:",
+        "@zyplux/tsconfig": "workspace:*",
         "eslint": "catalog:",
         "knip": "catalog:",
         "npm-check-updates": "catalog:",
@@ -17,7 +18,7 @@
     },
     "packages/eslint-config": {
       "name": "@zyplux/eslint-config",
-      "version": "0.5.0",
+      "version": "0.6.0",
       "dependencies": {
         "@eslint/js": "catalog:",
         "@typescript-eslint/type-utils": "catalog:",
@@ -32,8 +33,9 @@
         "typescript-eslint": "catalog:",
       },
       "devDependencies": {
+        "@types/bun": "catalog:",
         "@typescript-eslint/rule-tester": "catalog:",
-        "bun-types": "catalog:",
+        "@zyplux/tsconfig": "workspace:*",
         "typescript": "catalog:",
         "vitest": "catalog:",
       },
@@ -42,12 +44,35 @@
         "typescript": "catalog:",
       },
     },
+    "packages/tsconfig": {
+      "name": "@zyplux/tsconfig",
+      "version": "0.1.0",
+    },
+    "scripts": {
+      "name": "@zyplux/scripts",
+      "version": "0.0.0",
+      "devDependencies": {
+        "@types/bun": "catalog:",
+        "@zyplux/tsconfig": "workspace:*",
+      },
+    },
     "tests/public-interface": {
       "name": "@zyplux/tests-eslint-config",
       "version": "0.1.0",
       "devDependencies": {
+        "@types/bun": "catalog:",
         "@zyplux/eslint-config": "workspace:*",
-        "bun-types": "catalog:",
+        "@zyplux/tsconfig": "workspace:*",
+        "vitest": "catalog:",
+      },
+    },
+    "tests/release": {
+      "name": "@zyplux/tests-release",
+      "version": "0.1.0",
+      "devDependencies": {
+        "@types/bun": "catalog:",
+        "@zyplux/scripts": "workspace:*",
+        "@zyplux/tsconfig": "workspace:*",
         "vitest": "catalog:",
       },
     },
@@ -55,8 +80,9 @@
       "name": "@zyplux/tests-rules",
       "version": "0.1.0",
       "devDependencies": {
+        "@types/bun": "catalog:",
         "@zyplux/eslint-config": "workspace:*",
-        "bun-types": "catalog:",
+        "@zyplux/tsconfig": "workspace:*",
         "eslint": "catalog:",
         "typescript-eslint": "catalog:",
         "vitest": "catalog:",
@@ -66,11 +92,11 @@
   },
   "catalog": {
     "@eslint/js": "^10.0.1",
+    "@types/bun": "^1.3.14",
     "@typescript-eslint/rule-tester": "^8.61.1",
     "@typescript-eslint/type-utils": "^8.61.1",
     "@typescript-eslint/utils": "^8.61.1",
     "@vitest/eslint-plugin": "^1.6.20",
-    "bun-types": "^1.3.14",
     "eslint": "^10.5.0",
     "eslint-config-prettier": "^10.1.8",
     "eslint-plugin-perfectionist": "^5.9.1",
@@ -279,6 +305,8 @@
 
     "@tybys/wasm-util": ["@tybys/wasm-util@0.10.2", "", { "dependencies": { "tslib": "^2.4.0" } }, "sha512-RoBvJ2X0wuKlWFIjrwffGw1IqZHKQqzIchKaadZZfnNpsAYp2mM0h36JtPCjNDAHGgYez/15uMBpfGwchhiMgg=="],
 
+    "@types/bun": ["@types/bun@1.3.14", "", { "dependencies": { "bun-types": "1.3.14" } }, "sha512-h1hFqFVcvAvD9j9K7ZW7vd82aSA+rTdznZa+5bwvCwqSB1jmmfLcbIWhOLx1/+boy/xmjgCs/OMUL8hRJSmnPw=="],
+
     "@types/chai": ["@types/chai@5.2.3", "", { "dependencies": { "@types/deep-eql": "*", "assertion-error": "^2.0.1" } }, "sha512-Mw558oeA9fFbv65/y4mHtXDs9bPnFMZAL/jxdPFUpOHHIXX91mcgEHbS5Lahr+pwZFR8A7GQleRWeI6cGFC2UA=="],
 
     "@types/deep-eql": ["@types/deep-eql@4.0.2", "", {}, "sha512-c9h9dVVMigMPc4bwTvC5dxqtqJZwQPePsWjPlpSOnojbor6pGqdk541lfA7AqFQr5pB1BRdq0juY9db81BwyFw=="],
@@ -331,9 +359,15 @@
 
     "@zyplux/eslint-config": ["@zyplux/eslint-config@workspace:packages/eslint-config"],
 
+    "@zyplux/scripts": ["@zyplux/scripts@workspace:scripts"],
+
     "@zyplux/tests-eslint-config": ["@zyplux/tests-eslint-config@workspace:tests/public-interface"],
 
+    "@zyplux/tests-release": ["@zyplux/tests-release@workspace:tests/release"],
+
     "@zyplux/tests-rules": ["@zyplux/tests-rules@workspace:tests/rules"],
+
+    "@zyplux/tsconfig": ["@zyplux/tsconfig@workspace:packages/tsconfig"],
 
     "acorn": ["acorn@8.16.0", "", { "bin": { "acorn": "bin/acorn" } }, "sha512-UVJyE9MttOsBQIDKw1skb9nAwQuR5wuGD3+82K6JgJlm/Y+KI92oNsMNGZCYdDsVtRHSak0pcV5Dno5+4jh9sw=="],
 

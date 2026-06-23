@@ -1,7 +1,5 @@
 {
-  "extends": "../../tsconfig.base.json",
-  "compilerOptions": {
-    "types": ["bun-types"]
-  },
-  "include": ["."]
+  "extends": "@zyplux/tsconfig/bun.json",
+  "include": ["."],
+  "references": [{ "path": "../../packages/eslint-config" }]
 }

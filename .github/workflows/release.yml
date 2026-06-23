@@ -40,6 +40,37 @@ jobs:
           bun pm pack
           npm publish ./*.tgz --access public
 
+  npm-tsconfig:
+    name: publish tsconfig to npm
+    if: startsWith(github.event.release.tag_name, 'tsconfig-v')
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+    steps:
+      - uses: actions/checkout@v6
+      - uses: oven-sh/setup-bun@v2
+        with:
+          bun-version: 1.3.14
+      - run: bun install --frozen-lockfile
+      - name: Assert release tag matches package version
+        working-directory: packages/tsconfig
+        run: |
+          version="$(bun --print "require('./package.json').version")"
+          tag="${GITHUB_REF_NAME#tsconfig-v}"
+          if [ "$version" != "$tag" ]; then
+            echo "::error::release tag '$GITHUB_REF_NAME' does not match package version '$version'"
+            exit 1
+          fi
+      - name: Authenticate to npm
+        run: echo "//registry.npmjs.org/:_authToken=${NPM_TOKEN}" >> ~/.npmrc
+        env:
+          NPM_TOKEN: ${{ secrets.NPM_TOKEN }}
+      - name: Publish
+        working-directory: packages/tsconfig
+        run: |
+          bun pm pack
+          npm publish ./*.tgz --access public
+
   pypi:
     name: publish to PyPI
     if: startsWith(github.event.release.tag_name, 'cerberus-v')

@@ -1,7 +1,4 @@
 {
-  "extends": "../../tsconfig.base.json",
-  "compilerOptions": {
-    "types": ["bun-types"]
-  },
-  "include": ["src/**/*", "test/**/*", "scripts/**/*"]
+  "extends": "@zyplux/tsconfig/bun.json",
+  "include": ["src/**/*", "test/**/*", "scripts/**/*", "package.json"]
 }

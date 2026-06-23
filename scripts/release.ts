@@ -1,5 +1,4 @@
-import eslintPkg from '@zyplux/eslint-config/package.json' with { type: 'json' };
-
+import { releaseTargets } from './release-targets';
 import { $ } from './shell-harness';
 import { ensure, poll, readTrimmed } from './util';
 
@@ -10,82 +9,23 @@ type Target = {
   version: string;
 };
 
-const httpOk = async (url: string) => {
-  const response = await fetch(url);
-  return response.ok;
-};
-
-const MANIFEST_MEDIA_TYPES = [
-  'application/vnd.oci.image.index.v1+json',
-  'application/vnd.oci.image.manifest.v1+json',
-  'application/vnd.docker.distribution.manifest.list.v2+json',
-  'application/vnd.docker.distribution.manifest.v2+json',
-].join(', ');
-
-const ghcrImagePublished = async (repo: string, tag: string) => {
-  const tokenResponse = await fetch(`https://ghcr.io/token?scope=repository:${repo}:pull`);
-  if (!tokenResponse.ok) return false;
-  const body: unknown = await tokenResponse.json();
-  if (typeof body !== 'object' || body === null || !('token' in body)) return false;
-  const { token } = body;
-  if (typeof token !== 'string') return false;
-  const manifest = await fetch(`https://ghcr.io/v2/${repo}/manifests/${tag}`, {
-    headers: {
-      Accept: MANIFEST_MEDIA_TYPES,
-      Authorization: `Bearer ${token}`,
-    },
-    method: 'HEAD',
-  });
-  return manifest.ok;
-};
-
 const splitLines = (text: string) => (text ? text.split('\n') : []);
 
 const releaseExists = async (tag: string) =>
   (await readTrimmed($.gh.release.list({ jq: `any(.[]; .tagName == "${tag}")`, json: 'tagName' }))) === 'true';
 
-const readCerberusVersion = async () => {
-  const pyproject = await Bun.file(new URL('../apps/cerberus/pyproject.toml', import.meta.url)).text();
-  const version = /^version = "([^"]+)"/m.exec(pyproject)?.[1];
-  if (version === undefined) {
-    throw new Error('could not read cerberus version from apps/cerberus/pyproject.toml');
-  }
-  return version;
-};
-
-const readImageVersion = async () => {
-  const containerfile = await Bun.file(new URL('../containers/ci/Containerfile', import.meta.url)).text();
-  const version = /^LABEL org\.opencontainers\.image\.version="([^"]+)"/m.exec(containerfile)?.[1];
-  if (version === undefined) {
-    throw new Error('could not read image version from containers/ci/Containerfile');
-  }
-  return version;
-};
-
-const buildTargets = async () => {
-  const cerberusVersion = await readCerberusVersion();
-  const imageVersion = await readImageVersion();
-  return [
-    {
-      isPublished: async () => httpOk(`https://registry.npmjs.org/@zyplux%2feslint-config/${eslintPkg.version}`),
-      label: '@zyplux/eslint-config',
-      tag: `eslint-config-v${eslintPkg.version}`,
-      version: eslintPkg.version,
-    },
-    {
-      isPublished: async () => httpOk(`https://pypi.org/pypi/zyplux-cerberus/${cerberusVersion}/json`),
-      label: 'zyplux-cerberus',
-      tag: `cerberus-v${cerberusVersion}`,
-      version: cerberusVersion,
-    },
-    {
-      isPublished: async () => ghcrImagePublished('zyplux/ci', imageVersion),
-      label: 'ghcr.io/zyplux/ci',
-      tag: `ci-image-v${imageVersion}`,
-      version: imageVersion,
-    },
-  ];
-};
+const buildTargets = async () =>
+  Promise.all(
+    releaseTargets.map(async target => {
+      const version = await target.readVersion();
+      return {
+        isPublished: async () => target.isPublished(version),
+        label: target.label,
+        tag: `${target.tagPrefix}${version}`,
+        version,
+      };
+    }),
+  );
 
 const publish = async (target: Target, remoteHead: string) => {
   console.log(`Cutting release ${target.tag} ...`);

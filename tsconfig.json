@@ -1,7 +1,11 @@
 {
-  "extends": "./tsconfig.base.json",
-  "compilerOptions": {
-    "types": ["bun-types"]
-  },
-  "include": ["eslint.config.ts", "prettier.config.ts", "vitest.config.ts", "scripts/**/*.ts"]
+  "files": [],
+  "references": [
+    { "path": "./tsconfig.tooling.json" },
+    { "path": "./scripts" },
+    { "path": "./packages/eslint-config" },
+    { "path": "./tests/rules" },
+    { "path": "./tests/public-interface" },
+    { "path": "./tests/release" }
+  ]
 }

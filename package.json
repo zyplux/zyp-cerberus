@@ -10,15 +10,16 @@
   "workspaces": {
     "packages": [
       "packages/*",
+      "scripts",
       "tests/*"
     ],
     "catalog": {
       "@eslint/js": "^10.0.1",
+      "@types/bun": "^1.3.14",
       "@typescript-eslint/rule-tester": "^8.61.1",
       "@typescript-eslint/type-utils": "^8.61.1",
       "@typescript-eslint/utils": "^8.61.1",
       "@vitest/eslint-plugin": "^1.6.20",
-      "bun-types": "^1.3.14",
       "eslint": "^10.5.0",
       "eslint-config-prettier": "^10.1.8",
       "eslint-plugin-perfectionist": "^5.9.1",
@@ -38,18 +39,19 @@
   "scripts": {
     "knip": "knip",
     "format": "prettier --write --cache --log-level warn .",
-    "typecheck": "tsc -p . && bun --elide-lines=0 --filter '*' typecheck",
+    "typecheck": "tsc -b",
     "lint": "eslint . --cache",
     "lint:fix": "bun run lint --fix",
     "test": "vitest run",
     "upgrade": "npm-check-updates --root --workspaces --format group",
-    "release": "bun scripts/release.ts",
-    "push": "bun scripts/pusher.ts",
-    "clone": "bun scripts/clone-reference.ts"
+    "release": "bun run --filter @zyplux/scripts release",
+    "push": "bun run --filter @zyplux/scripts push",
+    "clone": "bun run --filter @zyplux/scripts clone"
   },
   "devDependencies": {
+    "@types/bun": "catalog:",
     "@zyplux/eslint-config": "workspace:*",
-    "bun-types": "catalog:",
+    "@zyplux/tsconfig": "workspace:*",
     "eslint": "catalog:",
     "knip": "catalog:",
     "npm-check-updates": "catalog:",

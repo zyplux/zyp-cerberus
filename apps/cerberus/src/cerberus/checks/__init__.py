@@ -12,6 +12,7 @@ from cerberus.checks import (
     ruleset_check,
     rumdl_config_check,
     secrets_check,
+    ts_project_references_check,
     vitest_runner_check,
     workflow_tooling_check,
 )
@@ -37,6 +38,7 @@ ALL: tuple[Check, ...] = tuple(
         workflow_tooling_check,
         rumdl_config_check,
         vitest_runner_check,
+        ts_project_references_check,
         ruleset_check,
         secrets_check,
         codeowners_check,

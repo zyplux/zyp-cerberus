@@ -1,6 +1,6 @@
 {
   "name": "@zyplux/eslint-config",
-  "version": "0.5.0",
+  "version": "0.6.0",
   "description": "Shared ESLint flat config and custom rules",
   "keywords": [
     "eslint",
@@ -48,7 +48,6 @@
     "access": "public"
   },
   "scripts": {
-    "typecheck": "tsc --noEmit -p tsconfig.json",
     "dump-rules": "bun run scripts/dump-rules.ts",
     "test": "vitest run"
   },
@@ -70,8 +69,9 @@
     "typescript": "catalog:"
   },
   "devDependencies": {
+    "@types/bun": "catalog:",
     "@typescript-eslint/rule-tester": "catalog:",
-    "bun-types": "catalog:",
+    "@zyplux/tsconfig": "workspace:*",
     "typescript": "catalog:",
     "vitest": "catalog:"
   }

@@ -18,6 +18,8 @@ jobs:
     container: ghcr.io/zyplux/ci:0.1.0
     steps:
       - uses: actions/checkout@v6
+        with:
+          fetch-depth: 0
       - run: bun install --frozen-lockfile
       - run: uv sync --locked --all-packages --all-groups
       - run: bun run knip

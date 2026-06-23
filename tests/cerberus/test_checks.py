@@ -11,6 +11,7 @@ from cerberus.checks import (
     ruleset_check,
     rumdl_config_check,
     secrets_check,
+    ts_project_references_check,
     vitest_runner_check,
     workflow_tooling_check,
 )
@@ -572,3 +573,56 @@ def test_vitest_runner_ignores_node_modules(monkeypatch, repo, ctx):
         {"package.json": _VITEST_PKG, "node_modules/dep/x.test.ts": _BUN_TEST_IMPORT},
     )
     assert vitest_runner_check.run(repo, ctx).status is Status.PASS
+
+
+_TSB_PKG = '{"workspaces": ["packages/*"], "scripts": {"typecheck": "tsc -b"}}'
+_TSBUILD_PKG = '{"workspaces": ["packages/*"], "scripts": {"typecheck": "tsc --build"}}'
+_FANOUT_PKG = (
+    '{"workspaces": ["packages/*"], "scripts": '
+    '{"typecheck": "tsc -p . && bun --filter \'*\' typecheck"}}'
+)
+_TSC_P_PKG = (
+    '{"workspaces": ["packages/*"], "scripts": {"typecheck": "tsc --noEmit -p tsconfig.json"}}'
+)
+_NO_TYPECHECK_PKG = '{"workspaces": ["packages/*"], "scripts": {"test": "vitest run"}}'
+_NON_WORKSPACE_PKG = '{"scripts": {"typecheck": "tsc -b"}}'
+
+
+def test_ts_project_references_skips_without_package_json(monkeypatch, repo, ctx):
+    _wire_files(monkeypatch, ctx, {"README.md": "# demo\n"})
+    assert ts_project_references_check.run(repo, ctx).status is Status.SKIP
+
+
+def test_ts_project_references_skips_non_workspace(monkeypatch, repo, ctx):
+    _wire_files(monkeypatch, ctx, {"package.json": _NON_WORKSPACE_PKG, "tsconfig.json": "{}"})
+    assert ts_project_references_check.run(repo, ctx).status is Status.SKIP
+
+
+def test_ts_project_references_skips_without_tsconfig(monkeypatch, repo, ctx):
+    _wire_files(monkeypatch, ctx, {"package.json": _TSB_PKG})
+    assert ts_project_references_check.run(repo, ctx).status is Status.SKIP
+
+
+def test_ts_project_references_passes_on_tsc_build(monkeypatch, repo, ctx):
+    _wire_files(monkeypatch, ctx, {"package.json": _TSB_PKG, "tsconfig.json": "{}"})
+    assert ts_project_references_check.run(repo, ctx).status is Status.PASS
+
+
+def test_ts_project_references_passes_on_tsc_build_long_flag(monkeypatch, repo, ctx):
+    _wire_files(monkeypatch, ctx, {"package.json": _TSBUILD_PKG, "tsconfig.json": "{}"})
+    assert ts_project_references_check.run(repo, ctx).status is Status.PASS
+
+
+def test_ts_project_references_flags_bun_filter_fanout(monkeypatch, repo, ctx):
+    _wire_files(monkeypatch, ctx, {"package.json": _FANOUT_PKG, "tsconfig.json": "{}"})
+    assert ts_project_references_check.run(repo, ctx).status is Status.FAIL
+
+
+def test_ts_project_references_flags_single_project(monkeypatch, repo, ctx):
+    _wire_files(monkeypatch, ctx, {"package.json": _TSC_P_PKG, "tsconfig.json": "{}"})
+    assert ts_project_references_check.run(repo, ctx).status is Status.FAIL
+
+
+def test_ts_project_references_flags_missing_typecheck(monkeypatch, repo, ctx):
+    _wire_files(monkeypatch, ctx, {"package.json": _NO_TYPECHECK_PKG, "tsconfig.json": "{}"})
+    assert ts_project_references_check.run(repo, ctx).status is Status.FAIL

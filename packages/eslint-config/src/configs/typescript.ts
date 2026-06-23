@@ -38,19 +38,18 @@ const strictStylisticOverrides: Linter.RulesRecord = {
   '@typescript-eslint/restrict-template-expressions': ['error', { allowNumber: true }],
 };
 
-export const typescript = (tsconfigRootDir: string) =>
-  ({
-    //extends: [tseslint.configs.strictTypeChecked, tseslint.configs.stylisticTypeChecked],
-    extends: [tseslint.configs.all],
-    files: ['**/*.{ts,tsx}'],
-    languageOptions: {
-      parserOptions: {
-        projectService: true,
-        tsconfigRootDir,
-      },
+export const typescript = (tsconfigRootDir: string): ConfigWithExtends => ({
+  //extends: [tseslint.configs.strictTypeChecked, tseslint.configs.stylisticTypeChecked],
+  extends: [tseslint.configs.all],
+  files: ['**/*.{ts,tsx}'],
+  languageOptions: {
+    parserOptions: {
+      projectService: true,
+      tsconfigRootDir,
     },
-    rules: {
-      ...allOverrides,
-      ...strictStylisticOverrides,
-    },
-  }) satisfies ConfigWithExtends;
+  },
+  rules: {
+    ...allOverrides,
+    ...strictStylisticOverrides,
+  },
+});

@@ -2,7 +2,7 @@ import unicorn from 'eslint-plugin-unicorn';
 
 import type { ConfigWithExtends } from './types';
 
-export const unicornConfig = {
+export const unicornConfig: ConfigWithExtends = {
   extends: [unicorn.configs.recommended],
   files: ['**/*.{ts,tsx,js,mjs,cjs}'],
   rules: {
@@ -10,4 +10,4 @@ export const unicornConfig = {
     'unicorn/no-return-array-push': 'off',
     'unicorn/prevent-abbreviations': 'off',
   },
-} satisfies ConfigWithExtends;
+};

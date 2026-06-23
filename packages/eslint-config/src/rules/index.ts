@@ -1,6 +1,6 @@
 import preferArrowFunctions from 'eslint-plugin-prefer-arrow-functions';
 
-import { castToEslintRule } from '#create-rule';
+import { castToEslintRule, type EslintRule } from '#create-rule';
 
 import { noAnonymousParamType } from './no-anonymous-param-type';
 import { noIdentityCast } from './no-identity-cast';
@@ -15,7 +15,7 @@ if (!upstreamPreferArrowFunctions) {
   throw new Error('eslint-plugin-prefer-arrow-functions: "prefer-arrow-functions" rule missing');
 }
 
-export const rules = {
+export const rules: Record<string, EslintRule> = {
   'no-anonymous-param-type': noAnonymousParamType,
   'no-identity-cast': noIdentityCast,
   'no-return-array-push': noReturnArrayPush,

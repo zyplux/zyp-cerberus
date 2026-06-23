@@ -1,5 +1,5 @@
 {
-  "name": "@zyplux/tests-rules",
+  "name": "@zyplux/tests-release",
   "version": "0.1.0",
   "private": true,
   "type": "module",
@@ -8,11 +8,8 @@
   },
   "devDependencies": {
     "@types/bun": "catalog:",
-    "@zyplux/eslint-config": "workspace:*",
+    "@zyplux/scripts": "workspace:*",
     "@zyplux/tsconfig": "workspace:*",
-    "eslint": "catalog:",
-    "typescript-eslint": "catalog:",
-    "vitest": "catalog:",
-    "zod": "catalog:"
+    "vitest": "catalog:"
   }
 }

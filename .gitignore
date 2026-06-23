@@ -1,6 +1,7 @@
 # JavaScript / bun
 node_modules/
 dist/
+.tsbuild/
 *.tsbuildinfo
 .eslintcache
 

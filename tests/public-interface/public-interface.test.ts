@@ -36,7 +36,7 @@ describe('zyplux', () => {
     const config = zyplux();
     const entry = config.find(item => item.plugins !== undefined && '@zyplux' in item.plugins);
     expect(entry).toBeDefined();
-    const exported = Object.keys(plugin.rules).toSorted((a, b) => a.localeCompare(b));
+    const exported = Object.keys(plugin.rules ?? {}).toSorted((a, b) => a.localeCompare(b));
     const enabled = Object.keys(entry?.rules ?? {})
       .map(name => name.replace('@zyplux/', ''))
       .toSorted((a, b) => a.localeCompare(b));
