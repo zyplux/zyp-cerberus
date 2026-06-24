@@ -1,0 +1,4 @@
+{
+  "extends": "@zyplux/tsconfig/bun.json",
+  "include": ["src"]
+}

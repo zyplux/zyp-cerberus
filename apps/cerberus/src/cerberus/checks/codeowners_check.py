@@ -33,7 +33,7 @@ def run(repo: Repo, ctx: Context) -> CheckResult:
     if not owned_lines:
         res.fail("CODEOWNERS has no ownership rules")
     elif not any(_covers_github(line.split()[0]) for line in owned_lines):
-        res.warn("CODEOWNERS does not cover `/.github/`")
+        res.fail("CODEOWNERS does not cover `/.github/`")
 
     if not res.problems:
         res.ok("CODEOWNERS present, covers /.github/")

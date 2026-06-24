@@ -1,3 +1,3 @@
-import { zyplux } from './packages/eslint-config/src/index';
+import { zyplux } from '@zyplux/eslint-config';
 
 export default zyplux({ tsconfigRootDir: import.meta.dirname });

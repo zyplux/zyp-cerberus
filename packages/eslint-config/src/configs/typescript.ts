@@ -8,7 +8,17 @@ const allOverrides: Linter.RulesRecord = {
   '@typescript-eslint/consistent-return': 'off', // recommended noImplicitReturns over this rule https://typescript-eslint.io/rules/consistent-return
   '@typescript-eslint/explicit-function-return-type': 'off',
   '@typescript-eslint/explicit-module-boundary-types': 'off',
-  '@typescript-eslint/naming-convention': 'off',
+  '@typescript-eslint/naming-convention': [
+    'error',
+    { format: ['camelCase'], leadingUnderscore: 'allow', selector: 'default' },
+    { format: ['camelCase', 'PascalCase', 'UPPER_CASE'], selector: 'variable' },
+    { format: [], modifiers: ['destructured'], selector: 'variable' },
+    { format: ['camelCase', 'PascalCase'], selector: 'function' },
+    { format: ['camelCase'], leadingUnderscore: 'allow', selector: 'parameter' },
+    { format: ['PascalCase'], selector: 'typeLike' },
+    { format: ['camelCase', 'PascalCase'], selector: 'import' },
+    { format: [], selector: ['objectLiteralMethod', 'objectLiteralProperty', 'typeProperty'] },
+  ],
   '@typescript-eslint/no-magic-numbers': [
     'error',
     {
@@ -38,19 +48,18 @@ const strictStylisticOverrides: Linter.RulesRecord = {
   '@typescript-eslint/restrict-template-expressions': ['error', { allowNumber: true }],
 };
 
-export const typescript = (tsconfigRootDir: string) =>
-  ({
-    //extends: [tseslint.configs.strictTypeChecked, tseslint.configs.stylisticTypeChecked],
-    extends: [tseslint.configs.all],
-    files: ['**/*.{ts,tsx}'],
-    languageOptions: {
-      parserOptions: {
-        projectService: true,
-        tsconfigRootDir,
-      },
+export const typescript = (tsconfigRootDir: string): ConfigWithExtends => ({
+  extends: [tseslint.configs.strictTypeChecked, tseslint.configs.stylisticTypeChecked],
+  //extends: [tseslint.configs.all],
+  files: ['**/*.{ts,tsx}'],
+  languageOptions: {
+    parserOptions: {
+      projectService: true,
+      tsconfigRootDir,
     },
-    rules: {
-      ...allOverrides,
-      ...strictStylisticOverrides,
-    },
-  }) satisfies ConfigWithExtends;
+  },
+  rules: {
+    ...allOverrides,
+    ...strictStylisticOverrides,
+  },
+});

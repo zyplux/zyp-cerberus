@@ -1,6 +1,6 @@
 {
   "name": "@zyplux/eslint-config",
-  "version": "0.5.0",
+  "version": "0.6.0",
   "description": "Shared ESLint flat config and custom rules",
   "keywords": [
     "eslint",
@@ -26,19 +26,21 @@
     "./package.json": "./package.json"
   },
   "imports": {
-    "#scripts/normalize-rules": "./scripts/normalize-rules.ts",
+    "#scripts/print-config": "./scripts/print-config.ts",
     "#create-rule": "./src/create-rule.ts",
     "#plugin": "./src/plugin.ts",
     "#package.json": "./package.json",
     "#configs/base": "./src/configs/base.ts",
     "#configs/typescript": "./src/configs/typescript.ts",
-    "#rules/no-anonymous-param-type": "./src/rules/no-anonymous-param-type.ts",
-    "#rules/no-identity-cast": "./src/rules/no-identity-cast.ts",
-    "#rules/no-return-array-push": "./src/rules/no-return-array-push.ts",
-    "#rules/no-type-annotations": "./src/rules/no-type-annotations.ts",
-    "#rules/no-type-predicate": "./src/rules/no-type-predicate.ts",
-    "#rules/no-zod-custom": "./src/rules/no-zod-custom.ts",
-    "#rules/prefer-destructured-params": "./src/rules/prefer-destructured-params.ts"
+    "#rules/no-anonymous-param-type": "./src/rules/syntactic/no-anonymous-param-type.ts",
+    "#rules/no-identity-cast": "./src/rules/syntactic/no-identity-cast.ts",
+    "#rules/no-return-array-push": "./src/rules/type-aware/no-return-array-push.ts",
+    "#rules/no-stray-pascal-const": "./src/rules/type-aware/no-stray-pascal-const.ts",
+    "#rules/no-type-annotations": "./src/rules/type-aware/no-type-annotations.ts",
+    "#rules/no-type-predicate": "./src/rules/syntactic/no-type-predicate.ts",
+    "#rules/no-unvalidated-json": "./src/rules/type-aware/no-unvalidated-json.ts",
+    "#rules/no-zod-custom": "./src/rules/type-aware/no-zod-custom.ts",
+    "#rules/prefer-destructured-params": "./src/rules/syntactic/prefer-destructured-params.ts"
   },
   "files": [
     "README.md",
@@ -48,7 +50,6 @@
     "access": "public"
   },
   "scripts": {
-    "typecheck": "tsc --noEmit -p tsconfig.json",
     "dump-rules": "bun run scripts/dump-rules.ts",
     "test": "vitest run"
   },
@@ -56,6 +57,7 @@
     "@eslint/js": "catalog:",
     "@typescript-eslint/type-utils": "catalog:",
     "@typescript-eslint/utils": "catalog:",
+    "@vitest/eslint-plugin": "catalog:",
     "eslint-config-prettier": "catalog:",
     "eslint-plugin-perfectionist": "catalog:",
     "eslint-plugin-prefer-arrow-functions": "catalog:",
@@ -69,9 +71,12 @@
     "typescript": "catalog:"
   },
   "devDependencies": {
+    "@types/bun": "catalog:",
     "@typescript-eslint/rule-tester": "catalog:",
-    "bun-types": "catalog:",
+    "@zyplux/tsconfig": "workspace:*",
+    "@zyplux/util": "workspace:*",
     "typescript": "catalog:",
-    "vitest": "catalog:"
+    "vitest": "catalog:",
+    "zod": "catalog:"
   }
 }

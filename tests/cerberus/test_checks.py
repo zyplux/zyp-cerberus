@@ -3,6 +3,7 @@ import shutil
 import pytest
 from cerberus import config, context, gh
 from cerberus.checks import (
+    catalog_discipline_check,
     cerberus_step_check,
     ci_sequence_check,
     ci_workflow_check,
@@ -11,6 +12,8 @@ from cerberus.checks import (
     ruleset_check,
     rumdl_config_check,
     secrets_check,
+    ts_project_references_check,
+    vitest_runner_check,
     workflow_tooling_check,
 )
 from cerberus.model import Repo, Status
@@ -92,9 +95,9 @@ def test_missing_required_alias_fails(monkeypatch, repo, ctx):
 
 
 @requires_just
-def test_missing_recommended_only_warns(monkeypatch, repo, ctx):
+def test_missing_recommended_fails(monkeypatch, repo, ctx):
     monkeypatch.setattr(gh, "raw_file", lambda *_: MISSING_RECOMMENDED)
-    assert justfile_check.run(repo, ctx).status is Status.WARN
+    assert justfile_check.run(repo, ctx).status is Status.FAIL
 
 
 @requires_just
@@ -157,7 +160,7 @@ def test_codeowners_wildcard_covers_github(monkeypatch, repo, ctx):
 
 def test_codeowners_lookalike_path_does_not_cover_github(monkeypatch, repo, ctx):
     monkeypatch.setattr(gh, "raw_file", lambda *_: "docs/.github-notes @zyplux/admins\n")
-    assert codeowners_check.run(repo, ctx).status is Status.WARN
+    assert codeowners_check.run(repo, ctx).status is Status.FAIL
 
 
 def _ci_workflow(content):
@@ -191,9 +194,9 @@ def test_ci_workflow_missing_pull_request_fails(monkeypatch, repo, ctx):
     assert ci_workflow_check.run(repo, ctx).status is Status.FAIL
 
 
-def test_ci_workflow_missing_push_warns(monkeypatch, repo, ctx):
+def test_ci_workflow_missing_push_fails(monkeypatch, repo, ctx):
     monkeypatch.setattr(ctx, "file", _ci_workflow("on: pull_request\njobs:\n  ci:\n    name: ci\n"))
-    assert ci_workflow_check.run(repo, ctx).status is Status.WARN
+    assert ci_workflow_check.run(repo, ctx).status is Status.FAIL
 
 
 def test_ci_workflow_on_as_pyyaml_bool_key(monkeypatch, repo, ctx):
@@ -441,7 +444,7 @@ _TS_CI = (
 
 
 def _ci_files(*, python=False, ts=False, ci=""):
-    def lookup(r, path):
+    def lookup(_repo, path):
         if path == "pyproject.toml":
             return "x" if python else None
         if path == "package.json":
@@ -495,10 +498,10 @@ def test_ci_sequence_ts_in_container_passes(monkeypatch, repo, ctx):
     assert ci_sequence_check.run(repo, ctx).status is Status.PASS
 
 
-def test_ci_sequence_ts_without_container_warns(monkeypatch, repo, ctx):
+def test_ci_sequence_ts_without_container_fails(monkeypatch, repo, ctx):
     ci = _TS_CI.replace("    container: ghcr.io/zyplux/ci:1.3.14\n", "")
     monkeypatch.setattr(ctx, "file", _ci_files(ts=True, ci=ci))
-    assert ci_sequence_check.run(repo, ctx).status is Status.WARN
+    assert ci_sequence_check.run(repo, ctx).status is Status.FAIL
 
 
 def test_ci_sequence_ts_missing_step_fails(monkeypatch, repo, ctx):
@@ -510,3 +513,158 @@ def test_ci_sequence_ts_missing_step_fails(monkeypatch, repo, ctx):
 def test_ci_sequence_missing_ci_file_fails(monkeypatch, repo, ctx):
     monkeypatch.setattr(ctx, "file", _ci_files(python=True, ci=""))
     assert ci_sequence_check.run(repo, ctx).status is Status.FAIL
+
+
+_VITEST_PKG = '{"scripts": {"test": "vitest run"}}'
+_BUN_TEST_PKG = '{"scripts": {"test": "bun test"}}'
+_BUN_FILTER_PKG = '{"scripts": {"test": "bun --filter \'*\' test"}}'
+_BUN_RUN_PKG = '{"scripts": {"test": "bun run test"}}'
+_VITEST_IMPORT = "import { describe, expect, it } from 'vitest';\n"
+_BUN_TEST_IMPORT = "import { describe, expect, it } from 'bun:test';\n"
+
+
+def _repo_files(mapping):
+    def lookup(_repo, path):
+        return mapping.get(path)
+
+    return lookup
+
+
+def _wire_files(monkeypatch, ctx, mapping):
+    monkeypatch.setattr(ctx, "paths", lambda _repo: sorted(mapping))
+    monkeypatch.setattr(ctx, "file", _repo_files(mapping))
+
+
+def test_vitest_runner_skips_without_package_json(monkeypatch, repo, ctx):
+    _wire_files(monkeypatch, ctx, {"README.md": "# demo\n"})
+    assert vitest_runner_check.run(repo, ctx).status is Status.SKIP
+
+
+def test_vitest_runner_passes_on_vitest_repo(monkeypatch, repo, ctx):
+    _wire_files(monkeypatch, ctx, {"package.json": _VITEST_PKG, "src/a.test.ts": _VITEST_IMPORT})
+    assert vitest_runner_check.run(repo, ctx).status is Status.PASS
+
+
+def test_vitest_runner_flags_bun_test_import(monkeypatch, repo, ctx):
+    _wire_files(monkeypatch, ctx, {"package.json": _VITEST_PKG, "src/a.test.ts": _BUN_TEST_IMPORT})
+    assert vitest_runner_check.run(repo, ctx).status is Status.FAIL
+
+
+def test_vitest_runner_flags_bun_test_script(monkeypatch, repo, ctx):
+    _wire_files(monkeypatch, ctx, {"package.json": _BUN_TEST_PKG, "src/a.test.ts": _VITEST_IMPORT})
+    assert vitest_runner_check.run(repo, ctx).status is Status.FAIL
+
+
+def test_vitest_runner_allows_bun_filter_script(monkeypatch, repo, ctx):
+    _wire_files(
+        monkeypatch, ctx, {"package.json": _BUN_FILTER_PKG, "src/a.test.ts": _VITEST_IMPORT}
+    )
+    assert vitest_runner_check.run(repo, ctx).status is Status.PASS
+
+
+def test_vitest_runner_allows_bun_run_test_script(monkeypatch, repo, ctx):
+    _wire_files(monkeypatch, ctx, {"package.json": _BUN_RUN_PKG})
+    assert vitest_runner_check.run(repo, ctx).status is Status.PASS
+
+
+def test_vitest_runner_ignores_node_modules(monkeypatch, repo, ctx):
+    _wire_files(
+        monkeypatch,
+        ctx,
+        {"package.json": _VITEST_PKG, "node_modules/dep/x.test.ts": _BUN_TEST_IMPORT},
+    )
+    assert vitest_runner_check.run(repo, ctx).status is Status.PASS
+
+
+_TSB_PKG = '{"workspaces": ["packages/*"], "scripts": {"typecheck": "tsc -b"}}'
+_TSBUILD_PKG = '{"workspaces": ["packages/*"], "scripts": {"typecheck": "tsc --build"}}'
+_FANOUT_PKG = (
+    '{"workspaces": ["packages/*"], "scripts": '
+    '{"typecheck": "tsc -p . && bun --filter \'*\' typecheck"}}'
+)
+_TSC_P_PKG = (
+    '{"workspaces": ["packages/*"], "scripts": {"typecheck": "tsc --noEmit -p tsconfig.json"}}'
+)
+_NO_TYPECHECK_PKG = '{"workspaces": ["packages/*"], "scripts": {"test": "vitest run"}}'
+_NON_WORKSPACE_PKG = '{"scripts": {"typecheck": "tsc -b"}}'
+
+
+def test_ts_project_references_skips_without_package_json(monkeypatch, repo, ctx):
+    _wire_files(monkeypatch, ctx, {"README.md": "# demo\n"})
+    assert ts_project_references_check.run(repo, ctx).status is Status.SKIP
+
+
+def test_ts_project_references_skips_non_workspace(monkeypatch, repo, ctx):
+    _wire_files(monkeypatch, ctx, {"package.json": _NON_WORKSPACE_PKG, "tsconfig.json": "{}"})
+    assert ts_project_references_check.run(repo, ctx).status is Status.SKIP
+
+
+def test_ts_project_references_skips_without_tsconfig(monkeypatch, repo, ctx):
+    _wire_files(monkeypatch, ctx, {"package.json": _TSB_PKG})
+    assert ts_project_references_check.run(repo, ctx).status is Status.SKIP
+
+
+def test_ts_project_references_passes_on_tsc_build(monkeypatch, repo, ctx):
+    _wire_files(monkeypatch, ctx, {"package.json": _TSB_PKG, "tsconfig.json": "{}"})
+    assert ts_project_references_check.run(repo, ctx).status is Status.PASS
+
+
+def test_ts_project_references_passes_on_tsc_build_long_flag(monkeypatch, repo, ctx):
+    _wire_files(monkeypatch, ctx, {"package.json": _TSBUILD_PKG, "tsconfig.json": "{}"})
+    assert ts_project_references_check.run(repo, ctx).status is Status.PASS
+
+
+def test_ts_project_references_flags_bun_filter_fanout(monkeypatch, repo, ctx):
+    _wire_files(monkeypatch, ctx, {"package.json": _FANOUT_PKG, "tsconfig.json": "{}"})
+    assert ts_project_references_check.run(repo, ctx).status is Status.FAIL
+
+
+def test_ts_project_references_flags_single_project(monkeypatch, repo, ctx):
+    _wire_files(monkeypatch, ctx, {"package.json": _TSC_P_PKG, "tsconfig.json": "{}"})
+    assert ts_project_references_check.run(repo, ctx).status is Status.FAIL
+
+
+def test_ts_project_references_flags_missing_typecheck(monkeypatch, repo, ctx):
+    _wire_files(monkeypatch, ctx, {"package.json": _NO_TYPECHECK_PKG, "tsconfig.json": "{}"})
+    assert ts_project_references_check.run(repo, ctx).status is Status.FAIL
+
+
+_CATALOG_WS_ROOT = '{"workspaces": ["packages/*"], "devDependencies": {"eslint": "catalog:"}}'
+_CATALOG_NON_WS = '{"dependencies": {"eslint": "^9.0.0"}}'
+_CATALOG_PINNED_PKG = '{"dependencies": {"@zyplux/util": "workspace:*", "zod": "catalog:"}}'
+_CATALOG_RAW_PKG = '{"dependencies": {"zod": "^3.0.0"}}'
+_CATALOG_VENDORED_PKG = '{"dependencies": {"left-pad": "^1.0.0"}}'
+
+
+def test_catalog_discipline_skips_non_workspace(monkeypatch, repo, ctx):
+    _wire_files(monkeypatch, ctx, {"package.json": _CATALOG_NON_WS})
+    assert catalog_discipline_check.run(repo, ctx).status is Status.SKIP
+
+
+def test_catalog_discipline_passes_when_all_pinned(monkeypatch, repo, ctx):
+    _wire_files(
+        monkeypatch,
+        ctx,
+        {"package.json": _CATALOG_WS_ROOT, "packages/a/package.json": _CATALOG_PINNED_PKG},
+    )
+    assert catalog_discipline_check.run(repo, ctx).status is Status.PASS
+
+
+def test_catalog_discipline_flags_raw_version(monkeypatch, repo, ctx):
+    _wire_files(
+        monkeypatch,
+        ctx,
+        {"package.json": _CATALOG_WS_ROOT, "packages/a/package.json": _CATALOG_RAW_PKG},
+    )
+    result = catalog_discipline_check.run(repo, ctx)
+    assert result.status is Status.FAIL
+    assert any("zod" in f.message for f in result.problems)
+
+
+def test_catalog_discipline_ignores_node_modules(monkeypatch, repo, ctx):
+    _wire_files(
+        monkeypatch,
+        ctx,
+        {"package.json": _CATALOG_WS_ROOT, "node_modules/d/package.json": _CATALOG_VENDORED_PKG},
+    )
+    assert catalog_discipline_check.run(repo, ctx).status is Status.PASS

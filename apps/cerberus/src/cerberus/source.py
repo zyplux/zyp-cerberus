@@ -2,10 +2,11 @@ from __future__ import annotations
 
 import os
 import re
+from collections.abc import Sequence
 from pathlib import Path
 from typing import Any, Protocol
 
-from cerberus import gh
+from cerberus import gh, proc
 from cerberus.config import Config
 from cerberus.model import Repo
 
@@ -31,11 +32,18 @@ class ControlPlaneUnavailable(RuntimeError):
     """A checkout-only source was asked for GitHub org/admin state it cannot reach."""
 
 
+class GitHistoryUnavailable(RuntimeError):
+    """Git history (tags, ref diffs) could not be read — git failed, or the source is API-only."""
+
+
 class RepoSource(Protocol):
     """Where a check reads a repo's facts from: the GitHub API, or a local checkout."""
 
     def repos(self) -> list[Repo]: ...
     def file(self, repo: Repo, path: str) -> str | None: ...
+    def list_paths(self, repo: Repo) -> list[str]: ...
+    def tags(self, repo: Repo, prefix: str) -> list[str]: ...
+    def changed_paths(self, repo: Repo, ref: str, surface: Sequence[str]) -> list[str]: ...
     def write_file(self, repo: Repo, path: str, content: str) -> None: ...
     def workflows(self, repo: Repo) -> dict[str, str]: ...
     def branch_rules(self, repo: Repo) -> list[dict[str, Any]]: ...
@@ -73,6 +81,29 @@ class GitHubSource:
 
     def file(self, repo: Repo, path: str) -> str | None:
         return gh.raw_file(repo.owner, repo.name, path)
+
+    def list_paths(self, repo: Repo) -> list[str]:
+        ref = f"repos/{repo.full_name}/git/trees/{repo.default_branch}?recursive=1"
+        try:
+            tree = gh.api(ref) or {}
+        except gh.GhError:
+            return []
+        entries = tree.get("tree", []) if isinstance(tree, dict) else []
+        return [
+            entry["path"]
+            for entry in entries
+            if entry.get("type") == "blob" and isinstance(entry.get("path"), str)
+        ]
+
+    def tags(self, repo: Repo, prefix: str) -> list[str]:
+        raise GitHistoryUnavailable(
+            "git tags are not read from the GitHub API; run `cerberus lint`"
+        )
+
+    def changed_paths(self, repo: Repo, ref: str, surface: Sequence[str]) -> list[str]:
+        raise GitHistoryUnavailable(
+            "ref diffs are not read from the GitHub API; run `cerberus lint`"
+        )
 
     def write_file(self, repo: Repo, path: str, content: str) -> None:
         raise NotImplementedError("the org scan is read-only; --fix runs only on a local checkout")
@@ -162,6 +193,45 @@ class LocalSource:
             return (self.root / path).read_text()
         except OSError:
             return None
+
+    def list_paths(self, repo: Repo) -> list[str]:
+        tracked = self._git_tracked()
+        return tracked if tracked is not None else self._walk_files()
+
+    def _git_tracked(self) -> list[str] | None:
+        """Tracked file paths via git — mirrors the GitHub tree (honours .gitignore)."""
+        try:
+            result = proc.run(["git", "-C", str(self.root), "ls-files", "-z"])
+        except proc.ToolNotFoundError:
+            return None
+        if result.returncode != 0:
+            return None
+        return sorted(path for path in result.stdout.split("\0") if path)
+
+    def _git(self, args: list[str]) -> str:
+        try:
+            result = proc.run(["git", "-C", str(self.root), *args])
+        except proc.ToolNotFoundError as exc:
+            raise GitHistoryUnavailable(str(exc)) from exc
+        if result.returncode != 0:
+            raise GitHistoryUnavailable(result.stderr.strip() or f"git {args[0]} failed")
+        return result.stdout
+
+    def tags(self, repo: Repo, prefix: str) -> list[str]:
+        return [tag for tag in self._git(["tag", "--list", f"{prefix}*"]).splitlines() if tag]
+
+    def changed_paths(self, repo: Repo, ref: str, surface: Sequence[str]) -> list[str]:
+        diff = self._git(["diff", "--name-only", ref, "HEAD", "--", *surface])
+        return [path for path in diff.splitlines() if path]
+
+    def _walk_files(self) -> list[str]:
+        skip = {"node_modules", ".git", ".venv", "dist", ".output", "__pycache__"}
+        out: list[str] = []
+        for dirpath, dirnames, filenames in os.walk(self.root):
+            dirnames[:] = [name for name in dirnames if name not in skip]
+            base = Path(dirpath)
+            out.extend((base / name).relative_to(self.root).as_posix() for name in filenames)
+        return sorted(out)
 
     def write_file(self, repo: Repo, path: str, content: str) -> None:
         (self.root / path).write_text(content)

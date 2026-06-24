@@ -1,7 +1,11 @@
 {
-  "extends": "./tsconfig.base.json",
-  "compilerOptions": {
-    "types": ["bun-types"]
-  },
-  "include": ["eslint.config.ts", "prettier.config.ts", "scripts/**/*.ts"]
+  "files": [],
+  "references": [
+    { "path": "./tsconfig.tooling.json" },
+    { "path": "./apps/cz" },
+    { "path": "./packages/eslint-config" },
+    { "path": "./packages/util" },
+    { "path": "./tests/eslint-config" },
+    { "path": "./tests/cz" }
+  ]
 }

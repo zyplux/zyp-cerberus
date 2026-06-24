@@ -1,0 +1,33 @@
+{
+  "name": "@zyplux/cz",
+  "version": "0.0.0",
+  "private": true,
+  "type": "module",
+  "bin": {
+    "cz": "./src/index.ts"
+  },
+  "exports": {
+    "./release-targets": {
+      "types": "./src/release-targets.ts",
+      "default": "./src/release-targets.ts"
+    },
+    "./package.json": "./package.json"
+  },
+  "imports": {
+    "#commands/assert-tag": "./src/commands/assert-tag.ts",
+    "#commands/clone": "./src/commands/clone.ts",
+    "#commands/push": "./src/commands/push.ts",
+    "#commands/release": "./src/commands/release.ts",
+    "#release-targets": "./src/release-targets.ts"
+  },
+  "dependencies": {
+    "@optique/core": "catalog:",
+    "@optique/run": "catalog:",
+    "@zyplux/util": "workspace:*",
+    "zod": "catalog:"
+  },
+  "devDependencies": {
+    "@types/bun": "catalog:",
+    "@zyplux/tsconfig": "workspace:*"
+  }
+}

@@ -98,7 +98,7 @@ def run(repo: Repo, ctx: Context) -> CheckResult:
         _verify_sequence(res, "python", cfg.ci_required_python, commands)
 
     if has_ts and not any(image.startswith(cfg.ci_image) for image in _container_images(jobs)):
-        res.warn(f"bun ci should run in the `{cfg.ci_image}` container (Node-free guarantee)")
+        res.fail(f"bun ci should run in the `{cfg.ci_image}` container (Node-free guarantee)")
 
     if not res.problems:
         res.ok("ci.yml runs the canonical sequence")

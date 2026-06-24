@@ -1,0 +1,47 @@
+{
+  "name": "@zyplux/util",
+  "version": "0.1.0",
+  "description": "Small Bun utilities: assertions, polling, zod-validated JSON reads, and a git/gh shell harness",
+  "keywords": [
+    "bun",
+    "utilities",
+    "zod",
+    "json",
+    "shell"
+  ],
+  "license": "MIT",
+  "author": "Sergiy Yeskov <sergiy.yeskov@gmail.com>",
+  "homepage": "https://github.com/zyplux/zyp-cerberus",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/zyplux/zyp-cerberus.git",
+    "directory": "packages/util"
+  },
+  "type": "module",
+  "exports": {
+    ".": {
+      "types": "./src/index.ts",
+      "default": "./src/index.ts"
+    },
+    "./shell": {
+      "types": "./src/shell.ts",
+      "default": "./src/shell.ts"
+    },
+    "./package.json": "./package.json"
+  },
+  "files": [
+    "README.md",
+    "src"
+  ],
+  "publishConfig": {
+    "access": "public"
+  },
+  "peerDependencies": {
+    "zod": "catalog:"
+  },
+  "devDependencies": {
+    "@types/bun": "catalog:",
+    "@zyplux/tsconfig": "workspace:*",
+    "zod": "catalog:"
+  }
+}

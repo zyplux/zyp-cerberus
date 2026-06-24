@@ -12,7 +12,7 @@ const reactRenderers: ReactRenderer[] = ['dom', 'ink', 'opentui', 'r3f', 'react-
 const domOnlyReactRulesOff = { 'react/no-unknown-property': 'off' } as const;
 
 const reactBase = (files: string[], version: string) => {
-  const recommended = react.configs.flat.recommended;
+  const recommended = react.configs.flat['recommended'];
   if (!recommended) {
     throw new Error('eslint-plugin-react: configs.flat.recommended is missing');
   }
@@ -27,7 +27,7 @@ const reactBase = (files: string[], version: string) => {
   } satisfies ConfigWithExtends;
 };
 
-export const reactPresets = (renderers: RendererGlobs, version: string) =>
+export const reactPresets = (renderers: RendererGlobs, version: string): ConfigWithExtends[] =>
   reactRenderers.flatMap(renderer => {
     const files = renderers[renderer];
     if (files === undefined || files.length === 0) return [];
