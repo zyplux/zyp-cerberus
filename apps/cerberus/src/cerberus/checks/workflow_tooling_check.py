@@ -61,7 +61,7 @@ def run(repo: Repo, ctx: Context) -> CheckResult:
         try:
             workflow = yaml.safe_load(content)
         except yaml.YAMLError as err:
-            res.warn(f"{name}: not valid YAML ({err})")
+            res.fail(f"{name}: not valid YAML ({err})")
             continue
         if not isinstance(workflow, dict):
             continue

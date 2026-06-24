@@ -1,5 +1,0 @@
-{
-  "extends": "@zyplux/tsconfig/bun.json",
-  "include": ["."],
-  "references": [{ "path": "../../packages/eslint-config" }]
-}

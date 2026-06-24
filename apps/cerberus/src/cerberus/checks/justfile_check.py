@@ -88,9 +88,9 @@ def run(repo: Repo, ctx: Context) -> CheckResult:
     for alias, target in cfg.recommended_aliases.items():
         actual = jf.aliases.get(alias)
         if actual is None:
-            res.warn(f"missing recommended alias `{alias} := {target}`")
+            res.fail(f"missing recommended alias `{alias} := {target}`")
         elif actual != target:
-            res.warn(f"alias `{alias}` targets `{actual}`, expected `{target}`")
+            res.fail(f"alias `{alias}` targets `{actual}`, expected `{target}`")
 
     for name in cfg.required_recipes:
         if name not in jf.recipes:
@@ -98,7 +98,7 @@ def run(repo: Repo, ctx: Context) -> CheckResult:
 
     for name in cfg.recommended_recipes:
         if name not in jf.recipes:
-            res.warn(f"missing recommended recipe `{name}`")
+            res.fail(f"missing recommended recipe `{name}`")
 
     if "default" in jf.recipes and cfg.default_recipe_marker not in jf.bodies.get("default", ""):
         res.fail(f"`default` recipe should run `{cfg.default_recipe_marker}`")

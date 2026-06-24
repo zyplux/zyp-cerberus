@@ -58,7 +58,7 @@ def run(repo: Repo, ctx: Context) -> CheckResult:
     if "pull_request" not in triggers and "pull_request_target" not in triggers:
         res.fail("ci.yml does not trigger on pull_request")
     if "push" not in triggers:
-        res.warn("ci.yml does not trigger on push (to main)")
+        res.fail("ci.yml does not trigger on push (to main)")
 
     if not res.problems:
         res.ok("ci workflow present and wired")

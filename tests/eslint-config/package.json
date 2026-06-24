@@ -10,6 +10,10 @@
     "@types/bun": "catalog:",
     "@zyplux/eslint-config": "workspace:*",
     "@zyplux/tsconfig": "workspace:*",
-    "vitest": "catalog:"
+    "@zyplux/util": "workspace:*",
+    "eslint": "catalog:",
+    "typescript-eslint": "catalog:",
+    "vitest": "catalog:",
+    "zod": "catalog:"
   }
 }

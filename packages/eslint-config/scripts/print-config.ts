@@ -8,7 +8,7 @@ const packageDir = fileURLToPath(new URL('..', import.meta.url));
 
 const ParserOptionsSchema = z.looseObject({ tsconfigRootDir: z.string() });
 
-export const PrintedConfigSchema = z.looseObject({
+const PrintedConfigSchema = z.looseObject({
   languageOptions: z.looseObject({ parserOptions: ParserOptionsSchema }),
 });
 

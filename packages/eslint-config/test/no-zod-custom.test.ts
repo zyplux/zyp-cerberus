@@ -1,41 +1,51 @@
 import { noZodCustom } from '#rules/no-zod-custom';
 
-import { ruleTester } from './rule-tester';
+import { typeAwareRuleTester } from './rule-tester';
 
-ruleTester.run('no-zod-custom', noZodCustom, {
+typeAwareRuleTester.run('no-zod-custom', noZodCustom, {
   invalid: [
     {
-      code: 'const schema = z.custom<string>(x => typeof x === "string");',
+      code: ["import { z } from 'zod';", 'const schema = z.custom<string>(x => typeof x === "string");'].join('\n'),
       errors: [{ messageId: 'noZodCustom' }],
       name: 'z.custom with generic and check',
     },
     {
-      code: 'const schema = z.custom(x => typeof x === "string");',
+      code: ["import { z } from 'zod';", 'const schema = z.custom();'].join('\n'),
       errors: [{ messageId: 'noZodCustom' }],
-      name: 'z.custom without generic',
+      name: 'z.custom without arguments',
     },
     {
-      code: 'const schema = z.custom<MyType>();',
+      code: ["import { z as zod } from 'zod';", 'const schema = zod.custom<{ id: string }>();'].join('\n'),
       errors: [{ messageId: 'noZodCustom' }],
-      name: 'z.custom with only generic',
+      name: 'aliased zod import — caught by type origin, not the name `z`',
     },
     {
-      code: 'const result = z.custom<{ id: string }>(v => Boolean(v)).parse(input);',
+      code: ["import * as zns from 'zod';", 'const schema = zns.custom(v => Boolean(v));'].join('\n'),
+      errors: [{ messageId: 'noZodCustom' }],
+      name: 'namespace import of zod',
+    },
+    {
+      code: ["import { z } from 'zod';", 'const result = z.custom<{ id: string }>(v => Boolean(v)).parse(input);'].join(
+        '\n',
+      ),
       errors: [{ messageId: 'noZodCustom' }],
       name: 'z.custom chained with .parse',
     },
   ],
   valid: [
-    'const schema = z.object({ id: z.string() });',
-    'const schema = z.string();',
-    'const schema = z.discriminatedUnion("op", [a, b]);',
+    ["import { z } from 'zod';", 'const schema = z.object({ id: z.string() });'].join('\n'),
+    ["import { z } from 'zod';", 'const schema = z.string();'].join('\n'),
+    {
+      code: ["import { z } from 'zod';", 'const schema = z.discriminatedUnion("op", [a, b]);'].join('\n'),
+      name: 'discriminatedUnion is not custom',
+    },
     {
       code: 'const schema = other.custom<string>(x => true);',
-      name: 'custom called on receiver other than `z` is not flagged (out of scope)',
+      name: 'custom on a non-zod receiver is not flagged (type origin check)',
     },
     {
       code: 'const schema = custom<string>(x => true);',
-      name: 'unqualified `custom` call (destructured import) is not flagged (out of scope)',
+      name: 'unqualified custom not from zod is not flagged',
     },
   ],
 });

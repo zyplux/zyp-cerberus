@@ -180,6 +180,7 @@ export const noStrayPascalConst = createRule<NoStrayPascalConstOptions, MessageI
     docs: {
       description:
         'Restrict PascalCase `const` declarations to the things that warrant them — zod schemas (which must additionally be named `XxxSchema`), React components, and a configurable allowlist of factory calls — and fold in zod schema naming. Type-aware: a value is recognized as a zod schema by its Standard Schema brand (`~standard`/`_zod`) through the type checker, so schemas built by a custom factory, by composition (`Base.partial()`), through an aliased import, or pulled out by destructuring are detected — not only literal `z.…()` construction. Cheap syntactic checks gate the type query: the checker is consulted only for a schema-shaped initializer whose name is already PascalCase- or `Schema`-suspect and is not literally rooted at `z` (recognized syntactically, so every `z.…` schema is caught regardless of name). Any PascalCase const that is not a schema, not a component (an arrow/function returning JSX, or used as a JSX element in the same file), and not produced by an allowed factory (defaults: `createContext`, `createFileRoute`, `createRootRoute`, `createServerFn`, `forwardRef`, `lazy`, `memo`; extend with `allowedFactories`) is reported as a stray. `naming-convention` stays permissive on PascalCase variables; this rule is the semantic gate.',
+      requiresTypeChecking: true,
     },
     messages: {
       schemaName:

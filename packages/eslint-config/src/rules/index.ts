@@ -5,12 +5,12 @@ import { castToEslintRule, type EslintRule } from '#create-rule';
 import { noAnonymousParamType } from './syntactic/no-anonymous-param-type';
 import { noIdentityCast } from './syntactic/no-identity-cast';
 import { noTypePredicate } from './syntactic/no-type-predicate';
-import { noUnvalidatedJson } from './syntactic/no-unvalidated-json';
-import { noZodCustom } from './syntactic/no-zod-custom';
 import { preferDestructuredParams } from './syntactic/prefer-destructured-params';
 import { noReturnArrayPush } from './type-aware/no-return-array-push';
 import { noStrayPascalConst } from './type-aware/no-stray-pascal-const';
 import { noTypeAnnotations } from './type-aware/no-type-annotations';
+import { noUnvalidatedJson } from './type-aware/no-unvalidated-json';
+import { noZodCustom } from './type-aware/no-zod-custom';
 
 const upstreamPreferArrowFunctions = preferArrowFunctions.rules?.['prefer-arrow-functions'];
 if (!upstreamPreferArrowFunctions) {

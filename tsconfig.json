@@ -5,8 +5,7 @@
     { "path": "./apps/cz" },
     { "path": "./packages/eslint-config" },
     { "path": "./packages/util" },
-    { "path": "./tests/rules" },
-    { "path": "./tests/public-interface" },
-    { "path": "./tests/release" }
+    { "path": "./tests/eslint-config" },
+    { "path": "./tests/cz" }
   ]
 }

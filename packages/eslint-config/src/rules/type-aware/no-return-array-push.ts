@@ -82,6 +82,7 @@ export const noReturnArrayPush = createRule({
     docs: {
       description:
         'Disallow using the return value of `Array#push()`/`Array#unshift()` — they return the new length, not the array or element. A type-aware replacement for `unicorn/no-return-array-push`: it inspects the receiver type, so domain methods named `push`/`unshift` (e.g. a git `push` that returns a promise) are left alone.',
+      requiresTypeChecking: true,
     },
     hasSuggestions: true,
     messages: {

@@ -38,8 +38,8 @@
     "#rules/no-stray-pascal-const": "./src/rules/type-aware/no-stray-pascal-const.ts",
     "#rules/no-type-annotations": "./src/rules/type-aware/no-type-annotations.ts",
     "#rules/no-type-predicate": "./src/rules/syntactic/no-type-predicate.ts",
-    "#rules/no-unvalidated-json": "./src/rules/syntactic/no-unvalidated-json.ts",
-    "#rules/no-zod-custom": "./src/rules/syntactic/no-zod-custom.ts",
+    "#rules/no-unvalidated-json": "./src/rules/type-aware/no-unvalidated-json.ts",
+    "#rules/no-zod-custom": "./src/rules/type-aware/no-zod-custom.ts",
     "#rules/prefer-destructured-params": "./src/rules/syntactic/prefer-destructured-params.ts"
   },
   "files": [

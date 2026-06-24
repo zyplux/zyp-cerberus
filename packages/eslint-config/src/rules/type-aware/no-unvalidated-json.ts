@@ -1,6 +1,7 @@
 import type { TSESTree } from '@typescript-eslint/utils';
 
-import { AST_NODE_TYPES } from '@typescript-eslint/utils';
+import { AnyType, discriminateAnyType } from '@typescript-eslint/type-utils';
+import { AST_NODE_TYPES, ESLintUtils } from '@typescript-eslint/utils';
 
 import { createRule } from '#create-rule';
 
@@ -14,9 +15,7 @@ const isJsonParseCall = ({ callee }: TSESTree.CallExpression) =>
   callee.property.type === AST_NODE_TYPES.Identifier &&
   callee.property.name === 'parse';
 
-const isAwaitedJsonMethodCall = ({ arguments: args, callee, parent }: TSESTree.CallExpression) =>
-  args.length === 0 &&
-  parent.type === AST_NODE_TYPES.AwaitExpression &&
+const isJsonMethodCall = ({ callee }: TSESTree.CallExpression) =>
   callee.type === AST_NODE_TYPES.MemberExpression &&
   !callee.computed &&
   callee.property.type === AST_NODE_TYPES.Identifier &&
@@ -36,23 +35,34 @@ const isZodParseConsumer = (source: TSESTree.CallExpression) => {
 };
 
 export const noUnvalidatedJson = createRule({
-  create: context => ({
-    CallExpression: node => {
-      const isJsonParse = isJsonParseCall(node);
-      if (!isJsonParse && !isAwaitedJsonMethodCall(node)) return;
-      if (isZodParseConsumer(node)) return;
-      context.report({
-        data: { api: isJsonParse ? 'JSON.parse(…)' : 'await ….json()' },
-        messageId: 'validateJson',
-        node,
-      });
-    },
-  }),
+  create: context => {
+    const services = ESLintUtils.getParserServices(context);
+    const checker = services.program.getTypeChecker();
+
+    return {
+      CallExpression: node => {
+        const isJsonParse = isJsonParseCall(node);
+        if (!isJsonParse) {
+          if (!isJsonMethodCall(node)) return;
+          const tsNode = services.esTreeNodeToTSNodeMap.get(node);
+          const resultType = checker.getTypeAtLocation(tsNode);
+          if (discriminateAnyType(resultType, checker, services.program, tsNode) === AnyType.Safe) return;
+        }
+        if (isZodParseConsumer(node)) return;
+        context.report({
+          data: { api: isJsonParse ? 'JSON.parse(…)' : '….json()' },
+          messageId: 'validateJson',
+          node,
+        });
+      },
+    };
+  },
   defaultOptions: [],
   meta: {
     docs: {
       description:
-        'Disallow consuming a deserialization boundary — `JSON.parse(…)` or an awaited `Response`/`Bun.file` `.json()` — without a zod schema. Both yield `any`, so any downstream `as` cast or hand-rolled `typeof`/`in` guard is unverified. The parsed value must flow directly (optionally through `await`) into a schema `.parse()`/`.safeParse()` call, e.g. `Schema.parse(JSON.parse(text))` or `Schema.parse(await response.json())`; a `readJson`/`fetchJson` helper whose body does this passes for the same reason. Targets only `JSON.parse` and a zero-argument, awaited `.json()` (the `Response`/`Bun.file` shape) — a `.json()` taking arguments (a response builder such as `c.json({…})`) or a non-awaited synchronous `.json()` is left alone.',
+        'Disallow consuming a deserialization boundary — `JSON.parse(…)` or a `.json()` call whose result is `any`/`Promise<any>` (a `Response`/`Bun.file` read) — without a zod schema. `JSON.parse` is matched syntactically (its signature always yields `any`); `.json()` is matched by type, so a domain `.json()` that already returns a typed value is left alone, while one returning `any`/`Promise<any>` is flagged whether or not it is awaited. The boundary value must flow directly (optionally through `await`) into a schema `.parse()`/`.safeParse()` — `Schema.parse(JSON.parse(text))`, `Schema.parse(await response.json())` — or through a helper that does, so the boundary returns a typed, runtime-checked value instead of an `as` cast or a hand-rolled `typeof`/`in` guard.',
+      requiresTypeChecking: true,
     },
     messages: {
       validateJson:

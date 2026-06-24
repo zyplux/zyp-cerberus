@@ -29,7 +29,7 @@ export const castToEslintRule = (rule: LooseRuleDefinition): EslintRule => {
   return source.meta === undefined ? { create } : { create, meta: source.meta };
 };
 
-const ruleCreator = ESLintUtils.RuleCreator(
+const ruleCreator = ESLintUtils.RuleCreator<{ requiresTypeChecking?: boolean }>(
   () => 'https://github.com/zyplux/zyp-cerberus/tree/main/packages/eslint-config/src/rules',
 );
 

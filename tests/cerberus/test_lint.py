@@ -21,6 +21,8 @@ alias tc := typecheck
 alias l := lint
 alias t := test
 alias c := check
+alias u := upgrade
+alias ui := upgrade-interactive
 
 default:
     @just --list
@@ -41,6 +43,15 @@ test:
     echo test
 
 check: install knip typecheck lint test
+
+upgrade:
+    echo upgrade
+
+upgrade-interactive:
+    echo upgrade-interactive
+
+clean:
+    echo clean
 """
 
 JUSTFILE_WITH_TRAILING_WS = CONFORMING_JUSTFILE.replace(

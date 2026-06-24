@@ -4,6 +4,7 @@ from collections.abc import Callable
 from dataclasses import dataclass
 
 from cerberus.checks import (
+    catalog_discipline_check,
     cerberus_step_check,
     ci_sequence_check,
     ci_workflow_check,
@@ -39,6 +40,7 @@ ALL: tuple[Check, ...] = tuple(
         rumdl_config_check,
         vitest_runner_check,
         ts_project_references_check,
+        catalog_discipline_check,
         ruleset_check,
         secrets_check,
         codeowners_check,
