@@ -13,7 +13,7 @@ cz release              Publish any bumped release target via a GitHub release.
 Run it from the workspace root:
 
 ```text
-bun run cli <command>
+bun run cz <command>
 ```
 
 Or through `just`:

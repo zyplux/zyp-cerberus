@@ -69,7 +69,7 @@ Deprecated, mapped onto `react` for back-compat: `reactFiles` → `react: { dom 
 
 ## What's always on
 
-- Custom `@zyplux` rules: `no-anonymous-param-type`, `no-identity-cast`, `no-return-array-push`, `no-type-annotations`, `no-type-predicate`, `no-zod-custom`, `prefer-arrow-functions`, `prefer-destructured-params`.
+- Custom `@zyplux` rules: `no-anonymous-param-type`, `no-identity-cast`, `no-return-array-push`, `no-stray-pascal-const`, `no-type-annotations`, `no-type-predicate`, `no-unvalidated-json`, `no-zod-custom`, `prefer-arrow-functions`, `prefer-destructured-params`.
 - Type-checked TypeScript (the full `typescript-eslint` `all` preset), arrow-only functions, `type` over `interface`, no type assertions.
 - No parent-relative (`../`) imports — route through a tsconfig `paths` alias (`@/foo`).
 - unicorn + perfectionist (natural sorting); prettier last, so formatting rules are off.
@@ -77,7 +77,7 @@ Deprecated, mapped onto `react` for back-compat: `reactFiles` → `react: { dom 
 
 ## zod at the boundary
 
-`consistent-type-assertions: 'never'` plus `no-zod-custom` and `no-type-predicate` steer every deserialization boundary (`JSON.parse`, `event.data`, JSONL) toward a zod schema that _returns_ the typed value rather than `parse(x) as T`. Annotate hand-written schemas as `z.ZodType<T>` to keep their declared type. Blind spot: that annotation only rejects schemas producing values _outside_ `T` — a schema _missing_ a union member still type-checks (a narrower output is assignable to the wider `T`), so a discriminated union can silently drop a case. Keep wire schemas exhaustive by hand.
+`consistent-type-assertions: 'never'` plus `no-zod-custom`, `no-type-predicate`, and `no-unvalidated-json` steer every deserialization boundary (`JSON.parse`, `await response.json()`, `event.data`, JSONL) toward a zod schema that _returns_ the typed value rather than `parse(x) as T`. `no-unvalidated-json` is the direct enforcer: a `JSON.parse(…)` or awaited `.json()` result must flow into a schema `.parse()`/`.safeParse()`. Annotate hand-written schemas as `z.ZodType<T>` to keep their declared type. Blind spot: that annotation only rejects schemas producing values _outside_ `T` — a schema _missing_ a union member still type-checks (a narrower output is assignable to the wider `T`), so a discriminated union can silently drop a case. Keep wire schemas exhaustive by hand.
 
 ## Tweaking rules
 

@@ -1,18 +1,16 @@
-import { execFileSync } from 'node:child_process';
-import { readFileSync } from 'node:fs';
-import { fileURLToPath } from 'node:url';
+import { readJsonSync } from '@zyplux/util';
 import { expect, it } from 'vitest';
 
-import { normalizeRules } from '#scripts/normalize-rules';
+import { printConfig, PrintedConfigSchema } from '#scripts/print-config';
 
-const packageDir = fileURLToPath(new URL('..', import.meta.url));
+const eslintPrintConfigTimeoutMs = 30_000;
 
-it('rules.json matches the current ESLint config (run `just dump-rules`)', () => {
-  const printed = execFileSync('eslint', ['--print-config', 'src/index.ts'], {
-    cwd: packageDir,
-    encoding: 'utf8',
-  });
-  const committed = readFileSync(new URL('../rules.json', import.meta.url), 'utf8');
-
-  expect(normalizeRules(JSON.parse(printed))).toStrictEqual(JSON.parse(committed));
-});
+it(
+  'rules.json matches the current ESLint config (run `just dump-rules`)',
+  () => {
+    const actual = printConfig();
+    const expected = readJsonSync(new URL('../rules.json', import.meta.url), PrintedConfigSchema);
+    expect(actual).toStrictEqual(expected);
+  },
+  eslintPrintConfigTimeoutMs,
+);

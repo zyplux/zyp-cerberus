@@ -1,10 +1,10 @@
 import { object } from '@optique/core/constructs';
 import { message } from '@optique/core/message';
 import { command, constant } from '@optique/core/primitives';
+import { ensure, poll } from '@zyplux/util';
+import { $, readTrimmed } from '@zyplux/util/shell';
 
 import { releaseTargets } from '#release-targets';
-import { $ } from '#shell-harness';
-import { ensure, poll, readTrimmed } from '#util';
 
 export const releaseCommand = command(
   'release',

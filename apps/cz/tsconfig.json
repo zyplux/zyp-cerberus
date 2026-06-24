@@ -1,4 +1,5 @@
 {
   "extends": "@zyplux/tsconfig/bun.json",
-  "include": ["src"]
+  "include": ["src"],
+  "references": [{ "path": "../../packages/util" }]
 }

@@ -2,13 +2,15 @@ import preferArrowFunctions from 'eslint-plugin-prefer-arrow-functions';
 
 import { castToEslintRule, type EslintRule } from '#create-rule';
 
-import { noAnonymousParamType } from './no-anonymous-param-type';
-import { noIdentityCast } from './no-identity-cast';
-import { noReturnArrayPush } from './no-return-array-push';
-import { noTypeAnnotations } from './no-type-annotations';
-import { noTypePredicate } from './no-type-predicate';
-import { noZodCustom } from './no-zod-custom';
-import { preferDestructuredParams } from './prefer-destructured-params';
+import { noAnonymousParamType } from './syntactic/no-anonymous-param-type';
+import { noIdentityCast } from './syntactic/no-identity-cast';
+import { noTypePredicate } from './syntactic/no-type-predicate';
+import { noUnvalidatedJson } from './syntactic/no-unvalidated-json';
+import { noZodCustom } from './syntactic/no-zod-custom';
+import { preferDestructuredParams } from './syntactic/prefer-destructured-params';
+import { noReturnArrayPush } from './type-aware/no-return-array-push';
+import { noStrayPascalConst } from './type-aware/no-stray-pascal-const';
+import { noTypeAnnotations } from './type-aware/no-type-annotations';
 
 const upstreamPreferArrowFunctions = preferArrowFunctions.rules?.['prefer-arrow-functions'];
 if (!upstreamPreferArrowFunctions) {
@@ -19,8 +21,10 @@ export const rules: Record<string, EslintRule> = {
   'no-anonymous-param-type': noAnonymousParamType,
   'no-identity-cast': noIdentityCast,
   'no-return-array-push': noReturnArrayPush,
+  'no-stray-pascal-const': noStrayPascalConst,
   'no-type-annotations': noTypeAnnotations,
   'no-type-predicate': noTypePredicate,
+  'no-unvalidated-json': noUnvalidatedJson,
   'no-zod-custom': noZodCustom,
   'prefer-arrow-functions': castToEslintRule(upstreamPreferArrowFunctions),
   'prefer-destructured-params': preferDestructuredParams,

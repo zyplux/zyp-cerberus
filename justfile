@@ -58,11 +58,11 @@ upgrade-interactive:
 
 # Publish any bumped release target (eslint-config → npm, cerberus → PyPI, ci image → GHCR) via GitHub releases.
 release:
-    bun run cli release
+    bun run cz release
 
 # Push the current branch and open a draft PR (-r/--ready marks it ready and enables auto-merge).
 push *flags:
-    bun run cli push {{ flags }}
+    bun run cz push {{ flags }}
 
 # Remove dependencies and caches from both workspaces.
 clean:
@@ -72,7 +72,7 @@ clean:
 
 # Shallow-clone a reference repo into reference_clones/ (optional branch or tag).
 clone repo ref="":
-    bun run cli clone {{ repo }} {{ ref }}
+    bun run cz clone {{ repo }} {{ ref }}
 
 # Dump the fully-resolved ESLint config (all rules) to packages/eslint-config/rules.json.
 dump-rules:

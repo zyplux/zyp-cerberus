@@ -17,13 +17,13 @@
     "#commands/clone": "./src/commands/clone.ts",
     "#commands/push": "./src/commands/push.ts",
     "#commands/release": "./src/commands/release.ts",
-    "#release-targets": "./src/release-targets.ts",
-    "#shell-harness": "./src/shell-harness.ts",
-    "#util": "./src/util.ts"
+    "#release-targets": "./src/release-targets.ts"
   },
   "dependencies": {
     "@optique/core": "^1.1.0",
-    "@optique/run": "^1.1.0"
+    "@optique/run": "^1.1.0",
+    "@zyplux/util": "workspace:*",
+    "zod": "catalog:"
   },
   "devDependencies": {
     "@types/bun": "catalog:",

@@ -44,7 +44,7 @@
     "lint:fix": "bun run lint --fix",
     "test": "vitest run",
     "upgrade": "npm-check-updates --root --workspaces --format group",
-    "cli": "bun apps/cz/src/index.ts"
+    "cz": "bun apps/cz/src/index.ts"
   },
   "devDependencies": {
     "@types/bun": "catalog:",

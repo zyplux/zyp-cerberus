@@ -25,6 +25,8 @@
       "dependencies": {
         "@optique/core": "^1.1.0",
         "@optique/run": "^1.1.0",
+        "@zyplux/util": "workspace:*",
+        "zod": "catalog:",
       },
       "devDependencies": {
         "@types/bun": "catalog:",
@@ -51,8 +53,10 @@
         "@types/bun": "catalog:",
         "@typescript-eslint/rule-tester": "catalog:",
         "@zyplux/tsconfig": "workspace:*",
+        "@zyplux/util": "workspace:*",
         "typescript": "catalog:",
         "vitest": "catalog:",
+        "zod": "catalog:",
       },
       "peerDependencies": {
         "eslint": "catalog:",
@@ -62,6 +66,18 @@
     "packages/tsconfig": {
       "name": "@zyplux/tsconfig",
       "version": "0.1.0",
+    },
+    "packages/util": {
+      "name": "@zyplux/util",
+      "version": "0.1.0",
+      "devDependencies": {
+        "@types/bun": "catalog:",
+        "@zyplux/tsconfig": "workspace:*",
+        "zod": "catalog:",
+      },
+      "peerDependencies": {
+        "zod": "catalog:",
+      },
     },
     "tests/public-interface": {
       "name": "@zyplux/tests-eslint-config",
@@ -90,6 +106,7 @@
         "@types/bun": "catalog:",
         "@zyplux/eslint-config": "workspace:*",
         "@zyplux/tsconfig": "workspace:*",
+        "@zyplux/util": "workspace:*",
         "eslint": "catalog:",
         "typescript-eslint": "catalog:",
         "vitest": "catalog:",
@@ -379,6 +396,8 @@
     "@zyplux/tests-rules": ["@zyplux/tests-rules@workspace:tests/rules"],
 
     "@zyplux/tsconfig": ["@zyplux/tsconfig@workspace:packages/tsconfig"],
+
+    "@zyplux/util": ["@zyplux/util@workspace:packages/util"],
 
     "acorn": ["acorn@8.16.0", "", { "bin": { "acorn": "bin/acorn" } }, "sha512-UVJyE9MttOsBQIDKw1skb9nAwQuR5wuGD3+82K6JgJlm/Y+KI92oNsMNGZCYdDsVtRHSak0pcV5Dno5+4jh9sw=="],
 

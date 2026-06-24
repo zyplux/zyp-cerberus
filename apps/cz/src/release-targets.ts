@@ -1,4 +1,9 @@
+import { http, readJson } from '@zyplux/util';
 import { readFile } from 'node:fs/promises';
+import * as z from 'zod';
+
+const PackageJsonSchema = z.object({ version: z.string() });
+const GhcrTokenSchema = z.object({ token: z.string() });
 
 export type ReleaseTarget = {
   isPublished: (version: string) => Promise<boolean>;
@@ -20,17 +25,21 @@ const MANIFEST_MEDIA_TYPES = [
   'application/vnd.docker.distribution.manifest.v2+json',
 ].join(', ');
 
+const fetchGhcrAuth = async (repo: string) => {
+  try {
+    return await http.get(`https://ghcr.io/token?scope=repository:${repo}:pull`).json(GhcrTokenSchema);
+  } catch {
+    return;
+  }
+};
+
 const ghcrImagePublished = async (repo: string, tag: string) => {
-  const tokenResponse = await fetch(`https://ghcr.io/token?scope=repository:${repo}:pull`);
-  if (!tokenResponse.ok) return false;
-  const body: unknown = await tokenResponse.json();
-  if (typeof body !== 'object' || body === null || !('token' in body)) return false;
-  const { token } = body;
-  if (typeof token !== 'string') return false;
+  const auth = await fetchGhcrAuth(repo);
+  if (!auth) return false;
   const manifest = await fetch(`https://ghcr.io/v2/${repo}/manifests/${tag}`, {
     headers: {
       Accept: MANIFEST_MEDIA_TYPES,
-      Authorization: `Bearer ${token}`,
+      Authorization: `Bearer ${auth.token}`,
     },
     method: 'HEAD',
   });
@@ -40,11 +49,8 @@ const ghcrImagePublished = async (repo: string, tag: string) => {
 const fromRoot = (path: string) => new URL(`../../../${path}`, import.meta.url);
 
 const readJsonVersion = async (dir: string) => {
-  const parsed: unknown = JSON.parse(await readFile(fromRoot(`${dir}/package.json`), 'utf8'));
-  if (typeof parsed === 'object' && parsed !== null && 'version' in parsed && typeof parsed.version === 'string') {
-    return parsed.version;
-  }
-  throw new Error(`could not read version from ${dir}/package.json`);
+  const { version } = await readJson(fromRoot(`${dir}/package.json`), PackageJsonSchema);
+  return version;
 };
 
 const matchVersion = async (url: URL, pattern: RegExp, label: string) => {
@@ -74,6 +80,13 @@ export const releaseTargets: ReleaseTarget[] = [
     readSurface: () => ['packages/tsconfig'],
     readVersion: async () => readJsonVersion('packages/tsconfig'),
     tagPrefix: 'tsconfig-v',
+  },
+  {
+    isPublished: async version => httpOk(`https://registry.npmjs.org/@zyplux%2futil/${version}`),
+    label: '@zyplux/util',
+    readSurface: () => ['packages/util/package.json', 'packages/util/README.md', 'packages/util/src'],
+    readVersion: async () => readJsonVersion('packages/util'),
+    tagPrefix: 'util-v',
   },
   {
     isPublished: async version => httpOk(`https://pypi.org/pypi/zyplux-cerberus/${version}/json`),

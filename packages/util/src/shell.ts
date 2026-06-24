@@ -2,6 +2,8 @@ type BranchFlags = { delete?: boolean; force?: boolean };
 
 type CloneFlags = { branch?: string; depth?: number; singleBranch?: boolean };
 
+type CommandOutput = { text: () => string };
+
 type FlagValue = boolean | number | string | undefined;
 
 type PrCreateFlags = { base: string; body: string; draft?: boolean; title: string };
@@ -71,4 +73,9 @@ const git = {
   status: async (flags: StatusFlags = {}) => Bun.$`git ${['status', ...toArgs(flags)]}`,
 };
 
-export const $ = Object.assign(Bun.$, { gh, git });
+export const $ = Object.assign(async (...args: Parameters<typeof Bun.$>) => Bun.$(...args), { gh, git });
+
+export const readTrimmed = async (command: Promise<CommandOutput>) => {
+  const output = await command;
+  return output.text().trim();
+};

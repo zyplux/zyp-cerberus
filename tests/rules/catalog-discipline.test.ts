@@ -1,4 +1,5 @@
-import { existsSync, readdirSync, readFileSync } from 'node:fs';
+import { readJsonSync } from '@zyplux/util';
+import { existsSync, readdirSync } from 'node:fs';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { describe, expect, it } from 'vitest';
@@ -6,13 +7,13 @@ import * as z from 'zod';
 
 const repoRoot = path.join(path.dirname(fileURLToPath(import.meta.url)), '../..');
 
-const dependencyMap = z.record(z.string(), z.string());
+const DependencyMapSchema = z.record(z.string(), z.string());
 
-const manifestSchema = z.object({
-  dependencies: dependencyMap.optional(),
-  devDependencies: dependencyMap.optional(),
-  optionalDependencies: dependencyMap.optional(),
-  peerDependencies: dependencyMap.optional(),
+const ManifestSchema = z.object({
+  dependencies: DependencyMapSchema.optional(),
+  devDependencies: DependencyMapSchema.optional(),
+  optionalDependencies: DependencyMapSchema.optional(),
+  peerDependencies: DependencyMapSchema.optional(),
 });
 
 const dependencyKeys = ['dependencies', 'devDependencies', 'peerDependencies', 'optionalDependencies'] as const;
@@ -30,8 +31,7 @@ const collectWorkspaceManifests = () => {
 };
 
 const manifestOffenders = (manifestPath: string) => {
-  const raw: unknown = JSON.parse(readFileSync(manifestPath, 'utf8'));
-  const manifest = manifestSchema.parse(raw);
+  const manifest = readJsonSync(manifestPath, ManifestSchema);
   const label = path.relative(repoRoot, manifestPath);
   const offenders: string[] = [];
   for (const key of dependencyKeys) {
