@@ -9,6 +9,8 @@ alias c := check
 alias d := dump-rules
 alias u := upgrade
 alias ui := upgrade-interactive
+alias p := push
+alias pr := push-ready
 
 # List available recipes.
 default:
@@ -63,6 +65,9 @@ release:
 # Push the current branch and open a draft PR (-r/--ready marks it ready and enables auto-merge).
 push *flags:
     bun run cz push {{ flags }}
+
+# Push the current branch and open a PR marked ready, enabling auto-merge.
+push-ready: (push "--ready")
 
 # Remove dependencies and caches from both workspaces.
 clean:
