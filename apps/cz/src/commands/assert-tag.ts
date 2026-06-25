@@ -8,7 +8,7 @@ import { string } from '@optique/core/valueparser';
 import { resolveReleaseTag } from '#release-targets';
 
 const tagArgument = argument(string({ metavar: 'TAG' }), {
-  description: message`Release tag to verify, e.g. eslint-config-v1.2.3.`,
+  description: message`Release tag to verify (e.g. eslint-config-v1.2.3).`,
 });
 
 export const assertTagCommand = command(

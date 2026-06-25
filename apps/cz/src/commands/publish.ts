@@ -10,7 +10,7 @@ import { $ } from '@zyplux/util/shell';
 import { resolveReleaseTag } from '#release-targets';
 
 const tagArgument = argument(string({ metavar: 'TAG' }), {
-  description: message`Release tag to publish, e.g. eslint-config-v1.2.3.`,
+  description: message`Release tag to publish (e.g. eslint-config-v1.2.3).`,
 });
 
 export const publishCommand = command('publish', object({ command: constant('publish' as const), tag: tagArgument }), {
