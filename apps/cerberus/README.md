@@ -1,6 +1,6 @@
 # cerberus
 
-Verifies repository invariants — CI workflows, CODEOWNERS, workflow secrets, and justfile conventions. Run it two ways: as a per-repo linter against a checkout (`cerberus`), or as a central scan across every repo in the org (`cerberus org`).
+Verifies repository invariants — CI workflow structure, justfile and dependency conventions, CODEOWNERS, release-version bumps, and workflow secrets. Run it two ways: as a per-repo linter against a checkout (`cerberus`), or as a central scan across every repo in the org (`cerberus org`).
 
 ## Requirements
 
@@ -16,7 +16,7 @@ uv run cerberus            # lint the current directory
 uv run cerberus PATH       # lint a checkout at PATH
 ```
 
-Runs the content checks (`justfile`, `ci-workflow`, `codeowners`) against the checkout and exits non-zero on any failure or error, so it drops into CI like any linter. Control-plane checks (`workflow-secrets`) read GitHub org/admin state the checkout cannot see, so they are skipped here and reported by `cerberus org`.
+Runs every check whose facts live in the checkout — the content and git-history scopes — and exits non-zero on any failure or error, so it drops into CI like any linter. Control-plane checks (`workflow-secrets`) read GitHub org/admin state the checkout cannot see, so they are skipped here and reported by `cerberus org`.
 
 Run `cerberus list` to see every check, its scope, and what it verifies.
 
@@ -40,13 +40,20 @@ Runs all checks, including the control-plane ones the local linter skips. Accept
 
 ## Checks
 
-| ID                 | Scope         | Verifies                                                                            |
-| ------------------ | ------------- | ----------------------------------------------------------------------------------- |
-| `justfile`         | content       | Recipe names, aliases, `check` pipeline, wrapped tool calls, no trailing whitespace |
-| `ci-workflow`      | content       | `ci.yml` exists, exposes a `ci` check, runs on PRs                                  |
-| `workflow-tooling` | content       | Workflows set up only the workspace toolchain (uv, bun), not extra tools            |
-| `codeowners`       | content       | `CODEOWNERS` present and covers `/.github/`                                         |
-| `workflow-secrets` | control-plane | Every secret referenced in workflows is provisioned                                 |
+| ID                      | Scope         | Verifies                                                                            |
+| ----------------------- | ------------- | ---------------------------------------------------------------------------------- |
+| `justfile`              | content       | Recipe names, aliases, `check` pipeline, wrapped tool calls, no trailing whitespace |
+| `ci-workflow`           | content       | `ci.yml` exists, exposes a `ci` check, runs on PRs (push to `main` recommended)     |
+| `ci-sequence`           | content       | `ci.yml` runs the canonical check sequence per stack, in the org container          |
+| `cerberus-step`         | content       | A CI workflow runs cerberus to self-verify org invariants                          |
+| `workflow-tooling`      | content       | Workflows set up only the workspace toolchain (uv, bun), not extra tools            |
+| `rumdl-config`          | content       | `.rumdl.toml` carries the org-canonical rule config (per-repo `exclude` allowed)    |
+| `vitest-runner`         | content       | TypeScript tests run on vitest, never bun's built-in test runner                   |
+| `ts-project-references` | content       | TypeScript typecheck runs via project references (`tsc -b`), not a per-package fan-out |
+| `catalog-discipline`    | content       | Every workspace `package.json` dependency pins via `catalog:` or `workspace:`       |
+| `release-bumps`         | git-history   | A published target's version is bumped whenever its release surface changes         |
+| `codeowners`            | content       | `CODEOWNERS` present and covers `/.github/`                                         |
+| `workflow-secrets`      | control-plane | Every secret referenced in workflows is provisioned                                 |
 
 ## Config
 
