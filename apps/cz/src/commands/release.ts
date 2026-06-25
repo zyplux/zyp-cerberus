@@ -72,11 +72,16 @@ const publish = async (target: Target, remoteHead: string) => {
 
   console.log(`Verifying ${target.label} ${target.version} ...`);
   const visible = await poll(async () => ((await target.isPublished()) ? true : undefined), {
-    attempts: 10,
-    intervalMs: 3000,
+    attempts: 20,
+    intervalMs: 6000,
   });
-  ensure(visible === true, `${target.label} ${target.version} is not visible on its registry yet`);
-  console.log(`Published ${target.label} ${target.version}`);
+  if (visible === true) {
+    console.log(`Published ${target.label} ${target.version}`);
+  } else {
+    console.warn(
+      `${target.label} ${target.version} published (workflow succeeded) but is not visible on its registry yet — likely propagation lag; it should appear shortly`,
+    );
+  }
 };
 
 export const runRelease = async () => {

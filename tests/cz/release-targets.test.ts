@@ -1,4 +1,4 @@
-import { loadReleaseTargets } from '@zyplux/cz/release-targets';
+import { loadReleaseTargets, resolveReleaseTag } from '@zyplux/cz/release-targets';
 import { expect, it } from 'vitest';
 
 it('loads every target declared in release-targets.toml', async () => {
@@ -43,4 +43,23 @@ it('exposes each target kind and the package directory holding its version sourc
   if (cerberus === undefined) throw new Error('cerberus target missing from manifest');
   expect(cerberus.kind).toBe('pypi');
   expect(cerberus.dir).toBe('apps/cerberus');
+});
+
+it('resolves a release tag to the target that owns it and its declared version', async () => {
+  const targets = await loadReleaseTargets();
+  const cerberus = targets.find(target => target.label === 'zyplux-cerberus');
+  if (cerberus === undefined) throw new Error('cerberus target missing from manifest');
+  const version = await cerberus.readVersion();
+
+  const resolved = await resolveReleaseTag(`cerberus-v${version}`);
+  expect(resolved.target.label).toBe('zyplux-cerberus');
+  expect(resolved.version).toBe(version);
+});
+
+it('rejects a tag whose version does not match the manifest', async () => {
+  await expect(resolveReleaseTag('cerberus-v0.0.0-does-not-exist')).rejects.toThrow();
+});
+
+it('rejects a tag no target owns', async () => {
+  await expect(resolveReleaseTag('mystery-v1.0.0')).rejects.toThrow();
 });

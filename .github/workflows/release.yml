@@ -9,62 +9,50 @@ concurrency:
   cancel-in-progress: false
 
 jobs:
+  resolve:
+    name: resolve target kind
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+    outputs:
+      kind: ${{ steps.kind.outputs.kind }}
+    steps:
+      - uses: actions/checkout@v6
+      - uses: oven-sh/setup-bun@v2
+        with:
+          bun-version: 1.3.14
+      - run: bun install --frozen-lockfile
+      - id: kind
+        run: |
+          kind="$(bun run cz tag-kind "$GITHUB_REF_NAME" | tail -n1)"
+          test -n "$kind" || { echo "cz tag-kind produced no kind for $GITHUB_REF_NAME" >&2; exit 1; }
+          echo "kind=$kind" >> "$GITHUB_OUTPUT"
+
   npm:
     name: publish to npm
-    if: startsWith(github.event.release.tag_name, 'eslint-config-v')
+    needs: resolve
+    if: needs.resolve.outputs.kind == 'npm'
     runs-on: ubuntu-latest
     permissions:
       contents: read
+      id-token: write
     steps:
       - uses: actions/checkout@v6
       - uses: oven-sh/setup-bun@v2
         with:
           bun-version: 1.3.14
       - run: bun install --frozen-lockfile
-      - name: Assert release tag matches version
-        run: bun run cz assert-tag "$GITHUB_REF_NAME"
-      - name: Authenticate to npm
-        run: echo "//registry.npmjs.org/:_authToken=${NPM_TOKEN}" >> ~/.npmrc
-        env:
-          NPM_TOKEN: ${{ secrets.NPM_TOKEN }}
-      - name: Publish
-        working-directory: packages/eslint-config
-        run: |
-          bun pm pack
-          npm publish ./*.tgz --access public
-
-  npm-tsconfig:
-    name: publish tsconfig to npm
-    if: startsWith(github.event.release.tag_name, 'tsconfig-v')
-    runs-on: ubuntu-latest
-    permissions:
-      contents: read
-    steps:
-      - uses: actions/checkout@v6
-      - uses: oven-sh/setup-bun@v2
-        with:
-          bun-version: 1.3.14
-      - run: bun install --frozen-lockfile
-      - name: Assert release tag matches version
-        run: bun run cz assert-tag "$GITHUB_REF_NAME"
-      - name: Authenticate to npm
-        run: echo "//registry.npmjs.org/:_authToken=${NPM_TOKEN}" >> ~/.npmrc
-        env:
-          NPM_TOKEN: ${{ secrets.NPM_TOKEN }}
-      - name: Publish
-        working-directory: packages/tsconfig
-        run: |
-          bun pm pack
-          npm publish ./*.tgz --access public
+      - run: bun run cz publish "$GITHUB_REF_NAME"
 
   pypi:
     name: publish to PyPI
-    if: startsWith(github.event.release.tag_name, 'cerberus-v')
+    needs: resolve
+    if: needs.resolve.outputs.kind == 'pypi'
     runs-on: ubuntu-latest
     environment: pypi
     permissions:
-      id-token: write
       contents: read
+      id-token: write
     steps:
       - uses: actions/checkout@v6
       - uses: astral-sh/setup-uv@v8.2.0
@@ -72,16 +60,12 @@ jobs:
         with:
           bun-version: 1.3.14
       - run: bun install --frozen-lockfile
-      - name: Assert release tag matches version
-        run: bun run cz assert-tag "$GITHUB_REF_NAME"
-      - name: Build
-        run: uv build --package zyplux-cerberus
-      - name: Publish
-        run: uv publish
+      - run: bun run cz publish "$GITHUB_REF_NAME"
 
   ghcr:
     name: publish CI image to GHCR
-    if: startsWith(github.event.release.tag_name, 'ci-image-v')
+    needs: resolve
+    if: needs.resolve.outputs.kind == 'ghcr'
     runs-on: ubuntu-latest
     permissions:
       contents: read
@@ -92,15 +76,6 @@ jobs:
         with:
           bun-version: 1.3.14
       - run: bun install --frozen-lockfile
-      - name: Assert release tag matches version
-        run: bun run cz assert-tag "$GITHUB_REF_NAME"
-      - name: Log in to GHCR
+      - run: bun run cz publish "$GITHUB_REF_NAME"
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-        run: echo "$GH_TOKEN" | podman login ghcr.io -u "${{ github.actor }}" --password-stdin
-      - name: Build and push
-        run: |
-          version="${GITHUB_REF_NAME#ci-image-v}"
-          podman build -t "ghcr.io/zyplux/ci:${version}" -t ghcr.io/zyplux/ci:latest containers/ci
-          podman push "ghcr.io/zyplux/ci:${version}"
-          podman push ghcr.io/zyplux/ci:latest

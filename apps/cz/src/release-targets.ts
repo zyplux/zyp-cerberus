@@ -1,4 +1,4 @@
-import { http, parseJson } from '@zyplux/util';
+import { ensure, http, parseJson } from '@zyplux/util';
 import { readFile } from 'node:fs/promises';
 import path from 'node:path';
 import * as z from 'zod';
@@ -103,4 +103,16 @@ export const loadReleaseTargets = async (): Promise<ReleaseTarget[]> => {
     readVersion: async () => readVersion(spec.version),
     tagPrefix: spec.tag_prefix,
   }));
+};
+
+export const resolveReleaseTag = async (tag: string): Promise<{ target: ReleaseTarget; version: string }> => {
+  const targets = await loadReleaseTargets();
+  const target = targets.find(candidate => tag.startsWith(candidate.tagPrefix));
+  ensure(target !== undefined, `no release target in release-targets.toml owns tag '${tag}'`);
+
+  const version = await target.readVersion();
+  const expected = `${target.tagPrefix}${version}`;
+  ensure(tag === expected, `tag '${tag}' does not match ${target.label} version '${version}' (expected '${expected}')`);
+
+  return { target, version };
 };

@@ -18,8 +18,10 @@
     "#commands/assert-tag": "./src/commands/assert-tag.ts",
     "#commands/bootstrap": "./src/commands/bootstrap.ts",
     "#commands/clone": "./src/commands/clone.ts",
+    "#commands/publish": "./src/commands/publish.ts",
     "#commands/push": "./src/commands/push.ts",
     "#commands/release": "./src/commands/release.ts",
+    "#commands/tag-kind": "./src/commands/tag-kind.ts",
     "#release-targets": "./src/release-targets.ts"
   },
   "dependencies": {
