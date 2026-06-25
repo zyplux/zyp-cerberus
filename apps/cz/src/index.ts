@@ -8,8 +8,10 @@ import { applyRulesetCommand, runApplyRuleset } from '#commands/apply-ruleset';
 import { assertTagCommand, runAssertTag } from '#commands/assert-tag';
 import { bootstrapCommand, runBootstrap } from '#commands/bootstrap';
 import { cloneCommand, runClone } from '#commands/clone';
+import { publishCommand, runPublish } from '#commands/publish';
 import { pushCommand, runPush } from '#commands/push';
 import { releaseCommand, runRelease } from '#commands/release';
+import { runTagKind, tagKindCommand } from '#commands/tag-kind';
 
 const VERSION = '0.0.0';
 
@@ -19,7 +21,16 @@ const program = defineProgram({
     name: 'cz',
     version: VERSION,
   },
-  parser: or(pushCommand, cloneCommand, releaseCommand, assertTagCommand, bootstrapCommand, applyRulesetCommand),
+  parser: or(
+    pushCommand,
+    cloneCommand,
+    releaseCommand,
+    assertTagCommand,
+    bootstrapCommand,
+    applyRulesetCommand,
+    publishCommand,
+    tagKindCommand,
+  ),
 });
 
 const assertNever = (value: never) => {
@@ -48,11 +59,17 @@ const main = async () => {
     case 'clone': {
       return runClone(result);
     }
+    case 'publish': {
+      return runPublish(result);
+    }
     case 'push': {
       return runPush(result);
     }
     case 'release': {
       return runRelease();
+    }
+    case 'tag-kind': {
+      return runTagKind(result);
     }
     default: {
       return assertNever(result);
