@@ -1,9 +1,6 @@
 name: copilot-review-gate
 
 on:
-  pull_request:
-    branches: [main]
-    types: [opened, reopened, synchronize, ready_for_review]
   pull_request_review:
     types: [submitted]
 
@@ -11,36 +8,18 @@ permissions:
   statuses: write
 
 jobs:
-  gate:
-    name: copilot-review-gate
+  pass:
+    name: pass
+    if: ${{ github.event.review.user.login == 'copilot-pull-request-reviewer[bot]' }}
     runs-on: ubuntu-latest
     steps:
-      - name: report copilot-review status
+      - name: mark copilot-review success
         env:
           GH_TOKEN: ${{ github.token }}
-          EVENT_NAME: ${{ github.event_name }}
-          REVIEWER: ${{ github.event.review.user.login }}
-          HEAD_SHA: ${{ github.event.pull_request.head.sha }}
-          IS_DRAFT: ${{ github.event.pull_request.draft }}
           REPO: ${{ github.repository }}
+          SHA: ${{ github.event.pull_request.head.sha }}
         run: |
-          set -euo pipefail
-          if [ "$EVENT_NAME" = pull_request_review ]; then
-            if [ "$REVIEWER" != 'copilot-pull-request-reviewer[bot]' ]; then
-              echo "review by '$REVIEWER' is not Copilot; leaving copilot-review unchanged"
-              exit 0
-            fi
-            state=success
-            description='Copilot review completed'
-          else
-            if [ "$IS_DRAFT" = true ]; then
-              echo 'draft pull request; Copilot review not required yet'
-              exit 0
-            fi
-            state=pending
-            description='waiting for Copilot review'
-          fi
-          gh api "repos/$REPO/statuses/$HEAD_SHA" \
-            -f state="$state" \
+          gh api "repos/$REPO/statuses/$SHA" \
+            -f state=success \
             -f context=copilot-review \
-            -f description="$description"
+            -f description='Copilot review completed'

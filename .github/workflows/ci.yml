@@ -4,8 +4,6 @@ on:
   pull_request:
     branches: [main]
     types: [opened, synchronize, reopened, ready_for_review]
-  push:
-    branches: [main]
 
 concurrency:
   group: ci-${{ github.ref }}
@@ -36,3 +34,24 @@ jobs:
       - run: bun run test
       - run: uv run --no-sync pytest
       - run: uv run --no-sync cerberus
+
+  request-copilot-review:
+    needs: ci
+    if: ${{ !github.event.pull_request.draft }}
+    runs-on: ubuntu-latest
+    permissions:
+      pull-requests: write
+      statuses: write
+    steps:
+      - env:
+          GH_TOKEN: ${{ github.token }}
+          REPO: ${{ github.repository }}
+          PR: ${{ github.event.pull_request.number }}
+          SHA: ${{ github.event.pull_request.head.sha }}
+        run: |
+          set -euo pipefail
+          gh api "repos/$REPO/pulls/$PR/requested_reviewers" \
+            -f 'reviewers[]=copilot-pull-request-reviewer[bot]'
+          gh api "repos/$REPO/statuses/$SHA" \
+            -f state=pending -f context=copilot-review \
+            -f description='waiting for Copilot review'
