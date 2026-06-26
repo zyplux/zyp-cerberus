@@ -1,0 +1,61 @@
+{
+  "name": "czyp",
+  "version": "0.1.0",
+  "description": "Repo automation CLI: cut releases, push branches and PRs, apply org rulesets, and clone reference repos.",
+  "keywords": [
+    "bun",
+    "cli",
+    "release",
+    "monorepo",
+    "automation",
+    "github"
+  ],
+  "license": "MIT",
+  "author": "Sergiy Yeskov <sergiy.yeskov@gmail.com>",
+  "homepage": "https://github.com/zyplux/zyp-cerberus/tree/main/apps/czyp",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/zyplux/zyp-cerberus.git",
+    "directory": "apps/czyp"
+  },
+  "type": "module",
+  "bin": {
+    "czyp": "./src/index.ts"
+  },
+  "exports": {
+    "./release-targets": {
+      "types": "./src/release-targets.ts",
+      "default": "./src/release-targets.ts"
+    },
+    "./package.json": "./package.json"
+  },
+  "imports": {
+    "#commands/apply-org-rulesets": "./src/commands/apply-org-rulesets.ts",
+    "#commands/assert-tag-version": "./src/commands/assert-tag-version.ts",
+    "#commands/bootstrap-npm-target": "./src/commands/bootstrap-npm-target.ts",
+    "#commands/clone-reference-repo": "./src/commands/clone-reference-repo.ts",
+    "#commands/print-tag-kind": "./src/commands/print-tag-kind.ts",
+    "#commands/publish-tagged-target": "./src/commands/publish-tagged-target.ts",
+    "#commands/push-branch": "./src/commands/push-branch.ts",
+    "#commands/release-bumped-targets": "./src/commands/release-bumped-targets.ts",
+    "#package.json": "./package.json",
+    "#release-targets": "./src/release-targets.ts"
+  },
+  "files": [
+    "README.md",
+    "src"
+  ],
+  "publishConfig": {
+    "access": "public"
+  },
+  "dependencies": {
+    "@optique/core": "catalog:",
+    "@optique/run": "catalog:",
+    "@zyplux/util": "workspace:*",
+    "zod": "catalog:"
+  },
+  "devDependencies": {
+    "@types/bun": "catalog:",
+    "@zyplux/tsconfig": "workspace:*"
+  }
+}

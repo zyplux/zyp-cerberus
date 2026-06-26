@@ -1,5 +1,5 @@
-# Published release targets for this repo. Read by both `cz release` (to publish)
-# and cerberus's release-bumps check (to enforce a version bump when the surface
+# Published release targets for this repo. Read by both `czyp release-bumped-targets`
+# (to publish) and cerberus's release-bumps check (to enforce a version bump when the surface
 # changes). A repo with no release-targets.toml publishes nothing and is skipped.
 
 [[target]]
@@ -26,6 +26,13 @@ label = "@zyplux/util"
 tag_prefix = "util-v"
 version = { file = "packages/util/package.json", json = "version" }
 surface = ["packages/util/package.json", "packages/util/README.md", "packages/util/src"]
+
+[[target]]
+kind = "npm"
+label = "czyp"
+tag_prefix = "czyp-v"
+version = { file = "apps/czyp/package.json", json = "version" }
+surface = ["apps/czyp/package.json", "apps/czyp/README.md", "apps/czyp/src"]
 
 [[target]]
 kind = "pypi"
