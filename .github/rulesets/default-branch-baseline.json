@@ -25,8 +25,8 @@
       "parameters": {
         "required_approving_review_count": 0,
         "dismiss_stale_reviews_on_push": true,
-        "require_code_owner_review": false,
-        "require_last_push_approval": false,
+        "require_code_owner_review": true,
+        "require_last_push_approval": true,
         "required_review_thread_resolution": true,
         "required_reviewers": [],
         "allowed_merge_methods": ["squash"]
