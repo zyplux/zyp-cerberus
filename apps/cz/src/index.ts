@@ -12,8 +12,9 @@ import { printTagKindCommand, runPrintTagKind } from '#commands/print-tag-kind';
 import { publishTaggedTargetCommand, runPublishTaggedTarget } from '#commands/publish-tagged-target';
 import { pushBranchCommand, runPushBranch } from '#commands/push-branch';
 import { releaseBumpedTargetsCommand, runReleaseBumpedTargets } from '#commands/release-bumped-targets';
+import pkg from '#package.json' with { type: 'json' };
 
-const VERSION = '0.0.0';
+const VERSION = pkg.version;
 
 const program = defineProgram({
   metadata: {

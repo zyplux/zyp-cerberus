@@ -1,7 +1,23 @@
 {
   "name": "@zyplux/cz",
-  "version": "0.0.0",
-  "private": true,
+  "version": "0.1.0",
+  "description": "Repo automation CLI for zyp-cerberus: cut releases, push branches and PRs, apply org rulesets, and clone reference repos.",
+  "keywords": [
+    "bun",
+    "cli",
+    "release",
+    "monorepo",
+    "automation",
+    "github"
+  ],
+  "license": "MIT",
+  "author": "Sergiy Yeskov <sergiy.yeskov@gmail.com>",
+  "homepage": "https://github.com/zyplux/zyp-cerberus",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/zyplux/zyp-cerberus.git",
+    "directory": "apps/cz"
+  },
   "type": "module",
   "bin": {
     "cz": "./src/index.ts"
@@ -22,7 +38,15 @@
     "#commands/publish-tagged-target": "./src/commands/publish-tagged-target.ts",
     "#commands/push-branch": "./src/commands/push-branch.ts",
     "#commands/release-bumped-targets": "./src/commands/release-bumped-targets.ts",
+    "#package.json": "./package.json",
     "#release-targets": "./src/release-targets.ts"
+  },
+  "files": [
+    "README.md",
+    "src"
+  ],
+  "publishConfig": {
+    "access": "public"
   },
   "dependencies": {
     "@optique/core": "catalog:",

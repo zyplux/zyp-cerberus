@@ -28,6 +28,13 @@ version = { file = "packages/util/package.json", json = "version" }
 surface = ["packages/util/package.json", "packages/util/README.md", "packages/util/src"]
 
 [[target]]
+kind = "npm"
+label = "@zyplux/cz"
+tag_prefix = "cz-v"
+version = { file = "apps/cz/package.json", json = "version" }
+surface = ["apps/cz/package.json", "apps/cz/README.md", "apps/cz/src"]
+
+[[target]]
 kind = "pypi"
 label = "zyplux-cerberus"
 tag_prefix = "cerberus-v"

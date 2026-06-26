@@ -1,10 +1,25 @@
 # @zyplux/cz
 
-Repo automation for `zyp-cerberus`, exposed as the `cz` CLI.
+Repo automation, exposed as the `cz` CLI. Requires [Bun](https://bun.sh).
+
+## Install
+
+Run without installing:
+
+```bash
+bunx @zyplux/cz <command>
+```
+
+Or install globally for the short `cz` command:
+
+```bash
+bun add -g @zyplux/cz
+cz <command>
+```
 
 ## Usage
 
-```text
+```bash
 cz push-branch [-r|--ready]             Push the current branch and open or advance its draft PR.
 cz clone-reference-repo <repo> [ref]    Shallow-clone a reference repo into reference_clones/.
 cz release-bumped-targets               Publish any bumped release target via a GitHub release.
@@ -12,17 +27,6 @@ cz bootstrap-npm-target <LABEL>         First-publish a new npm target with a to
 cz apply-org-rulesets                   Upsert every org ruleset in .github/rulesets/ (needs org-admin gh auth).
 ```
 
-Run it from the workspace root:
+## License
 
-```text
-bun run cz <command>
-```
-
-Or through `just`:
-
-```text
-just push
-just clone <repo> [ref]
-just release
-just apply-org-ruleset
-```
+MIT
