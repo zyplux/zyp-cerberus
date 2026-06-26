@@ -1,3 +1,5 @@
+import { attempt } from './result';
+
 const toHttpsRepoUrl = (value: string) => {
   const ssh = /^git@([^:]+):(.+)$/.exec(value);
   if (ssh !== null) {
@@ -15,10 +17,10 @@ export const normalizeRepoUrl = (raw: string | undefined): string | undefined =>
   const trimmed = raw.trim().replace(/^git\+/, '');
   if (trimmed === '') return undefined;
 
-  const parsed = URL.parse(toHttpsRepoUrl(trimmed));
-  if (parsed === null) return undefined;
+  const parsed = attempt(() => new URL(toHttpsRepoUrl(trimmed)));
+  if (!parsed.ok) return undefined;
 
-  const { hostname, pathname } = parsed;
+  const { hostname, pathname } = parsed.data;
   const [owner, repo] = pathname.split('/').filter(segment => segment !== '');
   if (owner === undefined || repo === undefined) return undefined;
   return `https://${hostname.toLowerCase()}/${owner}/${repo.replace(/\.git$/, '')}`;

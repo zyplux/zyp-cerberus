@@ -2,6 +2,7 @@ import { readdir } from 'node:fs/promises';
 import path from 'node:path';
 import * as z from 'zod';
 
+import { attemptAsync } from './result';
 import {
   LooseRecordSchema,
   StringArraySchema,
@@ -115,7 +116,7 @@ export const pythonRequirementNames = (manifest: PyProject) => {
 
 const isInsideRepo = async (dir: string) => {
   const probe = await $.git.isInsideWorkTree(dir);
-  return probe.exitCode === 0;
+  return probe.exitCode === 0 && probe.text().trim() === 'true';
 };
 
 const trackedManifests = async (dir: string) => {
@@ -133,7 +134,9 @@ const trackedManifests = async (dir: string) => {
 const findGitRepos = async (dir: string) => {
   const repos: string[] = [];
   const visit = async (current: string) => {
-    const entries = await readdir(current, { withFileTypes: true });
+    const listing = await attemptAsync(() => readdir(current, { withFileTypes: true }));
+    if (!listing.ok) return;
+    const entries = listing.data;
     if (entries.some(entry => entry.name === '.git')) {
       repos.push(current);
       return;
