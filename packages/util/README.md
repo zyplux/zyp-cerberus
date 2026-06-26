@@ -1,6 +1,6 @@
 # @zyplux/util
 
-Small Bun utilities — assertions, polling, bounded-concurrency mapping, zod-validated JSON reads, repo-URL normalization, `package.json`/`pyproject.toml` manifest schemas, and a `git`/`gh` shell harness. Ships TypeScript source, consumed directly under Bun.
+Small Bun utilities — assertions, polling, bounded-concurrency mapping, zod-validated JSON/TOML parsing (from a string, a file, or a URL), repo-URL normalization, `package.json`/`pyproject.toml` manifest schemas, and a `git`/`gh` shell harness. Ships TypeScript source, consumed directly under Bun.
 
 ## Install
 
@@ -33,9 +33,13 @@ const branch = await readTrimmed($.git.revParse('HEAD', { abbrevRef: true }));
 ensure(branch !== 'main', 'refusing to run on main');
 ```
 
-- `parseJson` parses a JSON string and validates it against a zod schema — the primitive `readJson`/`readJsonSync` build on, for text you already hold (a subprocess's stdout, an env var).
-- `readJson` / `readJsonSync` validate a JSON file against a zod schema (async via `Bun.file`, sync via `node:fs`); both throw on a missing file or bad shape.
+- `parseJson` / `parseToml` parse a string and validate it against a zod schema (throwing on bad syntax or shape), for text you already hold (a subprocess's stdout, a manifest you read); `readJson` / `readJsonSync` do the same from a JSON file (async via `Bun.file`, sync via `node:fs`).
+- `tryParseJson` / `tryParseToml` are the tolerant siblings: they parse-and-validate but return the value or `undefined` on any failure (bad syntax or shape), so a caller scanning many files reads `const pkg = tryParseJson(text, Schema); if (pkg === undefined) continue;` with no result-unwrapping. When you want the error rather than just the value, wrap the strict parser yourself: `attempt(() => parseJson(text, Schema))`.
+- `attempt(fn)` / `attemptAsync(fn)` run a thunk and fold its return or thrown error into a `SafeResult<T>` — `{ ok: true; data }` or `{ ok: false; error }`; they are the engine behind the tolerant helpers and the path to take when you want the error, not just the value, without a bare `catch`.
 - `http` is a ky-style client (`http.get(url)`, `.post`, …) whose `ResponsePromise` exposes `.json(schema)`, `.text()`, and `.response()`. It throws `FetchError` (carrying the `Response`) on a non-ok status and a `ZodError` on a bad shape, so consumers can catch or react rather than guess at a swallowed `undefined`.
+- `.safeJson(schema)` is the non-throwing sibling of `.json(schema)`, returning a `SafeResult<T>` but folding the fetch and non-ok status into it too.
+- `fetchJson(url, schema)` is the tolerant convenience for the common best-effort case: a `GET` that resolves to the validated body or `undefined` on any failure (non-ok, network, or bad shape) — for remote data whose absence is a normal outcome rather than an error.
+- `httpOk(url, init?)` resolves to whether a request returned a 2xx status (it `await`s `fetch` and reads `.ok`), for existence/availability checks where only the status matters and no body is read; pass `init` for headers or a `HEAD` method.
 - `poll` retries an async probe until it returns a defined value or the attempts run out; `mapWithConcurrency` maps over items with a fixed worker limit, preserving input order.
 - `normalizeRepoUrl` reduces the many shapes a VCS url takes (`git+https`, `git@host:owner/repo`, `github:owner/repo`, bare `host/owner/repo`, `…/tree/main/sub`) to a canonical `https://host/owner/repo`, or `undefined` when the value is not a repository.
 - `$` is `Bun.$` augmented with typed `git`/`gh` helpers, without mutating the global `Bun.$`.

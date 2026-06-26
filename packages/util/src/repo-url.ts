@@ -15,14 +15,11 @@ export const normalizeRepoUrl = (raw: string | undefined): string | undefined =>
   const trimmed = raw.trim().replace(/^git\+/, '');
   if (trimmed === '') return undefined;
 
-  let parsed: URL;
-  try {
-    parsed = new URL(toHttpsRepoUrl(trimmed));
-  } catch {
-    return undefined;
-  }
+  const parsed = URL.parse(toHttpsRepoUrl(trimmed));
+  if (parsed === null) return undefined;
 
-  const [owner, repo] = parsed.pathname.split('/').filter(segment => segment !== '');
+  const { hostname, pathname } = parsed;
+  const [owner, repo] = pathname.split('/').filter(segment => segment !== '');
   if (owner === undefined || repo === undefined) return undefined;
-  return `https://${parsed.hostname.toLowerCase()}/${owner}/${repo.replace(/\.git$/, '')}`;
+  return `https://${hostname.toLowerCase()}/${owner}/${repo.replace(/\.git$/, '')}`;
 };

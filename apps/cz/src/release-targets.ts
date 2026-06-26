@@ -1,4 +1,4 @@
-import { ensure, http, parseJson } from '@zyplux/util';
+import { ensure, fetchJson, httpOk, parseJson, parseToml } from '@zyplux/util';
 import { readFile } from 'node:fs/promises';
 import path from 'node:path';
 import * as z from 'zod';
@@ -35,8 +35,6 @@ type VersionSource = z.infer<typeof VersionSourceSchema>;
 
 const fromRoot = (path: string) => new URL(`../../../${path}`, import.meta.url);
 
-const parseToml = <T>(text: string, schema: z.ZodType<T>) => schema.parse(Bun.TOML.parse(text));
-
 const readVersion = async (source: VersionSource) => {
   const text = await readFile(fromRoot(source.file), 'utf8');
   if ('json' in source) {
@@ -50,11 +48,6 @@ const readVersion = async (source: VersionSource) => {
   return version;
 };
 
-const httpOk = async (url: string) => {
-  const response = await fetch(url);
-  return response.ok;
-};
-
 const MANIFEST_MEDIA_TYPES = [
   'application/vnd.oci.image.index.v1+json',
   'application/vnd.oci.image.manifest.v1+json',
@@ -62,25 +55,19 @@ const MANIFEST_MEDIA_TYPES = [
   'application/vnd.docker.distribution.manifest.v2+json',
 ].join(', ');
 
-const fetchGhcrAuth = async (repo: string) => {
-  try {
-    return await http.get(`https://ghcr.io/token?scope=repository:${repo}:pull`).json(GhcrTokenSchema);
-  } catch {
-    return;
-  }
-};
+const fetchGhcrAuth = (repo: string) =>
+  fetchJson(`https://ghcr.io/token?scope=repository:${repo}:pull`, GhcrTokenSchema);
 
 const ghcrImagePublished = async (repo: string, tag: string) => {
   const auth = await fetchGhcrAuth(repo);
   if (!auth) return false;
-  const manifest = await fetch(`https://ghcr.io/v2/${repo}/manifests/${tag}`, {
+  return httpOk(`https://ghcr.io/v2/${repo}/manifests/${tag}`, {
     headers: {
       Accept: MANIFEST_MEDIA_TYPES,
       Authorization: `Bearer ${auth.token}`,
     },
     method: 'HEAD',
   });
-  return manifest.ok;
 };
 
 const isPublished = async ({ kind, label }: TargetSpec, version: string) => {

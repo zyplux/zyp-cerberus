@@ -1,6 +1,4 @@
-import type { ZodType } from 'zod';
-
-import { mapWithConcurrency, normalizeRepoUrl } from '@zyplux/util';
+import { fetchJson, mapWithConcurrency, normalizeRepoUrl, tryParseJson, tryParseToml } from '@zyplux/util';
 import {
   findManifests,
   normalizePythonName,
@@ -16,7 +14,6 @@ import * as z from 'zod';
 
 export type CollectDepReposOptions = {
   dir?: string;
-  fetch?: FetchLike;
   localRepos?: Iterable<string>;
 };
 
@@ -25,8 +22,6 @@ export type DepReposReport = { repos: string[]; unresolved: PackageRef[] };
 export type PackageRef = { name: string; system: PackageSystem };
 
 export type PackageSystem = 'npm' | 'pypi';
-
-type FetchLike = (input: string | URL, init?: RequestInit) => Promise<Response>;
 
 const VersionEntrySchema = z.object({ isDefault: z.boolean().optional(), versionKey: VersionKeySchema });
 const DepsDevPackageSchema = z.object({ versions: z.array(VersionEntrySchema) });
@@ -47,94 +42,78 @@ const RESOLVE_CONCURRENCY = 8;
 
 const byLocale = (left: string, right: string) => left.localeCompare(right);
 
-export const collectDepsNames = async (dir: string) => {
-  const npm = new Set<string>();
-  const pypi = new Set<string>();
-  const localNpmNames = new Set<string>();
-  const localPyNames = new Set<string>();
-  const localRepos = new Set<string>();
-
-  const manifests = await findManifests(dir);
-  for (const file of manifests) {
-    const text = await Bun.file(file).text();
-    if (file.endsWith('package.json')) {
-      const parsed = PackageJsonSchema.safeParse(JSON.parse(text));
-      if (!parsed.success) continue;
-      const data = parsed.data;
-      if (data.name !== undefined) localNpmNames.add(data.name);
-      const repo = normalizeRepoUrl(repositoryUrl(data.repository));
-      if (repo !== undefined) localRepos.add(repo);
-      for (const name of npmDependencyNames(data)) npm.add(name);
-    } else {
-      const parsed = PyProjectSchema.safeParse(Bun.TOML.parse(text));
-      if (!parsed.success) continue;
-      const data = parsed.data;
-      const ownName = data.project?.name;
-      if (ownName !== undefined) localPyNames.add(normalizePythonName(ownName) ?? ownName);
-      const projectUrls = Object.values(data.project?.urls ?? {});
-      for (const url of projectUrls) {
-        const repo = normalizeRepoUrl(url);
-        if (repo !== undefined) localRepos.add(repo);
-      }
-      for (const name of pythonRequirementNames(data)) pypi.add(name);
-    }
+const readManifestFacts = async (file: string) => {
+  const text = await Bun.file(file).text();
+  if (file.endsWith('package.json')) {
+    const manifest = tryParseJson(text, PackageJsonSchema);
+    if (manifest === undefined) return;
+    return {
+      deps: npmDependencyNames(manifest),
+      name: manifest.name,
+      repos: [repositoryUrl(manifest.repository)].filter(url => url !== undefined),
+      system: 'npm',
+    };
   }
-
+  const manifest = tryParseToml(text, PyProjectSchema);
+  if (manifest === undefined) return;
+  const name = manifest.project?.name;
   return {
-    localRepos,
-    npm: [...npm].filter(name => !localNpmNames.has(name)).toSorted(byLocale),
-    pypi: [...pypi].filter(name => !localPyNames.has(name)).toSorted(byLocale),
+    deps: pythonRequirementNames(manifest),
+    name: name === undefined ? undefined : (normalizePythonName(name) ?? name),
+    repos: Object.values(manifest.project?.urls ?? {}),
+    system: 'pypi',
   };
 };
 
-const fetchJson = async <T>(fetchImpl: FetchLike, url: string, schema: ZodType<T>): Promise<T | undefined> => {
-  try {
-    const response = await fetchImpl(url);
-    if (!response.ok) return undefined;
-    const parsed = schema.safeParse(await response.json());
-    return parsed.success ? parsed.data : undefined;
-  } catch {
-    return undefined;
-  }
+export const collectDepsNames = async (dir: string) => {
+  const files = await findManifests(dir);
+  const parsed = await Promise.all(files.map(file => readManifestFacts(file)));
+  const facts = parsed.filter(fact => fact !== undefined);
+
+  const externalNames = (system: PackageSystem) => {
+    const local = facts.filter(fact => fact.system === system);
+    const own = new Set(local.map(fact => fact.name));
+    return [...new Set(local.flatMap(fact => fact.deps))].filter(name => !own.has(name)).toSorted(byLocale);
+  };
+
+  const declaredRepos = facts.flatMap(fact => fact.repos).map(url => normalizeRepoUrl(url));
+  const localRepos = new Set(declaredRepos.filter(repo => repo !== undefined));
+  return { localRepos, npm: externalNames('npm'), pypi: externalNames('pypi') };
 };
 
 const defaultVersion = (pkg: undefined | z.infer<typeof DepsDevPackageSchema>) =>
   pkg?.versions.find(entry => entry.isDefault === true)?.versionKey.version ?? pkg?.versions.at(-1)?.versionKey.version;
 
-const resolveViaDepsDev = async (system: PackageSystem, name: string, fetchImpl: FetchLike) => {
+const resolveViaDepsDev = async (system: PackageSystem, name: string) => {
   const base = `https://api.deps.dev/v3/systems/${system}/packages/${encodeURIComponent(name)}`;
-  const version = defaultVersion(await fetchJson(fetchImpl, base, DepsDevPackageSchema));
+  const version = defaultVersion(await fetchJson(base, DepsDevPackageSchema));
   if (version === undefined) return;
-  const detail = await fetchJson(fetchImpl, `${base}/versions/${encodeURIComponent(version)}`, DepsDevVersionSchema);
+  const detail = await fetchJson(`${base}/versions/${encodeURIComponent(version)}`, DepsDevVersionSchema);
   const fromProjects = detail?.relatedProjects?.find(project => project.relationType === 'SOURCE_REPO')?.projectKey.id;
   const fromLinks = detail?.links?.find(link => link.label === 'SOURCE_REPO')?.url;
   return normalizeRepoUrl(fromProjects ?? fromLinks);
 };
 
-const resolveViaRegistry = async (system: PackageSystem, name: string, fetchImpl: FetchLike) => {
+const resolveViaRegistry = async (system: PackageSystem, name: string) => {
   if (system === 'npm') {
     const url = `https://registry.npmjs.org/${name.replace('/', '%2F')}/latest`;
-    const pkg = await fetchJson(fetchImpl, url, NpmRegistrySchema);
+    const pkg = await fetchJson(url, NpmRegistrySchema);
     return normalizeRepoUrl(repositoryUrl(pkg?.repository)) ?? normalizeRepoUrl(pkg?.homepage);
   }
-  const pkg = await fetchJson(fetchImpl, `https://pypi.org/pypi/${encodeURIComponent(name)}/json`, PypiProjectSchema);
+  const pkg = await fetchJson(`https://pypi.org/pypi/${encodeURIComponent(name)}/json`, PypiProjectSchema);
   const urls = Object.entries(pkg?.info.project_urls ?? {});
   const labelled = urls.find(([label]) => /code|github|repository|source/i.test(label))?.[1];
   return normalizeRepoUrl(labelled) ?? normalizeRepoUrl(pkg?.info.home_page ?? undefined);
 };
 
-export const resolveSourceRepo = async (
-  system: PackageSystem,
-  name: string,
-  fetchImpl: FetchLike = globalThis.fetch,
-): Promise<string | undefined> => {
-  const viaDepsDev = await resolveViaDepsDev(system, name, fetchImpl);
+export const resolveSourceRepo = async (system: PackageSystem, name: string): Promise<string | undefined> => {
+  const viaDepsDev = await resolveViaDepsDev(system, name);
   if (viaDepsDev !== undefined) return viaDepsDev;
-  return resolveViaRegistry(system, name, fetchImpl);
+  return resolveViaRegistry(system, name);
 };
 
 export const collectDepRepos = async (options: CollectDepReposOptions = {}): Promise<DepReposReport> => {
-  const { dir = process.cwd(), fetch: fetchImpl = globalThis.fetch, localRepos } = options;
+  const { dir = process.cwd(), localRepos } = options;
   const scan = await collectDepsNames(dir);
   const excluded = new Set(scan.localRepos);
   const extraRepos = localRepos ?? [];
@@ -149,7 +128,7 @@ export const collectDepRepos = async (options: CollectDepReposOptions = {}): Pro
   ];
   const resolved = await mapWithConcurrency(refs, RESOLVE_CONCURRENCY, async ref => ({
     ref,
-    repo: await resolveSourceRepo(ref.system, ref.name, fetchImpl),
+    repo: await resolveSourceRepo(ref.system, ref.name),
   }));
 
   const repos = new Set<string>();
