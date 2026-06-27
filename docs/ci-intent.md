@@ -13,7 +13,7 @@
 
 ### copilot_code_review
 
-- only run on "read" PRs
+- only run on "ready" PRs
 - auto-run on every push to the PR branch
 - is a mandatory check for merge into main
 

@@ -1,9 +1,6 @@
 name: copilot-review-gate
 
 on:
-  pull_request:
-    branches: [main]
-    types: [opened, synchronize, reopened, ready_for_review]
   check_run:
     types: [completed]
 
@@ -11,25 +8,9 @@ permissions:
   statuses: write
 
 jobs:
-  mark-pending:
-    name: mark pending
-    if: github.event_name == 'pull_request'
-    runs-on: ubuntu-latest
-    steps:
-      - name: Mark copilot-review-complete pending for this push
-        env:
-          GH_TOKEN: ${{ github.token }}
-        run: |
-          gh api --method POST "repos/${{ github.repository }}/statuses/${{ github.event.pull_request.head.sha }}" \
-            -f state=pending \
-            -f context=copilot-review-complete \
-            -f description="Awaiting Copilot review of this push"
-
   mirror-completion:
     name: mirror completion
-    if: >-
-      github.event_name == 'check_run' &&
-      github.event.check_run.name == 'copilot-pull-request-reviewer'
+    if: github.event.check_run.name == 'copilot-pull-request-reviewer'
     runs-on: ubuntu-latest
     steps:
       - name: Mirror Copilot review conclusion to commit status
