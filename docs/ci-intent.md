@@ -50,6 +50,12 @@ The invariants map onto enforceable GitHub mechanisms as follows:
 - no unresolved review comments — `required_review_thread_resolution`.
 - human approvals only for CODEOWNERS files — `require_code_owner_review`, `required_approving_review_count: 0`, `require_last_push_approval: false`.
 
+## Operating
+
+Re-triggering Copilot on a new commit requires the push to land _inside_ the draft→ready cycle: `cz push-branch --ready` (`just pr`) flips the PR to draft, pushes, then flips it back to ready, and that ready transition is what requests a fresh Copilot review. Pre-pushing the branch first makes the in-cycle push a no-op — no `synchronize`/`review_requested` event fires and Copilot stays silent. `cz push-branch --ready` guards against this: on an already-ready PR it compares local `HEAD` to the remote tip and errors when there is nothing to push, so the failure is loud instead of a silently un-reviewed PR.
+
+`check_run`-triggered workflows only run from the default branch's copy of the file, so `copilot-review-gate` starts mirroring only after it has merged to `main`; the PR that introduces it must have its `copilot-review-complete` status posted once by hand.
+
 ## Notes
 
 I am flexible in terms of how the above is implemented, as long as it fits the above criteria.
