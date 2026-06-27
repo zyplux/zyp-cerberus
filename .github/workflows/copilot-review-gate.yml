@@ -26,24 +26,27 @@ jobs:
         run: |
           set -uo pipefail
           post() {
-            gh api --method POST "repos/$REPO/statuses/$SHA" \
-              -f state="$1" -f context=copilot-review-complete -f description="$2" >/dev/null 2>&1 || true
+            args=(-f "state=$1" -f context=copilot-review-complete -f "description=$2")
+            [ -n "${3:-}" ] && args+=(-f "target_url=$3")
+            gh api --method POST "repos/$REPO/statuses/$SHA" "${args[@]}"
           }
-          post pending "Waiting for Copilot review to complete"
+          post pending "Waiting for Copilot review to complete" "" \
+            || echo "::warning::could not post pending copilot-review-complete status (continuing)"
           for _ in $(seq 1 80); do
             run=$(gh api "repos/$REPO/commits/$SHA/check-runs" \
               --jq '[.check_runs[] | select(.name == "copilot-pull-request-reviewer")] | first' 2>/dev/null || echo '')
             status=$(echo "$run" | jq -r '.status // ""' 2>/dev/null || echo '')
             conclusion=$(echo "$run" | jq -r '.conclusion // ""' 2>/dev/null || echo '')
+            details=$(echo "$run" | jq -r '.details_url // ""' 2>/dev/null || echo '')
             if [ "$status" = "completed" ]; then
               if [ "$conclusion" = "success" ]; then
-                post success "Copilot review success"
+                post success "Copilot review success" "$details"
               else
-                post failure "Copilot review $conclusion"
+                post failure "Copilot review concluded: $conclusion" "$details"
               fi
-              exit 0
+              exit $?
             fi
             sleep 15
           done
-          post failure "Copilot review did not complete within the wait window"
+          post error "Timed out waiting for the Copilot review check-run to complete" ""
           exit 1
