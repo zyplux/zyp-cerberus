@@ -9,7 +9,7 @@ permissions:
   checks: read
 
 concurrency:
-  group: copilot-review-gate-pr-${{ github.event.pull_request.number }}
+  group: copilot-review-gate-pr-${{ github.event.pull_request.number }}-${{ github.event.pull_request.draft }}
   cancel-in-progress: true
 
 jobs:
