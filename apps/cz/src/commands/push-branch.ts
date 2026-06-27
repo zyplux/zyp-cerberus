@@ -28,6 +28,8 @@ type PushBranchConfig = InferValue<typeof pushBranchCommand>;
 const readPrField = async (json: string, jq: string) => readTrimmed($.gh.pr.view({ jq, json }));
 
 export const runPushBranch = async ({ hold, ready }: PushBranchConfig) => {
+  ensure(!hold || ready, '--hold requires --ready');
+
   const branch = await readTrimmed($.git.revParse('HEAD', { abbrevRef: true }));
   ensure(branch.length > 0, 'not on any branch (detached HEAD?)');
   ensure(branch !== 'main', 'refusing to run on main');
