@@ -14,6 +14,8 @@ type PrListFlags = { head?: string; jq?: string; json?: string; state?: string }
 
 type PrMergeFlags = { auto?: boolean; deleteBranch?: boolean; squash?: boolean };
 
+type PrReadyFlags = { undo?: boolean };
+
 type PrViewFlags = { jq?: string; json?: string };
 
 type PullFlags = { ffOnly?: boolean };
@@ -49,7 +51,7 @@ const gh = {
     create: async (flags: PrCreateFlags) => Bun.$`gh ${['pr', 'create', ...toArgs(flags)]}`,
     list: async (flags: PrListFlags = {}) => Bun.$`gh ${['pr', 'list', ...toArgs(flags)]}`,
     merge: async (flags: PrMergeFlags = {}) => Bun.$`gh ${['pr', 'merge', ...toArgs(flags)]}`,
-    ready: async () => Bun.$`gh ${['pr', 'ready']}`,
+    ready: async (flags: PrReadyFlags = {}) => Bun.$`gh ${['pr', 'ready', ...toArgs(flags)]}`,
     view: async (flags: PrViewFlags = {}) => Bun.$`gh ${['pr', 'view', ...toArgs(flags)]}`,
   },
   release: {

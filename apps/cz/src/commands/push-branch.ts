@@ -11,7 +11,7 @@ export const pushBranchCommand = command(
   object({
     command: constant('push-branch' as const),
     ready: option('-r', '--ready', {
-      description: message`Mark the PR ready for review and enable auto-merge once checks are clean.`,
+      description: message`Flip the PR to draft, push, then mark it ready (re-triggering Copilot review) and enable auto-merge.`,
     }),
   }),
   {
@@ -40,13 +40,14 @@ export const runPushBranch = async ({ ready }: PushBranchConfig) => {
     return;
   }
 
+  if (ready && existing === 'OPEN' && (await readPrField('isDraft', '.isDraft')) === 'false') {
+    await $.gh.pr.ready({ undo: true });
+  }
+
   await $.git.push('origin', branch, { setUpstream: true });
 
   if (existing !== 'OPEN') {
     await $.gh.pr.create({ base: 'main', body: '', draft: true, title: branch });
-  }
-  if (ready && (await readPrField('isDraft', '.isDraft')) === 'true') {
-    await $.gh.pr.ready();
   }
 
   const url = await readPrField('url', '.url');
@@ -54,6 +55,8 @@ export const runPushBranch = async ({ ready }: PushBranchConfig) => {
     console.log(`PR (draft): ${url}`);
     return;
   }
+
+  await $.gh.pr.ready();
 
   const mergeState =
     (await poll(

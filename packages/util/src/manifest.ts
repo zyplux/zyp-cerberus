@@ -68,15 +68,13 @@ export const normalizePythonName = (requirement: string) => {
   return name.toLowerCase().replaceAll(/[-_.]+/g, '-');
 };
 
-const catalogNames = (manifest: PackageJson) => {
-  const catalogs: Record<string, unknown>[] = [];
-  if (manifest.catalog !== undefined) catalogs.push(manifest.catalog);
-  if (manifest.catalogs !== undefined) catalogs.push(...Object.values(manifest.catalogs));
-  if (manifest.workspaces !== undefined && !Array.isArray(manifest.workspaces)) {
-    if (manifest.workspaces.catalog !== undefined) catalogs.push(manifest.workspaces.catalog);
-    if (manifest.workspaces.catalogs !== undefined) catalogs.push(...Object.values(manifest.workspaces.catalogs));
-  }
-  return catalogs.flatMap(catalog => Object.keys(catalog));
+const catalogNames = ({ catalog, catalogs, workspaces }: PackageJson): string[] => {
+  const catalogMaps: Record<string, unknown>[] = [];
+  if (catalog !== undefined) catalogMaps.push(catalog);
+  if (catalogs !== undefined) catalogMaps.push(...Object.values(catalogs));
+  const names = catalogMaps.flatMap(catalogMap => Object.keys(catalogMap));
+  if (workspaces !== undefined && !Array.isArray(workspaces)) names.push(...catalogNames(workspaces));
+  return names;
 };
 
 const declaredNpmNames = (manifest: PackageJson) => {
