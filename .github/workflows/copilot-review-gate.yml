@@ -7,21 +7,22 @@ on:
 permissions:
   statuses: write
   checks: read
+  pull-requests: read
 
 concurrency:
-  group: copilot-review-gate-pr-${{ github.event.pull_request.number }}-${{ github.event.pull_request.draft }}
+  group: copilot-review-gate-pr-${{ github.event.pull_request.number }}
   cancel-in-progress: true
 
 jobs:
   mirror:
     name: mirror copilot review
-    if: ${{ !github.event.pull_request.draft }}
     runs-on: ubuntu-latest
     steps:
       - name: Wait for Copilot review and mirror it to a commit status
         env:
           GH_TOKEN: ${{ github.token }}
           REPO: ${{ github.repository }}
+          PR: ${{ github.event.pull_request.number }}
           SHA: ${{ github.event.pull_request.head.sha }}
         run: |
           set -uo pipefail
@@ -30,10 +31,22 @@ jobs:
             [ -n "${3:-}" ] && args+=(-f "target_url=$3")
             gh api --method POST "repos/$REPO/statuses/$SHA" "${args[@]}"
           }
+          ready=""
+          for _ in $(seq 1 40); do
+            if [ "$(gh api "repos/$REPO/pulls/$PR" --jq '.draft' 2>/dev/null)" = "false" ]; then
+              ready=1
+              break
+            fi
+            sleep 5
+          done
+          if [ -z "$ready" ]; then
+            echo "::notice::PR is still draft after waiting; Copilot review is not expected, leaving no status"
+            exit 0
+          fi
           post pending "Waiting for Copilot review to complete" "" \
             || echo "::warning::could not post pending copilot-review-complete status (continuing)"
           for _ in $(seq 1 80); do
-            run=$(gh api "repos/$REPO/commits/$SHA/check-runs" \
+            run=$(gh api "repos/$REPO/commits/$SHA/check-runs?check_name=copilot-pull-request-reviewer&per_page=100" \
               --jq '[.check_runs[] | select(.name == "copilot-pull-request-reviewer")] | first' 2>/dev/null || echo '')
             status=$(echo "$run" | jq -r '.status // ""' 2>/dev/null || echo '')
             conclusion=$(echo "$run" | jq -r '.conclusion // ""' 2>/dev/null || echo '')

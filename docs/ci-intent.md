@@ -57,6 +57,10 @@ Re-triggering Copilot on a new commit requires the push to land _inside_ the dra
 
 The mirror is driven by the `pull_request` event rather than Copilot's completion: the Copilot check-run and review are created by the `github-actions` app via `GITHUB_TOKEN`, and `GITHUB_TOKEN`-triggered events never start a workflow, so a `check_run`/`pull_request_review` mirror would never fire. The gate workflow instead triggers on the human-initiated `pull_request` event and polls the check-runs API until Copilot finishes. Because `pull_request` workflows run from the PR branch's own copy, the gate takes effect in the PR that introduces it — no default-branch bootstrap is needed.
 
+The draft→push→ready cycle fires two `pull_request` events in quick succession — `synchronize` (draft) then `ready_for_review` (ready) — and GitHub does not reliably spawn a workflow run for the `ready_for_review` event when it lands within seconds of the push (observed: one cycle produced both runs, an identical later cycle produced only the `synchronize` run). So the gate must not gate on the event payload's `draft` flag or skip the `synchronize` run — either would leave the mirror un-posted whenever the ready event's run fails to spawn. Instead every run polls the live PR draft state, waits for the ready flip, and only then waits for Copilot and mirrors; whichever of the two runs survives does the job. The concurrency group is keyed on the PR number alone (not the draft flag) so the later event cancels the earlier in-progress run instead of both racing the same mirror.
+
+The check-runs poll filters server-side with `check_name=copilot-pull-request-reviewer&per_page=100`: the unfiltered endpoint paginates at 30, so on a commit with many check-runs the Copilot run could fall off the first page and the gate would time out with an `error` even though Copilot had finished.
+
 ## Notes
 
 I am flexible in terms of how the above is implemented, as long as it fits the above criteria.
