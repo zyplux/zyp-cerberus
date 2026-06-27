@@ -32,4 +32,11 @@ describe('mapWithConcurrency', () => {
   it('tolerates empty input', async () => {
     expect(await mapWithConcurrency([], workerLimit, settle)).toEqual([]);
   });
+
+  it('rejects a limit that is not a positive integer instead of silently running zero workers', async () => {
+    const fractionalLimit = 2.5;
+    for (const limit of [NaN, 0, -1, fractionalLimit]) {
+      await expect(mapWithConcurrency(['a', 'b'], limit, settle)).rejects.toThrow(RangeError);
+    }
+  });
 });
