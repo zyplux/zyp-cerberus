@@ -32,34 +32,32 @@ New pushes invalidate both ci and copilot_code_review.
 
 ### skill
 
-- /resolve-pr-review-comments [skill](/home/srg/.claude/skills/resolve-pr-review-comments/SKILL.md) should run in a loop once triggered: should flip PR to draft, assess copilot comments, fix relevant ones, run `just pr` to push fixes changes, respond to all comments and resolve threads, flip pr to ready. Repeat this untill copilot has reviewed with zero comments.
+- /resolve-pr-review-comments [skill](/home/srg/.claude/skills/resolve-pr-review-comments/SKILL.md) runs in a loop: flip PR to draft, fix relevant Copilot comments, `just pr` to push, reply to and resolve all threads, flip to ready — repeat until Copilot reviews with zero comments.
 
 ## Observations
 
-- using an action to add @Copilot to the reviewers doesn't start the copilot_code_review - it needs to be manually triggered in using
-- copilot_code_review is requested and auto-starts when PR is marked as ready for review after a new push AND branch policy has automatic copilot_code_review setting
+- adding @Copilot as a reviewer via an action does not start copilot_code_review — only the ready-after-push flow (below) does
+- copilot_code_review auto-starts on `ready_for_review` **only if a push landed between the draft and ready flips** (flip → push → flip): the ready flip must see a commit GitHub registered _before_ it. Flip → flip (no push) and flip → flip → push (push after the ready flip, arriving as a `synchronize` on an already-ready PR) request nothing. Also requires the branch policy's automatic copilot_code_review setting.
 - Copilot reviews are comment-only: they never count as approvals and never block merge natively (per GitHub docs)
 - the native `copilot-pull-request-reviewer` check-run shows up in the REST `commits/{sha}/check-runs` API but is excluded from the PR status rollup, so it can never satisfy a required status check — it stays "Expected" forever and blocks the PR
-- the Copilot check-run and review are produced by the `github-actions` app using `GITHUB_TOKEN`; GitHub never starts a workflow from an event triggered by `GITHUB_TOKEN` (recursion prevention), so the mirror cannot be driven by Copilot's `check_run` (or `pull_request_review`) completion — those events fire no workflow at all
+- the Copilot check-run and review are produced by the `github-actions` app using `GITHUB_TOKEN`; GitHub never starts a workflow from an event triggered by `GITHUB_TOKEN` (recursion prevention), so the watcher cannot be driven by Copilot's `check_run` (or `pull_request_review`) completion — those events fire no workflow at all
+- Copilot marks its check-run `completed` (conclusion `success`) 1–2s _before_ it submits the review and its comments, and the conclusion is `success` even when comments follow — so the watcher waits for the review submission and counts unresolved threads before recording `success`, or auto-merge could fire in the gap before `required_review_thread_resolution` sees the comments
 
 ## Implementation
 
 The invariants map onto enforceable GitHub mechanisms as follows:
 
 - `ci` mandatory — required status check (`ci`), `strict_required_status_checks_policy` ties it to the latest push.
-- `copilot_code_review` mandatory — cannot be required natively (see Observations). The org reusable workflow `copilot-review-gate` in [`zyplux/.github`](https://github.com/zyplux/.github/blob/main/docs/copilot-review-gate.md), called by this repo's thin `.github/workflows/copilot-review-gate.yml`, triggers on `pull_request` (a human-initiated event that reliably fires, unlike the `GITHUB_TOKEN`-suppressed Copilot events), waits for the `copilot-pull-request-reviewer` check-run to complete, and mirrors its conclusion onto a `copilot-review-complete` commit status (rollup-visible), which the ruleset requires. Each push is a fresh SHA with no status yet, so the required check is unsatisfied until the mirror posts again — this is what invalidates it per push.
+- `copilot_code_review` mandatory — cannot be required natively (see Observations). The org reusable workflow [`org_gate_base`](https://github.com/zyplux/.github/blob/main/docs/copilot-review-gate.md), called by this repo's thin `.github/workflows/org_gate.yml`, triggers on `pull_request`, waits for Copilot's review to be submitted (not just its check-run — see Observations), counts unresolved Copilot comment threads, and records a rollup-visible `copilot-review-complete` status the ruleset requires: `success` when none remain, else `failure` plus a flip back to draft. Each push is a fresh SHA with no status yet, so the gate is unsatisfied until the watcher re-posts — that's the per-push invalidation.
 - no unresolved review comments — `required_review_thread_resolution`.
 - human approvals only for CODEOWNERS files — `require_code_owner_review`, `required_approving_review_count: 0`, `require_last_push_approval: false`.
 
 ## Operating
 
-Re-triggering Copilot on a new commit requires the push to land _inside_ the draft→ready cycle: `cz push-branch --ready` (`just pr`) flips the PR to draft, pushes, then flips it back to ready, and that ready transition is what requests a fresh Copilot review. Pre-pushing the branch first makes the in-cycle push a no-op — no `synchronize`/`review_requested` event fires and Copilot stays silent. `cz push-branch --ready` guards against this: on an already-ready PR it compares local `HEAD` to the remote tip and errors when there is nothing to push, so the failure is loud instead of a silently un-reviewed PR.
+Re-triggering Copilot requires the push to land _inside_ the draft→ready cycle, in that order: `cz push-branch --ready` (`just pr`) flips to draft, pushes, then flips to ready — and the ready flip, seeing the just-pushed commit, requests the review. Pre-pushing makes the in-cycle push a no-op, so `cz push-branch --ready` errors when `HEAD` is already on origin. Flipping by hand, or letting the push land after the ready flip, yields flip → flip or flip → flip → push — no review, PR stranded. Never flip draft/ready manually; always use `just pr`.
 
-The mirror runs from the human-initiated `pull_request` event and polls the check-runs API — it is **not** driven by Copilot's own completion, because the Copilot check-run and review are created via `GITHUB_TOKEN` and `GITHUB_TOKEN`-triggered events never start a workflow. The full mirror rationale — the draft→ready event race, why each run polls live draft state rather than gating on the event's `draft` flag, the check-runs pagination filter, and the per-repo concurrency key — lives with the reusable workflow in [`zyplux/.github`](https://github.com/zyplux/.github/blob/main/docs/copilot-review-gate.md).
+The watcher runs from the human `pull_request` event and polls the check-runs API — **not** from Copilot's completion, since the Copilot check-run/review come from `GITHUB_TOKEN`, whose events start no workflow. Full rationale (draft→ready race, live-draft polling, pagination filter, concurrency key) lives with the [reusable workflow](https://github.com/zyplux/.github/blob/main/docs/copilot-review-gate.md).
 
 ## Notes
 
-I am flexible in terms of how the above is implemented, as long as it fits the above criteria.
-I think we need to flip PR back to "draft" once copilot_code_review is finished and comments are produced. Then, after a new push and conversion to "ready" copilot_code_review will re-trigger.
-I think `just pr` should do the flip to draft -> push -> flip to ready.
-copilot_code_review is currently enabled via [org wide branch policy](rulesets/default-branch-baseline.json)
+copilot_code_review is enabled via the [org-wide branch policy](rulesets/default-branch-baseline.json). Implementation is flexible as long as it meets the invariants above.
