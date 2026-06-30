@@ -45,7 +45,8 @@ flowchart TD
     review -->|comments left| fail(["copilot-review-complete = failure"]):::state
     fail -->|"merge blocked — you must triage"| valid{"Any valid comment<br/>needing a code change?"}:::agent
     valid -->|yes| fix["Fix the code, post replies, resolve all threads"]:::agent
-    fix --> prFix["Run `just pr` — flips to draft, pushes fixes, then flips to ready"]:::agent
+    fix --> commit["git commit the fixes — `just pr` pushes commits, not the working tree"]:::agent
+    commit --> prFix["Run `just pr` — flips to draft, pushes the commits, then flips to ready"]:::agent
     prFix -->|"new head re-triggers Copilot"| review
     valid -->|"no — all false positives"| reply["Reply to each, resolve all threads"]:::agent
     reply --> prRefresh["Run `just pr` — flips draft→ready, nothing to push"]:::agent
@@ -137,10 +138,27 @@ gh api graphql -f threadId='<thread-node-id>' -f query='
 mutation($threadId:ID!){ resolveReviewThread(input:{threadId:$threadId}){ thread{ isResolved } } }'
 ```
 
+**Commit every code fix before leaving this step.** `just pr` (Step 4) only pushes
+*committed* work — a fix left uncommitted in the working tree is silently skipped, so
+the head doesn't change. The moment all threads resolve, the gate flips to `success`
+and the already-armed auto-merge fires on that unchanged head, **merging the PR without
+your fix** while the thread reply claims it landed. After running `just c` to verify,
+`git add` the touched files and `git commit` them. Then confirm the tree is clean and
+HEAD has moved before Step 4:
+
+```bash
+git status --porcelain   # must be empty
+git log --oneline -1     # must show your fix commit, not the pre-existing head
+```
+
 ## Step 4 — refresh the gate and wait for its verdict
 
 Run `just pr`. It pushes the current head, flips back to ready, and enables
-auto-merge (which the gate holds until the head is clean):
+auto-merge (which the gate holds until the head is clean). **Precondition: your fixes
+are committed (Step 3) — `just pr` pushes commits, never the working tree.** If `just pr`
+reports `Everything up-to-date` when you expected to push a fix, stop: the fix is
+uncommitted, the head hasn't moved, and the gate is about to merge the old code. Commit,
+then re-run.
 
 - **Changed code** (you fixed valid comments) → `just pr` flips the PR to draft, pushes
   the fixes, and flips back to ready; that ready transition re-triggers a fresh Copilot
