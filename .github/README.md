@@ -79,7 +79,3 @@ When there is nothing to push, `just pr` splits on whether Copilot already revie
 Never flip draft/ready by hand: a manual flip → flip, or a push that lands after the ready flip, requests no review and strands the PR. Always use `just pr`.
 
 The watcher runs from the human `pull_request` event and polls the check-runs API — **not** from Copilot's completion, since the Copilot check-run/review come from `GITHUB_TOKEN`, whose events start no workflow. Full rationale (draft→ready race, live-draft polling, pagination filter, concurrency key) lives with the [reusable workflow](https://github.com/zyplux/.github/blob/main/apps/copilot-review-gate/README.md).
-
-## Notes
-
-copilot_code_review is enabled via the [org-wide branch policy](rulesets/default-branch-baseline.json). Implementation is flexible as long as it meets the invariants above.
