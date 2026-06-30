@@ -64,7 +64,19 @@ const publish = async (target: Target, remoteHead: string) => {
   if (runId === undefined) {
     throw new Error('publish workflow did not start; check the Actions tab');
   }
-  await $.gh.run.watch(runId, { exitStatus: true });
+
+  console.log(`Watching run ${runId} ...`);
+  const conclusion = await poll(
+    async () => {
+      const [status, result] = splitLines(
+        await readTrimmed($.gh.run.view(runId, { jq: '.status, .conclusion', json: 'status,conclusion' })),
+      );
+      return status === 'completed' ? (result ?? '') : undefined;
+    },
+    { attempts: 200, intervalMs: 3000 },
+  );
+  ensure(conclusion === 'success', `publish workflow ${runId} finished with '${conclusion ?? 'unknown'}'`);
+  console.log(`Run ${runId} succeeded`);
 
   console.log(`Verifying ${target.label} ${target.version} ...`);
   const visible = await poll(async () => ((await target.isPublished()) ? true : undefined), {
