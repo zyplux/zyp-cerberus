@@ -32,7 +32,7 @@ type RevParseFlags = { abbrevRef?: boolean };
 
 type RunListFlags = { event?: string; jq?: string; json?: string; workflow?: string };
 
-type RunWatchFlags = { exitStatus?: boolean };
+type RunViewFlags = { jq?: string; json?: string };
 
 type StatusFlags = { porcelain?: boolean };
 
@@ -60,14 +60,15 @@ const gh = {
   release: {
     create: async (tag: string, flags: ReleaseCreateFlags = {}) =>
       Bun.$`gh ${['release', 'create', tag, ...toArgs(flags)]}`,
-    list: async (flags: ReleaseListFlags = {}) => Bun.$`gh ${['release', 'list', ...toArgs(flags)]}`,
+    list: async (flags: ReleaseListFlags = {}) => Bun.$`gh ${['release', 'list', ...toArgs(flags)]}`.quiet(),
   },
   repo: {
     view: async (flags: RepoViewFlags = {}) => Bun.$`gh ${['repo', 'view', ...toArgs(flags)]}`.quiet(),
   },
   run: {
-    list: async (flags: RunListFlags = {}) => Bun.$`gh ${['run', 'list', ...toArgs(flags)]}`,
-    watch: async (runId: string, flags: RunWatchFlags = {}) => Bun.$`gh ${['run', 'watch', runId, ...toArgs(flags)]}`,
+    list: async (flags: RunListFlags = {}) => Bun.$`gh ${['run', 'list', ...toArgs(flags)]}`.quiet(),
+    view: async (runId: string, flags: RunViewFlags = {}) =>
+      Bun.$`gh ${['run', 'view', runId, ...toArgs(flags)]}`.quiet(),
   },
 };
 

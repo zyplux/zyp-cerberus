@@ -66,7 +66,7 @@ upgrade-interactive:
 
 # Publish any bumped release target (eslint-config → npm, cerberus → PyPI, ci image → GHCR) via GitHub releases.
 release:
-    bun run cz release-bumped-targets
+    bun run --silent cz release-bumped-targets
 
 # Push the current branch and open a draft PR (-r/--ready marks it ready and enables auto-merge).
 push *flags:
