@@ -2,7 +2,7 @@ import shutil
 import subprocess
 
 import pytest
-from cerberus import config, gh, source
+from cerberus import source
 from cerberus.model import Repo
 
 requires_git = pytest.mark.skipif(
@@ -12,7 +12,7 @@ requires_git = pytest.mark.skipif(
 
 @pytest.fixture
 def repo():
-    return Repo("demo", "zyplux", "main", "public")
+    return Repo("demo")
 
 
 def _git(root, *args):
@@ -79,18 +79,3 @@ def test_local_changed_paths_diffs_surface_against_ref(tmp_path, repo):
 def test_local_tags_raises_outside_a_repo(tmp_path, repo):
     with pytest.raises(source.GitHistoryUnavailable):
         source.LocalSource(tmp_path).tags(repo, "widget-v")
-
-
-def test_github_list_paths_keeps_blobs_drops_trees(monkeypatch, repo):
-    tree = {
-        "tree": [
-            {"path": "package.json", "type": "blob"},
-            {"path": "src", "type": "tree"},
-            {"path": "src/a.test.ts", "type": "blob"},
-        ]
-    }
-    monkeypatch.setattr(gh, "api", lambda *_args, **_kwargs: tree)
-    assert source.GitHubSource(config.load()).list_paths(repo) == [
-        "package.json",
-        "src/a.test.ts",
-    ]

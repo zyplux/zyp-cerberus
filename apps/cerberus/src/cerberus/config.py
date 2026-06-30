@@ -8,8 +8,6 @@ from pathlib import Path
 
 @dataclass(frozen=True)
 class Config:
-    org: str
-    exclude_repos: tuple[str, ...]
     default_recipe_marker: str
     required_aliases: dict[str, str]
     recommended_aliases: dict[str, str]
@@ -29,8 +27,6 @@ def _from_dict(data: dict) -> Config:
     ci = data.get("ci", {})
     ci_required = ci.get("required", {})
     return Config(
-        org=data["org"],
-        exclude_repos=tuple(data.get("exclude_repos", [])),
         default_recipe_marker=data["default_recipe_marker"],
         required_aliases=dict(aliases.get("required", {})),
         recommended_aliases=dict(aliases.get("recommended", {})),
@@ -50,3 +46,12 @@ def load(path: Path | None = None) -> Config:
         return _from_dict(tomllib.loads(path.read_text()))
     bundled = resources.files("cerberus").joinpath("cerberus.toml").read_text()
     return _from_dict(tomllib.loads(bundled))
+
+
+def repo_disabled_checks(root: Path) -> frozenset[str]:
+    """Check ids the repo opts out of, via `[tool.cerberus] disable` in pyproject.toml."""
+    pyproject = root / "pyproject.toml"
+    if not pyproject.is_file():
+        return frozenset()
+    tool = tomllib.loads(pyproject.read_text()).get("tool", {}).get("cerberus", {})
+    return frozenset(tool.get("disable", []))

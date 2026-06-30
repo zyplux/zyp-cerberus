@@ -14,7 +14,7 @@ export const pushBranchCommand = command(
       description: message`With --ready, re-trigger the Copilot review but hold off auto-merge; the caller decides when to merge.`,
     }),
     ready: option('-r', '--ready', {
-      description: message`Flip the PR to draft, push, then mark it ready (re-triggering Copilot review) and enable auto-merge.`,
+      description: message`Flip the PR to draft, push, then mark it ready and enable auto-merge. New commits re-trigger Copilot review; with nothing to push it refreshes the gate (re-count resolved threads), provided Copilot already reviewed HEAD.`,
     }),
   }),
   {
@@ -26,6 +26,13 @@ export const pushBranchCommand = command(
 type PushBranchConfig = InferValue<typeof pushBranchCommand>;
 
 const readPrField = async (json: string, jq: string) => readTrimmed($.gh.pr.view({ jq, json }));
+
+const readCopilotReviewedHead = async (slug: string, number: string) =>
+  readTrimmed(
+    $.gh.api(`repos/${slug}/pulls/${number}/reviews?per_page=100`, {
+      jq: '[.[] | select((.user.login // "") | ascii_downcase | contains("copilot"))] | last | .commit_id // ""',
+    }),
+  );
 
 export const runPushBranch = async ({ hold, ready }: PushBranchConfig) => {
   ensure(!hold || ready, '--hold requires --ready');
@@ -49,10 +56,15 @@ export const runPushBranch = async ({ hold, ready }: PushBranchConfig) => {
     const localHead = await readTrimmed($.git.revParse('HEAD'));
     const remoteRefLine = await readTrimmed($.git.lsRemote('origin', branch));
     const remoteHead = remoteRefLine.split(/\s+/, 1)[0] ?? '';
-    ensure(
-      remoteHead !== localHead,
-      'nothing to push: HEAD is already on origin, so the draft→ready flip would not re-trigger Copilot review. Commit your change first and let this command push it during the cycle — do not pre-push the branch.',
-    );
+    if (remoteHead === localHead) {
+      const slug = await readTrimmed($.gh.repo.view({ jq: '.nameWithOwner', json: 'nameWithOwner' }));
+      const number = await readPrField('number', '.number');
+      const reviewedHead = await readCopilotReviewedHead(slug, number);
+      ensure(
+        reviewedHead === localHead,
+        'nothing to push and Copilot has not reviewed HEAD: a draft→ready flip would re-trigger neither Copilot nor a useful gate run. Commit your fix and let this command push it during the cycle — do not pre-push the branch.',
+      );
+    }
     await $.gh.pr.ready({ undo: true });
   }
 

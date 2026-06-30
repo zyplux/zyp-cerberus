@@ -26,6 +26,8 @@ type ReleaseCreateFlags = { generateNotes?: boolean; target?: string; title?: st
 
 type ReleaseListFlags = { jq?: string; json?: string };
 
+type RepoViewFlags = { jq?: string; json?: string };
+
 type RevParseFlags = { abbrevRef?: boolean };
 
 type RunListFlags = { event?: string; jq?: string; json?: string; workflow?: string };
@@ -59,6 +61,9 @@ const gh = {
     create: async (tag: string, flags: ReleaseCreateFlags = {}) =>
       Bun.$`gh ${['release', 'create', tag, ...toArgs(flags)]}`,
     list: async (flags: ReleaseListFlags = {}) => Bun.$`gh ${['release', 'list', ...toArgs(flags)]}`,
+  },
+  repo: {
+    view: async (flags: RepoViewFlags = {}) => Bun.$`gh ${['repo', 'view', ...toArgs(flags)]}`,
   },
   run: {
     list: async (flags: RunListFlags = {}) => Bun.$`gh ${['run', 'list', ...toArgs(flags)]}`,

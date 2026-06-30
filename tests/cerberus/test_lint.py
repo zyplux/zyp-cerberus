@@ -119,14 +119,6 @@ def test_lint_defaults_to_current_directory(
 
 
 @requires_just
-def test_lint_skips_control_plane_checks(tmp_path: Path) -> None:
-    _make_conforming_repo(tmp_path)
-    result = runner.invoke(app, [str(tmp_path), "--check", "workflow-secrets"])
-    assert result.exit_code == 0, result.output
-    assert "all checks pass" in result.output.lower()
-
-
-@requires_just
 def test_lint_fails_on_trailing_whitespace(tmp_path: Path) -> None:
     _make_conforming_repo(tmp_path)
     (tmp_path / "justfile").write_text(JUSTFILE_WITH_TRAILING_WS)
@@ -147,6 +139,28 @@ def test_fix_strips_trailing_whitespace(tmp_path: Path) -> None:
 
 
 @requires_just
+def test_lint_disable_skips_a_check_via_pyproject(tmp_path: Path) -> None:
+    _make_conforming_repo(tmp_path)
+    (tmp_path / ".github" / "CODEOWNERS").unlink()
+    assert runner.invoke(app, [str(tmp_path), "--check", "codeowners"]).exit_code == 1
+
+    (tmp_path / "pyproject.toml").write_text('[tool.cerberus]\ndisable = ["codeowners"]\n')
+    result = runner.invoke(app, [str(tmp_path), "--check", "codeowners"])
+    assert result.exit_code == 0, result.output
+    assert "codeowners" in result.output
+    assert "disabled" in result.output.lower()
+    assert "[tool.cerberus]" in result.output
+
+
+@requires_just
+def test_lint_disable_ignores_unknown_check(tmp_path: Path) -> None:
+    _make_conforming_repo(tmp_path)
+    (tmp_path / "pyproject.toml").write_text('[tool.cerberus]\ndisable = ["no-such-check"]\n')
+    result = runner.invoke(app, [str(tmp_path), "--check", "codeowners"])
+    assert result.exit_code == 0, result.output
+
+
+@requires_just
 def test_lint_fails_on_bare_managed_tool(tmp_path: Path) -> None:
     _make_conforming_repo(tmp_path)
     (tmp_path / "justfile").write_text(JUSTFILE_WITH_BARE_TOOL)
@@ -162,12 +176,6 @@ def test_lint_has_no_json_flag(tmp_path: Path) -> None:
     assert "json" in result.output.lower()
 
 
-def test_org_rejects_removed_subcommands() -> None:
-    for removed in ("scorecard", "repos"):
-        result = runner.invoke(app, ["org", "zyplux", removed])
-        assert result.exit_code == 2, f"{removed}: {result.output}"
-
-
 def test_list_command_lists_every_check() -> None:
     result = runner.invoke(app, ["list"])
     assert result.exit_code == 0
@@ -178,40 +186,8 @@ def test_list_command_lists_every_check() -> None:
         "workflow-tooling",
         "rumdl-config",
         "codeowners",
-        "workflow-secrets",
     ):
         assert check_id in result.output
-
-
-def test_org_requires_an_org_argument() -> None:
-    result = runner.invoke(app, ["org"])
-    assert result.exit_code == 2
-    assert "ORG" in result.output or "Missing argument" in result.output
-
-
-@pytest.mark.parametrize(
-    ("ref", "expected"),
-    [
-        ("zyplux", "zyplux"),
-        ("github.com/zyplux", "zyplux"),
-        ("https://github.com/zyplux", "zyplux"),
-        ("https://github.com/zyplux/", "zyplux"),
-        ("git@github.com:zyplux", "zyplux"),
-        ("github.com/zyplux/some-repo", "zyplux"),
-    ],
-)
-def test_parse_org_ref_accepts_known_forms(ref: str, expected: str) -> None:
-    from cerberus.source import parse_org_ref
-
-    assert parse_org_ref(ref) == expected
-
-
-@pytest.mark.parametrize("ref", ["", "  ", "gitlab.com/zyplux", "https://example.com/x"])
-def test_parse_org_ref_rejects_unknown_hosts(ref: str) -> None:
-    from cerberus.source import parse_org_ref
-
-    with pytest.raises(ValueError):
-        parse_org_ref(ref)
 
 
 def test_lint_has_no_strict_flag(tmp_path: Path) -> None:

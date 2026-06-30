@@ -1,43 +1,20 @@
 from __future__ import annotations
 
 import os
-import re
 from collections.abc import Sequence
 from pathlib import Path
 from typing import Protocol
 
-from cerberus import gh, proc
-from cerberus.config import Config
+from cerberus import proc
 from cerberus.model import Repo
-
-_SCHEME = re.compile(r"^[a-z][a-z0-9+.-]*://", re.IGNORECASE)
-_GITHUB_HOST = re.compile(r"^(?:git@)?github\.com[/:]", re.IGNORECASE)
-
-
-def parse_org_ref(value: str) -> str:
-    """Extract a GitHub org login from a bare name, `github.com/org`, or a URL.
-
-    Accepts `zyplux`, `github.com/zyplux`, `https://github.com/zyplux/`, and
-    `git@github.com:zyplux`. Rejects other hosts and empty input.
-    """
-    ref = _SCHEME.sub("", value.strip())
-    ref = _GITHUB_HOST.sub("", ref)
-    org = ref.strip("/").split("/", 1)[0]
-    if not org or "." in org or ":" in org:
-        raise ValueError(f"could not read a GitHub org from {value!r}")
-    return org
-
-
-class ControlPlaneUnavailable(RuntimeError):
-    """A checkout-only source was asked for GitHub org/admin state it cannot reach."""
 
 
 class GitHistoryUnavailable(RuntimeError):
-    """Git history (tags, ref diffs) could not be read — git failed, or the source is API-only."""
+    """Git history (tags, ref diffs) could not be read — git failed or is absent."""
 
 
 class RepoSource(Protocol):
-    """Where a check reads a repo's facts from: the GitHub API, or a local checkout."""
+    """Where a check reads a repo's facts from: a local checkout."""
 
     def repos(self) -> list[Repo]: ...
     def file(self, repo: Repo, path: str) -> str | None: ...
@@ -46,132 +23,18 @@ class RepoSource(Protocol):
     def changed_paths(self, repo: Repo, ref: str, surface: Sequence[str]) -> list[str]: ...
     def write_file(self, repo: Repo, path: str, content: str) -> None: ...
     def workflows(self, repo: Repo) -> dict[str, str]: ...
-    def repo_secrets(self, repo: Repo) -> set[str]: ...
-    def org_secrets(self) -> dict[str, str]: ...
-    def org_secret_selected_repos(self, name: str) -> set[str]: ...
-
-
-class GitHubSource:
-    """Reads every governed repo in an org through the GitHub CLI."""
-
-    def __init__(self, config: Config) -> None:
-        self._config = config
-
-    @property
-    def org(self) -> str:
-        return self._config.org
-
-    def repos(self) -> list[Repo]:
-        out: list[Repo] = []
-        for raw in gh.list_repos(self.org):
-            if raw["name"] in self._config.exclude_repos or raw.get("isFork"):
-                continue
-            branch = (raw.get("defaultBranchRef") or {}).get("name") or "main"
-            out.append(
-                Repo(
-                    name=raw["name"],
-                    owner=self.org,
-                    default_branch=branch,
-                    visibility=str(raw["visibility"]).lower(),
-                )
-            )
-        return sorted(out, key=lambda r: r.name)
-
-    def file(self, repo: Repo, path: str) -> str | None:
-        return gh.raw_file(repo.owner, repo.name, path)
-
-    def list_paths(self, repo: Repo) -> list[str]:
-        ref = f"repos/{repo.full_name}/git/trees/{repo.default_branch}?recursive=1"
-        try:
-            tree = gh.api(ref) or {}
-        except gh.GhError:
-            return []
-        entries = tree.get("tree", []) if isinstance(tree, dict) else []
-        return [
-            entry["path"]
-            for entry in entries
-            if entry.get("type") == "blob" and isinstance(entry.get("path"), str)
-        ]
-
-    def tags(self, repo: Repo, prefix: str) -> list[str]:
-        raise GitHistoryUnavailable(
-            "git tags are not read from the GitHub API; run `cerberus lint`"
-        )
-
-    def changed_paths(self, repo: Repo, ref: str, surface: Sequence[str]) -> list[str]:
-        raise GitHistoryUnavailable(
-            "ref diffs are not read from the GitHub API; run `cerberus lint`"
-        )
-
-    def write_file(self, repo: Repo, path: str, content: str) -> None:
-        raise NotImplementedError("the org scan is read-only; --fix runs only on a local checkout")
-
-    def workflows(self, repo: Repo) -> dict[str, str]:
-        try:
-            entries = gh.api(f"repos/{repo.full_name}/contents/.github/workflows") or []
-        except gh.GhError:
-            return {}
-        out: dict[str, str] = {}
-        for entry in entries:
-            name = entry.get("name", "")
-            if entry.get("type") == "file" and name.endswith((".yml", ".yaml")):
-                content = gh.raw_file(repo.owner, repo.name, entry["path"])
-                if content is not None:
-                    out[name] = content
-        return out
-
-    def repo_secrets(self, repo: Repo) -> set[str]:
-        try:
-            data = gh.api(f"repos/{repo.full_name}/actions/secrets") or {}
-        except gh.GhError:
-            return set()
-        return {s["name"] for s in data.get("secrets", [])}
-
-    def org_secrets(self) -> dict[str, str]:
-        try:
-            data = gh.api(f"orgs/{self.org}/actions/secrets") or {}
-        except gh.GhError:
-            return {}
-        return {s["name"]: s.get("visibility", "all") for s in data.get("secrets", [])}
-
-    def org_secret_selected_repos(self, name: str) -> set[str]:
-        try:
-            data = gh.api(f"orgs/{self.org}/actions/secrets/{name}/repositories") or {}
-        except gh.GhError:
-            return set()
-        return {r["name"] for r in data.get("repositories", [])}
 
 
 class LocalSource:
-    """Reads a single repo from a working-tree checkout on disk.
-
-    Content lives in the checkout; GitHub control-plane state (secret
-    provisioning) does not, so those reads raise ControlPlaneUnavailable and the
-    runner skips control-plane checks in this mode.
-    """
+    """Reads a single repo from a working-tree checkout on disk."""
 
     def __init__(self, root: Path) -> None:
         self.root = root
 
-    def _identity(self) -> tuple[str, str, str]:
-        slug = os.environ.get("GITHUB_REPOSITORY", "")
-        if "/" in slug:
-            owner, name = slug.split("/", 1)
-        else:
-            owner, name = "local", self.root.resolve().name
-        branch = os.environ.get("GITHUB_REF_NAME") or "HEAD"
-        return owner, name, branch
-
     def repos(self) -> list[Repo]:
-        owner, name, branch = self._identity()
-        return [
-            Repo(
-                name=name,
-                owner=owner,
-                default_branch=branch,
-                visibility="unknown",
-            )
-        ]
+        slug = os.environ.get("GITHUB_REPOSITORY", "")
+        name = slug.split("/", 1)[1] if "/" in slug else self.root.resolve().name
+        return [Repo(name=name)]
 
     def file(self, repo: Repo, path: str) -> str | None:
         try:
@@ -233,12 +96,3 @@ class LocalSource:
                 except OSError:
                     continue
         return out
-
-    def repo_secrets(self, repo: Repo) -> set[str]:
-        raise ControlPlaneUnavailable("secret provisioning is not readable from a checkout")
-
-    def org_secrets(self) -> dict[str, str]:
-        raise ControlPlaneUnavailable("org secrets are not readable from a checkout")
-
-    def org_secret_selected_repos(self, name: str) -> set[str]:
-        raise ControlPlaneUnavailable("org secrets are not readable from a checkout")

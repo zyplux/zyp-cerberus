@@ -32,7 +32,7 @@ New pushes invalidate both ci and copilot_code_review.
 
 ### skill
 
-- /resolve-pr-review-comments [skill](/home/srg/.claude/skills/resolve-pr-review-comments/SKILL.md) runs in a loop: flip PR to draft, fix relevant Copilot comments, `just pr` to push, reply to and resolve all threads, flip to ready — repeat until Copilot reviews with zero comments.
+- /resolve-pr-review-comments [skill](/home/srg/.claude/skills/resolve-pr-review-comments/SKILL.md) runs in a loop: read each unresolved Copilot thread, fix the valid ones and reply to the false positives, resolve all threads, `just pr` to refresh the gate — repeat until `copilot-review-complete` is `success`.
 
 ## Observations
 
@@ -49,15 +49,36 @@ New pushes invalidate both ci and copilot_code_review.
 The invariants map onto enforceable GitHub mechanisms as follows:
 
 - `ci` mandatory — required status check (`ci`), `strict_required_status_checks_policy` ties it to the latest push.
-- `copilot_code_review` mandatory — cannot be required natively (see Observations). The org reusable workflow [`org_gate_base`](https://github.com/zyplux/.github/blob/main/docs/copilot-review-gate.md), called by this repo's thin `.github/workflows/org_gate.yml`, triggers on `pull_request`, waits for Copilot's review to be submitted (not just its check-run — see Observations), counts unresolved Copilot comment threads, and records a rollup-visible `copilot-review-complete` status the ruleset requires: `success` when none remain, else `failure` (which blocks the merge). Each push is a fresh SHA with no status yet, so the gate is unsatisfied until the watcher re-posts — that's the per-push invalidation.
+- `copilot_code_review` mandatory — cannot be required natively (see Observations). The org reusable workflow [`org_gate_base`](https://github.com/zyplux/.github/blob/main/apps/copilot-review-gate/README.md), called by this repo's thin `.github/workflows/org_gate.yml`, triggers on `pull_request`, waits for Copilot's review to be submitted (not just its check-run — see Observations), counts unresolved Copilot comment threads, and records a rollup-visible `copilot-review-complete` status the ruleset requires: `success` when none remain, else `failure` (which blocks the merge). Each push is a fresh SHA with no status yet, so the gate is unsatisfied until the watcher re-posts — that's the per-push invalidation.
 - no unresolved review comments — `required_review_thread_resolution`.
 - human approvals only for CODEOWNERS files — `require_code_owner_review`, `required_approving_review_count: 0`, `require_last_push_approval: false`.
 
 ## Operating
 
-Re-triggering Copilot requires the push to land _inside_ the draft→ready cycle, in that order: `cz push-branch --ready` (`just pr`) flips to draft, pushes, then flips to ready — and the ready flip, seeing the just-pushed commit, requests the review. Pre-pushing makes the in-cycle push a no-op, so `cz push-branch --ready` errors when `HEAD` is already on origin. Flipping by hand, or letting the push land after the ready flip, yields flip → flip or flip → flip → push — no review, PR stranded. Never flip draft/ready manually; always use `just pr`.
+A Copilot review resolves one of three ways, all driven by `just pr`:
 
-The watcher runs from the human `pull_request` event and polls the check-runs API — **not** from Copilot's completion, since the Copilot check-run/review come from `GITHUB_TOKEN`, whose events start no workflow. Full rationale (draft→ready race, live-draft polling, pagination filter, concurrency key) lives with the [reusable workflow](https://github.com/zyplux/.github/blob/main/docs/copilot-review-gate.md).
+```mermaid
+flowchart TD
+    review["Copilot reviews the head (ci runs too)"] --> q{"Comments left?"}
+    q -->|none| clean["copilot-review-complete = success"]
+    q -->|comments| blocked["copilot-review-complete = failure<br/>merge blocked"]
+    blocked --> triage["Triage each thread:<br/>fix the valid ones, reply to the false positives,<br/>resolve all"]
+    triage --> changed{"Any code changed?"}
+    changed -->|"yes — valid comments"| pushfix["just pr pushes a new head"]
+    pushfix --> review
+    changed -->|"no — all false positives"| refresh["just pr: nothing to push,<br/>so it flip-flips to re-run the watcher"]
+    refresh --> recount["watcher re-counts the now-resolved threads = 0"]
+    recount --> clean
+    clean --> merge(["ci green + threads resolved → auto-merge"])
+```
+
+Re-triggering Copilot requires the push to land _inside_ the draft→ready cycle, in that order: `cz push-branch --ready` (`just pr`) flips to draft, pushes, then flips to ready — and the ready flip, seeing the just-pushed commit, requests the review.
+
+When there is nothing to push, `just pr` splits on whether Copilot already reviewed `HEAD`. If it did (you resolved its comments with no code change), the flip → flip re-runs the watcher to re-count the now-resolved threads — no new Copilot review, just a fresh gate verdict that unblocks the merge. If it did not (you pre-pushed unreviewed commits), `just pr` errors, because a flip → flip there would re-trigger nothing useful.
+
+Never flip draft/ready by hand: a manual flip → flip, or a push that lands after the ready flip, requests no review and strands the PR. Always use `just pr`.
+
+The watcher runs from the human `pull_request` event and polls the check-runs API — **not** from Copilot's completion, since the Copilot check-run/review come from `GITHUB_TOKEN`, whose events start no workflow. Full rationale (draft→ready race, live-draft polling, pagination filter, concurrency key) lives with the [reusable workflow](https://github.com/zyplux/.github/blob/main/apps/copilot-review-gate/README.md).
 
 ## Notes
 

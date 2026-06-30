@@ -1,7 +1,8 @@
 import shutil
+from pathlib import Path
 
 import pytest
-from cerberus import config, context, gh
+from cerberus import config, context
 from cerberus.checks import (
     catalog_discipline_check,
     cerberus_step_check,
@@ -10,7 +11,6 @@ from cerberus.checks import (
     codeowners_check,
     justfile_check,
     rumdl_config_check,
-    secrets_check,
     ts_project_references_check,
     vitest_runner_check,
     workflow_tooling_check,
@@ -68,46 +68,46 @@ TRAILING_WHITESPACE = CONFORMING.replace(
 
 @pytest.fixture
 def repo():
-    return Repo("demo", "zyplux", "main", "public")
+    return Repo("demo")
 
 
 @pytest.fixture
 def ctx():
-    return context.github_context(config.load())
+    return context.local_context(config.load(), Path("."))
 
 
 @requires_just
 def test_conforming_justfile_passes(monkeypatch, repo, ctx):
-    monkeypatch.setattr(gh, "raw_file", lambda *_: CONFORMING)
+    monkeypatch.setattr(ctx, "file", lambda *_: CONFORMING)
     assert justfile_check.run(repo, ctx).status is Status.PASS
 
 
 def test_missing_justfile_fails(monkeypatch, repo, ctx):
-    monkeypatch.setattr(gh, "raw_file", lambda *_: None)
+    monkeypatch.setattr(ctx, "file", lambda *_: None)
     assert justfile_check.run(repo, ctx).status is Status.FAIL
 
 
 @requires_just
 def test_missing_required_alias_fails(monkeypatch, repo, ctx):
-    monkeypatch.setattr(gh, "raw_file", lambda *_: MISSING_REQUIRED_ALIAS)
+    monkeypatch.setattr(ctx, "file", lambda *_: MISSING_REQUIRED_ALIAS)
     assert justfile_check.run(repo, ctx).status is Status.FAIL
 
 
 @requires_just
 def test_missing_recommended_fails(monkeypatch, repo, ctx):
-    monkeypatch.setattr(gh, "raw_file", lambda *_: MISSING_RECOMMENDED)
+    monkeypatch.setattr(ctx, "file", lambda *_: MISSING_RECOMMENDED)
     assert justfile_check.run(repo, ctx).status is Status.FAIL
 
 
 @requires_just
 def test_wrong_check_pipeline_order_fails(monkeypatch, repo, ctx):
-    monkeypatch.setattr(gh, "raw_file", lambda *_: WRONG_CHECK_ORDER)
+    monkeypatch.setattr(ctx, "file", lambda *_: WRONG_CHECK_ORDER)
     assert justfile_check.run(repo, ctx).status is Status.FAIL
 
 
 @requires_just
 def test_bare_managed_tool_fails(monkeypatch, repo, ctx):
-    monkeypatch.setattr(gh, "raw_file", lambda *_: BARE_TOOL_CALL)
+    monkeypatch.setattr(ctx, "file", lambda *_: BARE_TOOL_CALL)
     result = justfile_check.run(repo, ctx)
     assert result.status is Status.FAIL
     assert any("rumdl" in f.message for f in result.problems)
@@ -115,50 +115,27 @@ def test_bare_managed_tool_fails(monkeypatch, repo, ctx):
 
 @requires_just
 def test_trailing_whitespace_fails(monkeypatch, repo, ctx):
-    monkeypatch.setattr(gh, "raw_file", lambda *_: TRAILING_WHITESPACE)
+    monkeypatch.setattr(ctx, "file", lambda *_: TRAILING_WHITESPACE)
     assert justfile_check.run(repo, ctx).status is Status.FAIL
 
 
-def test_secrets_skips_without_workflows(monkeypatch, repo, ctx):
-    monkeypatch.setattr(ctx, "workflows", lambda r: {})
-    assert secrets_check.run(repo, ctx).status is Status.SKIP
-
-
-def test_secrets_pass_when_provisioned(monkeypatch, repo, ctx):
-    monkeypatch.setattr(ctx, "workflows", lambda r: {"ci.yml": "x: ${{ secrets.FOO }}"})
-    monkeypatch.setattr(ctx, "secret_available", lambda r, name: True)
-    assert secrets_check.run(repo, ctx).status is Status.PASS
-
-
-def test_secrets_fail_when_missing(monkeypatch, repo, ctx):
-    monkeypatch.setattr(ctx, "workflows", lambda r: {"ci.yml": "x: ${{ secrets.FOO }}"})
-    monkeypatch.setattr(ctx, "secret_available", lambda r, name: False)
-    assert secrets_check.run(repo, ctx).status is Status.FAIL
-
-
-def test_secrets_ignores_github_token(monkeypatch, repo, ctx):
-    monkeypatch.setattr(ctx, "workflows", lambda r: {"ci.yml": "x: ${{ secrets.GITHUB_TOKEN }}"})
-    monkeypatch.setattr(ctx, "secret_available", lambda r, name: False)
-    assert secrets_check.run(repo, ctx).status is Status.PASS
-
-
 def test_codeowners_missing_fails(monkeypatch, repo, ctx):
-    monkeypatch.setattr(gh, "raw_file", lambda *_: None)
+    monkeypatch.setattr(ctx, "file", lambda *_: None)
     assert codeowners_check.run(repo, ctx).status is Status.FAIL
 
 
 def test_codeowners_covers_github(monkeypatch, repo, ctx):
-    monkeypatch.setattr(gh, "raw_file", lambda owner, name, path: "/.github/ @zyplux/admins\n")
+    monkeypatch.setattr(ctx, "file", lambda r, p: "/.github/ @zyplux/admins\n")
     assert codeowners_check.run(repo, ctx).status is Status.PASS
 
 
 def test_codeowners_wildcard_covers_github(monkeypatch, repo, ctx):
-    monkeypatch.setattr(gh, "raw_file", lambda *_: "* @zyplux/admins\n")
+    monkeypatch.setattr(ctx, "file", lambda *_: "* @zyplux/admins\n")
     assert codeowners_check.run(repo, ctx).status is Status.PASS
 
 
 def test_codeowners_lookalike_path_does_not_cover_github(monkeypatch, repo, ctx):
-    monkeypatch.setattr(gh, "raw_file", lambda *_: "docs/.github-notes @zyplux/admins\n")
+    monkeypatch.setattr(ctx, "file", lambda *_: "docs/.github-notes @zyplux/admins\n")
     assert codeowners_check.run(repo, ctx).status is Status.FAIL
 
 
@@ -277,23 +254,23 @@ _RUMDL_OLD = '[global]\ndisable = ["MD033", "MD013"]\n\n[MD024]\nsiblings-only =
 
 
 def test_rumdl_canonical_passes(monkeypatch, repo, ctx):
-    monkeypatch.setattr(gh, "raw_file", lambda *_: _RUMDL_CANONICAL)
+    monkeypatch.setattr(ctx, "file", lambda *_: _RUMDL_CANONICAL)
     assert rumdl_config_check.run(repo, ctx).status is Status.PASS
 
 
 def test_rumdl_exclude_is_allowed(monkeypatch, repo, ctx):
     content = _RUMDL_CANONICAL.replace("]\n", ']\nexclude = ["reference_clones"]\n', 1)
-    monkeypatch.setattr(gh, "raw_file", lambda *_: content)
+    monkeypatch.setattr(ctx, "file", lambda *_: content)
     assert rumdl_config_check.run(repo, ctx).status is Status.PASS
 
 
 def test_rumdl_old_config_fails(monkeypatch, repo, ctx):
-    monkeypatch.setattr(gh, "raw_file", lambda *_: _RUMDL_OLD)
+    monkeypatch.setattr(ctx, "file", lambda *_: _RUMDL_OLD)
     assert rumdl_config_check.run(repo, ctx).status is Status.FAIL
 
 
 def test_rumdl_missing_fails(monkeypatch, repo, ctx):
-    monkeypatch.setattr(gh, "raw_file", lambda *_: None)
+    monkeypatch.setattr(ctx, "file", lambda *_: None)
     assert rumdl_config_check.run(repo, ctx).status is Status.FAIL
 
 

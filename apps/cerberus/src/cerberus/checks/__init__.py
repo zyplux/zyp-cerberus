@@ -12,7 +12,6 @@ from cerberus.checks import (
     justfile_check,
     release_bumps_check,
     rumdl_config_check,
-    secrets_check,
     ts_project_references_check,
     vitest_runner_check,
     workflow_tooling_check,
@@ -42,11 +41,8 @@ ALL: tuple[Check, ...] = tuple(
         ts_project_references_check,
         catalog_discipline_check,
         release_bumps_check,
-        secrets_check,
         codeowners_check,
     )
 )
 
 BY_ID: dict[str, Check] = {check.id: check for check in ALL}
-
-CONTENT: tuple[Check, ...] = tuple(c for c in ALL if c.scope is Scope.CONTENT)

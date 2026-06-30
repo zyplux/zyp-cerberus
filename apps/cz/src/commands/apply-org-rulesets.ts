@@ -8,7 +8,7 @@ import path from 'node:path';
 import { z } from 'zod';
 
 const ORG = 'zyplux';
-const RULESETS_DIR = '.github/rulesets';
+const RULESETS_DIR = 'rulesets';
 
 const RulesetSummariesSchema = z.array(z.object({ id: z.number(), name: z.string() }));
 const RulesetFileSchema = z.object({ name: z.string() });

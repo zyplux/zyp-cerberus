@@ -62,10 +62,6 @@ upgrade-interactive:
 release:
     bun run cz release-bumped-targets
 
-# Upsert every org ruleset in .github/rulesets/ to GitHub (source of truth). Needs gh authenticated with org-admin scope.
-apply-org-ruleset:
-    bun run cz apply-org-rulesets
-
 # Push the current branch and open a draft PR (-r/--ready marks it ready and enables auto-merge).
 push *flags:
     bun run cz push-branch {{ flags }}

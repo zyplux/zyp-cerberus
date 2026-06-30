@@ -1,3 +1,5 @@
+from pathlib import Path
+
 import pytest
 from cerberus import config, context
 from cerberus.checks import release_bumps_check
@@ -17,12 +19,12 @@ VERSION_FILE = "packages/widget/package.json"
 
 @pytest.fixture
 def repo():
-    return Repo("demo", "zyplux", "main", "public")
+    return Repo("demo")
 
 
 @pytest.fixture
 def ctx():
-    return context.github_context(config.load())
+    return context.local_context(config.load(), Path("."))
 
 
 def _wire(monkeypatch, ctx, *, version, tags, changed, manifest=MANIFEST):
