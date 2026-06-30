@@ -63,7 +63,7 @@ const gh = {
     list: async (flags: ReleaseListFlags = {}) => Bun.$`gh ${['release', 'list', ...toArgs(flags)]}`,
   },
   repo: {
-    view: async (flags: RepoViewFlags = {}) => Bun.$`gh ${['repo', 'view', ...toArgs(flags)]}`,
+    view: async (flags: RepoViewFlags = {}) => Bun.$`gh ${['repo', 'view', ...toArgs(flags)]}`.quiet(),
   },
   run: {
     list: async (flags: RunListFlags = {}) => Bun.$`gh ${['run', 'list', ...toArgs(flags)]}`,
