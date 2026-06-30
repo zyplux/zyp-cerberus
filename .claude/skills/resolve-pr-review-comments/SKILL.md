@@ -3,8 +3,7 @@ name: resolve-pr-review-comments
 description: >
   Loop through GitHub Copilot review comments on a pull request until the
   `copilot-review-complete` gate reads clean: read each unresolved Copilot thread,
-  decide whether it is right, flip the PR to draft with `just draft` before editing
-  when any comment is valid, fix the code where you agree and reply with reasoning
+  decide whether it is right, fix the code where you agree and reply with reasoning
   where you don't, resolve every thread, run `just pr` to refresh the gate (it
   pushes fixes to re-trigger a fresh review, or refreshes in place when nothing
   changed), wait for its verdict, and repeat. Auto-merge is enabled by the push and
@@ -13,7 +12,7 @@ description: >
   Drives the GitHub API via `gh`.
 metadata:
   kind: prompt
-  version: "0.5.0"
+  version: "0.6.0"
   user-invocable: "true"
   argument-hint: "[<pr-number-or-url>]"
 ---
@@ -45,19 +44,18 @@ flowchart TD
     review -->|no comments| ok(["copilot-review-complete = success"]):::state
     review -->|comments left| fail(["copilot-review-complete = failure"]):::state
     fail -->|"merge blocked — you must triage"| valid{"Any valid comment<br/>needing a code change?"}:::agent
-    valid -->|yes| draft["Run `just draft` — flip the PR to draft"]:::agent
-    draft --> fix["Fix the code, post replies, resolve all threads"]:::agent
-    fix --> prFix["Run `just pr` — push fixes, then flip to ready"]:::agent
+    valid -->|yes| fix["Fix the code, post replies, resolve all threads"]:::agent
+    fix --> prFix["Run `just pr` — flips to draft, pushes fixes, then flips to ready"]:::agent
     prFix -->|"new head re-triggers Copilot"| review
     valid -->|"no — all false positives"| reply["Reply to each, resolve all threads"]:::agent
-    reply --> prRefresh["Run `just pr` — flip draft→ready, nothing to push"]:::agent
+    reply --> prRefresh["Run `just pr` — flips draft→ready, nothing to push"]:::agent
     prRefresh -->|"re-runs the gate watcher"| recount("Org-gate watcher re-counts<br/>resolved threads → 0"):::auto
     recount --> ok
     ok -->|"ci green + threads resolved"| merge("Auto-merge merges the PR"):::auto
 
-    classDef auto fill:#e3f2fd,stroke:#1565c0,color:#0d47a1
-    classDef agent fill:#e8f5e9,stroke:#2e7d32,color:#1b5e20
-    classDef state fill:#eceff1,stroke:#546e7a,color:#263238
+    classDef auto stroke:#268bd2,color:#268bd2,stroke-width:2px
+    classDef agent stroke:#859900,color:#859900,stroke-width:2px
+    classDef state stroke:#657b83,color:#657b83,stroke-width:2px
 ```
 
 This skill walks that flow: resolve the current Copilot threads, run `just pr` to
@@ -123,15 +121,6 @@ Act on real bugs, correctness or security risks, clearer idiomatic forms, and
 genuine standards violations; disagree with false positives, style contrary to the
 repo's conventions, or out-of-scope suggestions.
 
-**If your triage concludes at least one comment is valid and needs a code change,
-flip the PR to draft with `just draft` *before* you edit any code or resolve any
-thread.** Drafting up front means every fix lands while the PR is already a draft,
-so the later `just pr` only has to push and flip back to ready — and that single
-ready transition is what reliably re-triggers Copilot on the new commits. Flipping
-inside `just pr` (draft→push→ready in one shot) has proven racy; pre-drafting here
-removes the race. Skip `just draft` only when every comment is a false positive and
-no code will change — there `just pr` handles the refresh flip itself.
-
 Reply on each thread (not a new top-level comment). Where you **agree**, edit the
 code in the working tree (the better long-term design, not the smallest diff), then
 reply that it's addressed (e.g. "Done — extracted the guard into `ensure_loaded`.").
@@ -153,13 +142,13 @@ mutation($threadId:ID!){ resolveReviewThread(input:{threadId:$threadId}){ thread
 Run `just pr`. It pushes the current head, flips back to ready, and enables
 auto-merge (which the gate holds until the head is clean):
 
-- **Changed code** (you fixed valid comments) → you already drafted the PR in Step 3,
-  so `just pr` simply pushes the fixes onto the draft and flips to ready; that ready
-  transition re-triggers a fresh Copilot review of the new commits.
-- **No code change** (every thread was a disagreement) → you skipped `just draft`, so
-  the PR is still ready; `just pr` does its own draft→ready flip to re-run the watcher
-  and re-count the now-resolved threads. It permits this only because Copilot already
-  reviewed HEAD; it still refuses if you pre-pushed unreviewed commits.
+- **Changed code** (you fixed valid comments) → `just pr` flips the PR to draft, pushes
+  the fixes, and flips back to ready; that ready transition re-triggers a fresh Copilot
+  review of the new commits.
+- **No code change** (every thread was a disagreement) → there's nothing to push, so
+  `just pr` does its draft→ready flip to re-run the watcher and re-count the
+  now-resolved threads. It permits this only because Copilot already reviewed HEAD; it
+  still refuses if you pre-pushed unreviewed commits.
 
 Then wait for `copilot-review-complete` on the current head to settle:
 
