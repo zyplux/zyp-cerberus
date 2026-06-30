@@ -32,7 +32,7 @@ New pushes invalidate both ci and copilot_code_review.
 
 ### skill
 
-- /resolve-pr-review-comments [skill](/home/srg/.claude/skills/resolve-pr-review-comments/SKILL.md) runs in a loop: read each unresolved Copilot thread, fix the valid ones and reply to the false positives, resolve all threads, `just pr` to refresh the gate — repeat until `copilot-review-complete` is `success`.
+- the `/resolve-pr-review-comments` skill runs in a loop: read each unresolved Copilot thread, fix the valid ones and reply to the false positives, resolve all threads, `just pr` to refresh the gate — repeat until `copilot-review-complete` is `success`.
 
 ## Observations
 

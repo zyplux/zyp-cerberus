@@ -6,6 +6,7 @@ from typing import TYPE_CHECKING
 import pytest
 from cerberus.checks.rumdl_config_check import CANONICAL as RUMDL_CANONICAL
 from cerberus.cli import app
+from cerberus.config import repo_disabled_checks
 from typer.testing import CliRunner
 
 if TYPE_CHECKING:
@@ -157,6 +158,12 @@ def test_lint_disable_ignores_unknown_check(tmp_path: Path) -> None:
     (tmp_path / "pyproject.toml").write_text('[tool.cerberus]\ndisable = ["no-such-check"]\n')
     result = runner.invoke(app, [str(tmp_path), "--check", "codeowners"])
     assert result.exit_code == 0, result.output
+
+
+def test_repo_disabled_checks_rejects_non_list_disable(tmp_path: Path) -> None:
+    (tmp_path / "pyproject.toml").write_text('[tool.cerberus]\ndisable = "codeowners"\n')
+    with pytest.raises(TypeError, match="list of check id strings"):
+        repo_disabled_checks(tmp_path)
 
 
 @requires_just

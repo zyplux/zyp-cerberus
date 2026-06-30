@@ -57,4 +57,8 @@ def repo_disabled_checks(root: Path) -> frozenset[str]:
     if not pyproject.is_file():
         return frozenset()
     tool = tomllib.loads(pyproject.read_text()).get("tool", {}).get("cerberus", {})
-    return frozenset(tool.get("disable", []))
+    disabled = tool.get("disable", [])
+    if not isinstance(disabled, list) or not all(isinstance(check, str) for check in disabled):
+        msg = "[tool.cerberus] disable must be a list of check id strings"
+        raise TypeError(msg)
+    return frozenset(disabled)
