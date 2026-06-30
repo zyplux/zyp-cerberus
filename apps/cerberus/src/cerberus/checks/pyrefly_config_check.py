@@ -103,6 +103,9 @@ def _check_coverage(config: dict[str, Any], production_roots: set[str], test_roo
 
 def _check_sub_configs(config: dict[str, Any], res: CheckResult) -> None:
     for sub in _as_list(config.get("sub-config")):
+        if not isinstance(sub, dict):
+            res.fail(f"{PATH} sub-config entries must be tables; found {sub!r}")
+            continue
         errors = sub.get("errors") or {}
         if _weakens(errors):
             glob = sub.get("matches")
