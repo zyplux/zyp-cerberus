@@ -1,15 +1,17 @@
 from __future__ import annotations
 
 import os
-from collections.abc import Sequence
 from pathlib import Path
-from typing import Protocol
+from typing import TYPE_CHECKING, Protocol
 
 from cerberus import proc
 from cerberus.model import Repo
 
+if TYPE_CHECKING:
+    from collections.abc import Sequence
 
-class GitHistoryUnavailable(RuntimeError):
+
+class GitHistoryUnavailableError(RuntimeError):
     """Git history (tags, ref diffs) could not be read — git failed or is absent."""
 
 
@@ -17,12 +19,12 @@ class RepoSource(Protocol):
     """Where a check reads a repo's facts from: a local checkout."""
 
     def repos(self) -> list[Repo]: ...
-    def file(self, repo: Repo, path: str) -> str | None: ...
-    def list_paths(self, repo: Repo) -> list[str]: ...
-    def tags(self, repo: Repo, prefix: str) -> list[str]: ...
-    def changed_paths(self, repo: Repo, ref: str, surface: Sequence[str]) -> list[str]: ...
-    def write_file(self, repo: Repo, path: str, content: str) -> None: ...
-    def workflows(self, repo: Repo) -> dict[str, str]: ...
+    def file(self, _repo: Repo, path: str) -> str | None: ...
+    def list_paths(self, _repo: Repo) -> list[str]: ...
+    def tags(self, _repo: Repo, prefix: str) -> list[str]: ...
+    def changed_paths(self, _repo: Repo, ref: str, surface: Sequence[str]) -> list[str]: ...
+    def write_file(self, _repo: Repo, path: str, content: str) -> None: ...
+    def workflows(self, _repo: Repo) -> dict[str, str]: ...
 
 
 class LocalSource:
@@ -36,13 +38,13 @@ class LocalSource:
         name = slug.split("/", 1)[1] if "/" in slug else self.root.resolve().name
         return [Repo(name=name)]
 
-    def file(self, repo: Repo, path: str) -> str | None:
+    def file(self, _repo: Repo, path: str) -> str | None:
         try:
             return (self.root / path).read_text()
         except OSError:
             return None
 
-    def list_paths(self, repo: Repo) -> list[str]:
+    def list_paths(self, _repo: Repo) -> list[str]:
         tracked = self._git_tracked()
         return tracked if tracked is not None else self._walk_files()
 
@@ -60,15 +62,15 @@ class LocalSource:
         try:
             result = proc.run(["git", "-C", str(self.root), *args])
         except proc.ToolNotFoundError as exc:
-            raise GitHistoryUnavailable(str(exc)) from exc
+            raise GitHistoryUnavailableError(str(exc)) from exc
         if result.returncode != 0:
-            raise GitHistoryUnavailable(result.stderr.strip() or f"git {args[0]} failed")
+            raise GitHistoryUnavailableError(result.stderr.strip() or f"git {args[0]} failed")
         return result.stdout
 
-    def tags(self, repo: Repo, prefix: str) -> list[str]:
+    def tags(self, _repo: Repo, prefix: str) -> list[str]:
         return [tag for tag in self._git(["tag", "--list", f"{prefix}*"]).splitlines() if tag]
 
-    def changed_paths(self, repo: Repo, ref: str, surface: Sequence[str]) -> list[str]:
+    def changed_paths(self, _repo: Repo, ref: str, surface: Sequence[str]) -> list[str]:
         diff = self._git(["diff", "--name-only", ref, "HEAD", "--", *surface])
         return [path for path in diff.splitlines() if path]
 
@@ -81,16 +83,16 @@ class LocalSource:
             out.extend((base / name).relative_to(self.root).as_posix() for name in filenames)
         return sorted(out)
 
-    def write_file(self, repo: Repo, path: str, content: str) -> None:
+    def write_file(self, _repo: Repo, path: str, content: str) -> None:
         (self.root / path).write_text(content)
 
-    def workflows(self, repo: Repo) -> dict[str, str]:
+    def workflows(self, _repo: Repo) -> dict[str, str]:
         workflow_dir = self.root / ".github" / "workflows"
         if not workflow_dir.is_dir():
             return {}
         out: dict[str, str] = {}
         for entry in sorted(workflow_dir.iterdir()):
-            if entry.is_file() and entry.suffix in (".yml", ".yaml"):
+            if entry.is_file() and entry.suffix in {".yml", ".yaml"}:
                 try:
                     out[entry.name] = entry.read_text()
                 except OSError:

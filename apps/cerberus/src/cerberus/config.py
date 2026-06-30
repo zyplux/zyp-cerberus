@@ -3,8 +3,10 @@ from __future__ import annotations
 import tomllib
 from dataclasses import dataclass
 from importlib import resources
-from pathlib import Path
-from typing import Any
+from typing import TYPE_CHECKING, Any
+
+if TYPE_CHECKING:
+    from pathlib import Path
 
 
 @dataclass(frozen=True)

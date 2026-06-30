@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 from pathlib import Path
-from typing import Annotated, Any, override
+from typing import TYPE_CHECKING, Annotated, Any, override
 
 import typer
 from rich.console import Console
@@ -9,8 +9,10 @@ from rich.table import Table
 from typer.core import TyperGroup
 
 from cerberus import __version__, checks, config, context
-from cerberus.context import Context
 from cerberus.model import CheckResult, Repo, Scope, Status
+
+if TYPE_CHECKING:
+    from cerberus.context import Context
 
 
 class LinterGroup(TyperGroup):
@@ -26,7 +28,7 @@ class LinterGroup(TyperGroup):
     def parse_args(self, ctx: Any, args: list[str]) -> list[str]:
         if not args:
             args = [self.default_command]
-        elif args[0] not in self.commands and args[0] not in ("--help", "-h"):
+        elif args[0] not in self.commands and args[0] not in {"--help", "-h"}:
             args = [self.default_command, *args]
         return super().parse_args(ctx, args)
 
@@ -38,8 +40,8 @@ app = typer.Typer(
     help="Lint a repo checkout against org invariants.",
 )
 
-console = Console()
-err = Console(stderr=True)
+console = Console(highlight=False)
+err = Console(stderr=True, highlight=False)
 
 _GLYPH = {
     Status.PASS: "[green]✓[/green]",
@@ -52,13 +54,18 @@ ConfigOpt = Annotated[Path | None, typer.Option("--config", help="Path to a cerb
 CheckOpt = Annotated[list[str] | None, typer.Option("--check", help="Limit to named check(s).")]
 
 
+class _UnknownCheckError(typer.BadParameter):
+    def __init__(self, check_id: str) -> None:
+        super().__init__(f"unknown check `{check_id}` (known: {', '.join(checks.BY_ID)})")
+
+
 def _select_checks(only: list[str] | None) -> list[checks.Check]:
     if not only:
         return list(checks.ALL)
     selected = []
     for cid in only:
         if cid not in checks.BY_ID:
-            raise typer.BadParameter(f"unknown check `{cid}` (known: {', '.join(checks.BY_ID)})")
+            raise _UnknownCheckError(cid)
         selected.append(checks.BY_ID[cid])
     return selected
 
@@ -66,7 +73,7 @@ def _select_checks(only: list[str] | None) -> list[checks.Check]:
 def _run_check(check: checks.Check, repo: Repo, ctx: Context) -> CheckResult:
     try:
         return check.run(repo, ctx)
-    except Exception as exc:  # one check must not abort the whole run
+    except Exception as exc:  # noqa: BLE001 — isolation boundary: one check must never crash the run
         crashed = CheckResult(check.id, repo.name)
         crashed.error(f"check crashed: {exc}")
         return crashed
@@ -100,11 +107,10 @@ def list_checks() -> None:
 
 @app.command()
 def lint(
-    path: Annotated[
-        Path, typer.Argument(help="Repo checkout to lint (default: current directory).")
-    ] = Path("."),
+    path: Annotated[Path, typer.Argument(help="Repo checkout to lint (default: current directory).")] = Path(),
     config_path: ConfigOpt = None,
     check: CheckOpt = None,
+    *,
     fix: Annotated[bool, typer.Option("--fix", help="Auto-fix fixable problems in place.")] = False,
 ) -> None:
     """Lint a repository checkout against org invariants.

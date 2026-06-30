@@ -29,10 +29,7 @@ def _join_body(body: list[list[Any]] | None) -> str:
     """
     if not body:
         return ""
-    return "\n".join(
-        "".join(fragment if isinstance(fragment, str) else " " for fragment in line)
-        for line in body
-    )
+    return "\n".join("".join(fragment if isinstance(fragment, str) else " " for fragment in line) for line in body)
 
 
 def parse(content: str) -> Justfile:

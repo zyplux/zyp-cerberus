@@ -1,18 +1,21 @@
 from __future__ import annotations
 
 import shutil
-from pathlib import Path
+from typing import TYPE_CHECKING
 
 import pytest
 from cerberus.checks.rumdl_config_check import CANONICAL as RUMDL_CANONICAL
 from cerberus.cli import app
 from typer.testing import CliRunner
 
+if TYPE_CHECKING:
+    from pathlib import Path
+
 runner = CliRunner()
 
-requires_just = pytest.mark.skipif(
-    shutil.which("just") is None, reason="requires the `just` binary on PATH"
-)
+USAGE_ERROR_EXIT = 2  # click/typer exit code for an unknown option or bad usage
+
+requires_just = pytest.mark.skipif(shutil.which("just") is None, reason="requires the `just` binary on PATH")
 
 CONFORMING_JUSTFILE = """\
 alias i := install
@@ -59,9 +62,7 @@ JUSTFILE_WITH_TRAILING_WS = CONFORMING_JUSTFILE.replace(
     "check: install knip typecheck lint test   \n",
 )
 
-JUSTFILE_WITH_BARE_TOOL = CONFORMING_JUSTFILE.replace(
-    "lint:\n    echo lint\n", "lint:\n    rumdl check\n"
-)
+JUSTFILE_WITH_BARE_TOOL = CONFORMING_JUSTFILE.replace("lint:\n    echo lint\n", "lint:\n    rumdl check\n")
 
 CONFORMING_CI = """\
 on:
@@ -109,9 +110,7 @@ def test_lint_fails_when_ci_workflow_missing(tmp_path: Path) -> None:
 
 
 @requires_just
-def test_lint_defaults_to_current_directory(
-    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
-) -> None:
+def test_lint_defaults_to_current_directory(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
     _make_conforming_repo(tmp_path)
     monkeypatch.chdir(tmp_path)
     result = runner.invoke(app, [])
@@ -172,7 +171,7 @@ def test_lint_fails_on_bare_managed_tool(tmp_path: Path) -> None:
 def test_lint_has_no_json_flag(tmp_path: Path) -> None:
     _make_conforming_repo(tmp_path)
     result = runner.invoke(app, [str(tmp_path), "--json"])
-    assert result.exit_code == 2
+    assert result.exit_code == USAGE_ERROR_EXIT
     assert "json" in result.output.lower()
 
 
@@ -193,5 +192,5 @@ def test_list_command_lists_every_check() -> None:
 def test_lint_has_no_strict_flag(tmp_path: Path) -> None:
     _make_conforming_repo(tmp_path)
     result = runner.invoke(app, [str(tmp_path), "--strict"])
-    assert result.exit_code == 2
+    assert result.exit_code == USAGE_ERROR_EXIT
     assert "strict" in result.output.lower()

@@ -2,10 +2,12 @@ from __future__ import annotations
 
 import json
 import re
-from typing import Any
+from typing import TYPE_CHECKING, Any
 
-from cerberus.context import Context
 from cerberus.model import CheckResult, Repo, Scope
+
+if TYPE_CHECKING:
+    from cerberus.context import Context
 
 ID = "ts-project-references"
 SUMMARY = "TypeScript typecheck runs via project references (tsc -b), not a per-package fan-out"

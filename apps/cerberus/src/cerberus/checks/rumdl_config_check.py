@@ -1,10 +1,12 @@
 from __future__ import annotations
 
 import tomllib
-from typing import Any
+from typing import TYPE_CHECKING, Any
 
-from cerberus.context import Context
 from cerberus.model import CheckResult, Repo, Scope
+
+if TYPE_CHECKING:
+    from cerberus.context import Context
 
 ID = "rumdl-config"
 SUMMARY = "`.rumdl.toml` carries the org-canonical rule config (per-repo `exclude` allowed)"

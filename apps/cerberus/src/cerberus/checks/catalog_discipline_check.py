@@ -1,10 +1,12 @@
 from __future__ import annotations
 
 import json
-from typing import Any
+from typing import TYPE_CHECKING, Any
 
-from cerberus.context import Context
 from cerberus.model import CheckResult, Repo, Scope
+
+if TYPE_CHECKING:
+    from cerberus.context import Context
 
 ID = "catalog-discipline"
 SUMMARY = "every workspace package.json dependency pins via catalog: or workspace:"
@@ -28,9 +30,7 @@ def _manifest(content: str) -> dict[str, Any]:
 
 def _manifest_paths(paths: list[str]) -> list[str]:
     return [
-        path
-        for path in paths
-        if (path == "package.json" or path.endswith("/package.json")) and not _is_vendored(path)
+        path for path in paths if (path == "package.json" or path.endswith("/package.json")) and not _is_vendored(path)
     ]
 
 

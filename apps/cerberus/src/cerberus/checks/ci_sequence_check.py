@@ -1,11 +1,13 @@
 from __future__ import annotations
 
-from typing import Any
+from typing import TYPE_CHECKING, Any
 
 import yaml
 
-from cerberus.context import Context
 from cerberus.model import CheckResult, Repo, Scope
+
+if TYPE_CHECKING:
+    from cerberus.context import Context
 
 ID = "ci-sequence"
 SUMMARY = "ci.yml runs the canonical check sequence per stack, in the org container"
@@ -57,9 +59,7 @@ def _container_images(jobs: dict[str, Any]) -> list[str]:
     return images
 
 
-def _verify_sequence(
-    res: CheckResult, label: str, required: tuple[str, ...], commands: list[str]
-) -> None:
+def _verify_sequence(res: CheckResult, label: str, required: tuple[str, ...], commands: list[str]) -> None:
     missing = [step for step in required if not any(step in cmd for cmd in commands)]
     for step in missing:
         res.fail(f"{label} ci is missing `{step}`")
