@@ -74,7 +74,7 @@ push-ready: (push "--ready")
 draft:
     gh pr ready --undo
 
-# Remove dependencies and caches from both workspaces.
+# Remove deps and caches from all workspaces.
 clean:
     rm -rf node_modules packages/*/node_modules tests/*/node_modules
     rm -rf .venv .pytest_cache .ruff_cache .rumdl_cache .eslintcache .tsbuild
