@@ -49,14 +49,20 @@ test name='':
 # Full gate across both workspaces: install, knip, typecheck, lint, test — autofix throughout.
 check: install knip typecheck lint test
 
-# Upgrade JS dependencies across the workspace via ncu (catalog-aware). Forwards extra args (e.g. `just u -i`).
+# Upgrade deps across both workspaces: ncu bumps JS ranges; uv lock --upgrade + uv-bump raise Python >= floors. Forwards extra args to ncu.
 upgrade *args='':
     bun run upgrade -- {{ args }}
+    uv lock --upgrade
+    uvx uv-bump -v
+    uv sync --all-packages --all-groups
 
-# Interactively select and apply upgrades, then reinstall.
+# Interactively select JS upgrades, then non-interactively upgrade Python (uv has no interactive mode) and reinstall both.
 upgrade-interactive:
     bun run upgrade -- -i
     bun install
+    uv lock --upgrade
+    uvx uv-bump -v
+    uv sync --all-packages --all-groups
 
 # Publish any bumped release target (eslint-config → npm, cerberus → PyPI, ci image → GHCR) via GitHub releases.
 release:

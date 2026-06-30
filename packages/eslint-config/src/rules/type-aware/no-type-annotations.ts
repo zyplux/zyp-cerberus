@@ -11,12 +11,7 @@ export type NoTypeAnnotationsOptions = [{ narrowing: boolean; redundant: boolean
 type FunctionNode = TSESTree.ArrowFunctionExpression | TSESTree.FunctionDeclaration | TSESTree.FunctionExpression;
 
 type MessageId =
-  | 'narrowReturnType'
-  | 'narrowVarType'
-  | 'removeAnnotation'
-  | 'removeParamType'
-  | 'removeReturnType'
-  | 'removeVarType';
+  'narrowReturnType' | 'narrowVarType' | 'removeAnnotation' | 'removeParamType' | 'removeReturnType' | 'removeVarType';
 
 const ignoredKeys = new Set<string>(['loc', 'parent', 'range']);
 

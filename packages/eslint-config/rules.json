@@ -3,7 +3,7 @@
     "parserOptions": { "tsconfigRootDir": "<rootDir>", "projectService": true },
     "sourceType": "module",
     "ecmaVersion": 2026,
-    "parser": "typescript-eslint/parser@8.62.0",
+    "parser": "typescript-eslint/parser@8.62.1",
     "globals": {
       "AggregateError": false,
       "Array": false,
@@ -80,7 +80,7 @@
     "no-compare-neg-zero": [2],
     "no-cond-assign": [2, "except-parens"],
     "no-const-assign": [0],
-    "no-constant-binary-expression": [2],
+    "no-constant-binary-expression": [2, { "checkRelationalComparisons": false }],
     "no-constant-condition": [2, { "checkLoops": "allExceptWhileTrue" }],
     "no-control-regex": [2],
     "no-debugger": [2],
@@ -1122,7 +1122,7 @@
   },
   "plugins": [
     "@",
-    "@typescript-eslint:@typescript-eslint/eslint-plugin@8.62.0",
+    "@typescript-eslint:@typescript-eslint/eslint-plugin@8.62.1",
     "perfectionist:eslint-plugin-perfectionist@5.9.1",
     "unicorn:eslint-plugin-unicorn@69.0.0",
     "@zyplux:@zyplux/eslint-config@0.6.1"
