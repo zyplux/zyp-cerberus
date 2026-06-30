@@ -31,7 +31,7 @@ const shortSha = (sha: string) => sha.slice(0, SHORT_SHA_LENGTH);
 const readPrField = async (json: string, jq: string) => readTrimmed($.gh.pr.view({ jq, json }));
 
 const readRemoteHead = async (branch: string) => {
-  const refLine = await readTrimmed($.git.lsRemote('origin', branch));
+  const refLine = await readTrimmed($.git.lsRemote('origin', `refs/heads/${branch}`));
   return refLine.split(/\s+/, 1)[0] ?? '';
 };
 

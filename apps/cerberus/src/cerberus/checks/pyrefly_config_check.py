@@ -106,8 +106,8 @@ def _check_sub_configs(config: dict[str, Any], res: CheckResult) -> None:
         if not isinstance(sub, dict):
             res.fail(f"{PATH} sub-config entries must be tables; found {sub!r}")
             continue
-        errors = sub.get("errors") or {}
-        if _weakens(errors):
+        errors = sub.get("errors")
+        if isinstance(errors, dict) and _weakens(errors):
             glob = sub.get("matches")
             weakened = sorted(key for key, value in errors.items() if value is False)
             res.fail(f"sub-config `{glob}` weakens strict; no relaxations allowed: {', '.join(weakened)}")
