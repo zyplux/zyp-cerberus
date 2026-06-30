@@ -2,9 +2,3 @@ preset = "strict"
 
 project-includes = ["apps/cerberus/src", "tests/cerberus"]
 search-path = ["apps/cerberus/src"]
-
-[[sub-config]]
-matches = "tests/cerberus/**"
-
-[sub-config.errors]
-implicit-any = false

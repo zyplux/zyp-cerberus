@@ -13,6 +13,7 @@ from cerberus.checks import (
     justfile_check,
     line_length_check,
     pyrefly_config_check,
+    ruff_config_check,
     rumdl_config_check,
     ts_project_references_check,
     vitest_runner_check,
@@ -286,11 +287,11 @@ def test_rumdl_missing_fails(monkeypatch: pytest.MonkeyPatch, repo: Repo, ctx: c
 _PYREFLY_STRICT = (
     'preset = "strict"\n\n'
     'project-includes = ["apps/cerberus/src", "tests/cerberus"]\n'
-    'search-path = ["apps/cerberus/src"]\n\n'
-    "[[sub-config]]\n"
-    'matches = "tests/cerberus/**"\n\n'
-    "[sub-config.errors]\n"
-    "implicit-any = false\n"
+    'search-path = ["apps/cerberus/src"]\n'
+)
+
+_PYREFLY_TESTS_RELAXED = (
+    _PYREFLY_STRICT + '\n[[sub-config]]\nmatches = "tests/cerberus/**"\n\n[sub-config.errors]\nimplicit-any = false\n'
 )
 
 _PY_PATHS = ["apps/cerberus/src/cerberus/cli.py", "tests/cerberus/test_cli.py"]
@@ -355,19 +356,18 @@ def test_pyrefly_uncovered_production_fails(monkeypatch: pytest.MonkeyPatch, rep
 
 
 def test_pyrefly_weakened_production_fails(monkeypatch: pytest.MonkeyPatch, repo: Repo, ctx: context.Context) -> None:
-    config = _PYREFLY_STRICT.replace('"tests/cerberus/**"', '"apps/cerberus/src/**"')
+    config = _PYREFLY_TESTS_RELAXED.replace('"tests/cerberus/**"', '"apps/cerberus/src/**"')
     _pyrefly_ctx(monkeypatch, ctx, pyrefly=config)
     result = pyrefly_config_check.run(repo, ctx)
     assert result.status is Status.FAIL
     assert any("weakens strict" in f.message for f in result.problems)
 
 
-def test_pyrefly_tests_extra_override_fails(monkeypatch: pytest.MonkeyPatch, repo: Repo, ctx: context.Context) -> None:
-    config = _PYREFLY_STRICT + "unused-ignore = false\n"
-    _pyrefly_ctx(monkeypatch, ctx, pyrefly=config)
+def test_pyrefly_tests_relaxation_fails(monkeypatch: pytest.MonkeyPatch, repo: Repo, ctx: context.Context) -> None:
+    _pyrefly_ctx(monkeypatch, ctx, pyrefly=_PYREFLY_TESTS_RELAXED)
     result = pyrefly_config_check.run(repo, ctx)
     assert result.status is Status.FAIL
-    assert any("tests" in f.message for f in result.problems)
+    assert any("no relaxations allowed" in f.message for f in result.problems)
 
 
 def test_pyrefly_top_level_errors_weakening_fails(
@@ -769,3 +769,120 @@ def test_line_length_only_ruff_passes(monkeypatch: pytest.MonkeyPatch, repo: Rep
 def test_line_length_skips_without_configs(monkeypatch: pytest.MonkeyPatch, repo: Repo, ctx: context.Context) -> None:
     _line_length_ctx(monkeypatch, ctx, files={})
     assert line_length_check.run(repo, ctx).status is Status.SKIP
+
+
+_RUFF_CANONICAL = (
+    "line-length = 120\n"
+    'target-version = "py314"\n'
+    "preview = true\n\n"
+    "[lint]\n"
+    'select = ["ALL"]\n'
+    'ignore = ["COM812", "ISC001", "D", "DOC", "CPY001", "S404", "S603", "S607"]\n\n'
+    "[lint.per-file-ignores]\n"
+    '"**/tests/**" = ["ANN001", "INP001", "S101"]\n'
+)
+
+
+def _ruff_ctx(
+    monkeypatch: pytest.MonkeyPatch,
+    ctx: context.Context,
+    *,
+    ruff: str | None = _RUFF_CANONICAL,
+    pyproject: str | None = "[project]\n",
+) -> None:
+    files = {"pyproject.toml": pyproject, "ruff.toml": ruff}
+    monkeypatch.setattr(ctx, "file", lambda _r, p: files.get(p))
+
+
+def test_ruff_canonical_passes(monkeypatch: pytest.MonkeyPatch, repo: Repo, ctx: context.Context) -> None:
+    _ruff_ctx(monkeypatch, ctx)
+    assert ruff_config_check.run(repo, ctx).status is Status.PASS
+
+
+def test_ruff_fewer_ignores_passes(monkeypatch: pytest.MonkeyPatch, repo: Repo, ctx: context.Context) -> None:
+    ruff = _RUFF_CANONICAL.replace(', "S404", "S603", "S607"', "")
+    _ruff_ctx(monkeypatch, ctx, ruff=ruff)
+    assert ruff_config_check.run(repo, ctx).status is Status.PASS
+
+
+def test_ruff_no_per_file_ignores_passes(monkeypatch: pytest.MonkeyPatch, repo: Repo, ctx: context.Context) -> None:
+    ruff = _RUFF_CANONICAL.split("\n[lint.per-file-ignores]", maxsplit=1)[0] + "\n"
+    _ruff_ctx(monkeypatch, ctx, ruff=ruff)
+    assert ruff_config_check.run(repo, ctx).status is Status.PASS
+
+
+def test_ruff_subset_test_ignores_passes(monkeypatch: pytest.MonkeyPatch, repo: Repo, ctx: context.Context) -> None:
+    ruff = _RUFF_CANONICAL.replace('["ANN001", "INP001", "S101"]', '["S101"]')
+    _ruff_ctx(monkeypatch, ctx, ruff=ruff)
+    assert ruff_config_check.run(repo, ctx).status is Status.PASS
+
+
+def test_ruff_repo_specific_test_glob_passes(monkeypatch: pytest.MonkeyPatch, repo: Repo, ctx: context.Context) -> None:
+    ruff = _RUFF_CANONICAL.replace('"**/tests/**"', '"tests/**"')
+    _ruff_ctx(monkeypatch, ctx, ruff=ruff)
+    assert ruff_config_check.run(repo, ctx).status is Status.PASS
+
+
+def test_ruff_skips_non_python(monkeypatch: pytest.MonkeyPatch, repo: Repo, ctx: context.Context) -> None:
+    _ruff_ctx(monkeypatch, ctx, pyproject=None)
+    assert ruff_config_check.run(repo, ctx).status is Status.SKIP
+
+
+def test_ruff_missing_fails(monkeypatch: pytest.MonkeyPatch, repo: Repo, ctx: context.Context) -> None:
+    _ruff_ctx(monkeypatch, ctx, ruff=None)
+    assert ruff_config_check.run(repo, ctx).status is Status.FAIL
+
+
+def test_ruff_config_in_pyproject_fails(monkeypatch: pytest.MonkeyPatch, repo: Repo, ctx: context.Context) -> None:
+    _ruff_ctx(monkeypatch, ctx, pyproject="[tool.ruff]\nline-length = 120\n")
+    result = ruff_config_check.run(repo, ctx)
+    assert result.status is Status.FAIL
+    assert any("standalone" in f.message for f in result.problems)
+
+
+def test_ruff_invalid_toml_errors(monkeypatch: pytest.MonkeyPatch, repo: Repo, ctx: context.Context) -> None:
+    _ruff_ctx(monkeypatch, ctx, ruff="preview = [unterminated\n")
+    assert ruff_config_check.run(repo, ctx).status is Status.ERROR
+
+
+def test_ruff_preview_off_fails(monkeypatch: pytest.MonkeyPatch, repo: Repo, ctx: context.Context) -> None:
+    _ruff_ctx(monkeypatch, ctx, ruff=_RUFF_CANONICAL.replace("preview = true", "preview = false"))
+    result = ruff_config_check.run(repo, ctx)
+    assert result.status is Status.FAIL
+    assert any("preview" in f.message for f in result.problems)
+
+
+def test_ruff_preview_missing_fails(monkeypatch: pytest.MonkeyPatch, repo: Repo, ctx: context.Context) -> None:
+    _ruff_ctx(monkeypatch, ctx, ruff=_RUFF_CANONICAL.replace("preview = true\n", ""))
+    result = ruff_config_check.run(repo, ctx)
+    assert result.status is Status.FAIL
+    assert any("preview" in f.message for f in result.problems)
+
+
+def test_ruff_select_not_all_fails(monkeypatch: pytest.MonkeyPatch, repo: Repo, ctx: context.Context) -> None:
+    _ruff_ctx(monkeypatch, ctx, ruff=_RUFF_CANONICAL.replace('select = ["ALL"]', 'select = ["E", "F"]'))
+    result = ruff_config_check.run(repo, ctx)
+    assert result.status is Status.FAIL
+    assert any("ALL" in f.message for f in result.problems)
+
+
+def test_ruff_select_at_top_level_fails(monkeypatch: pytest.MonkeyPatch, repo: Repo, ctx: context.Context) -> None:
+    ruff = 'preview = true\nselect = ["ALL"]\n'
+    _ruff_ctx(monkeypatch, ctx, ruff=ruff)
+    result = ruff_config_check.run(repo, ctx)
+    assert result.status is Status.FAIL
+    assert any("ALL" in f.message for f in result.problems)
+
+
+def test_ruff_unsanctioned_ignore_fails(monkeypatch: pytest.MonkeyPatch, repo: Repo, ctx: context.Context) -> None:
+    _ruff_ctx(monkeypatch, ctx, ruff=_RUFF_CANONICAL.replace('"S607"]', '"S607", "E501"]'))
+    result = ruff_config_check.run(repo, ctx)
+    assert result.status is Status.FAIL
+    assert any("E501" in f.message for f in result.problems)
+
+
+def test_ruff_unsanctioned_test_ignore_fails(monkeypatch: pytest.MonkeyPatch, repo: Repo, ctx: context.Context) -> None:
+    _ruff_ctx(monkeypatch, ctx, ruff=_RUFF_CANONICAL.replace('"S101"]', '"S101", "ANN401"]'))
+    result = ruff_config_check.run(repo, ctx)
+    assert result.status is Status.FAIL
+    assert any("ANN401" in f.message for f in result.problems)

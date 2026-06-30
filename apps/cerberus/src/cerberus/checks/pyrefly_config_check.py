@@ -10,13 +10,12 @@ if TYPE_CHECKING:
     from cerberus.context import Context
 
 ID = "pyrefly-config"
-SUMMARY = "production code type-checks under strict pyrefly; tests relax only `implicit-any`"
+SUMMARY = "all code, tests included, type-checks under strict pyrefly with no relaxations"
 SCOPE = Scope.CONTENT
 
 PYPROJECT = "pyproject.toml"
 PATH = "pyrefly.toml"
 REQUIRED_PRESET = "strict"
-TEST_OVERRIDE = {"implicit-any": False}
 
 _PRODUCTION_TOPS = ("apps", "packages")
 _TESTS_TOP = "tests"
@@ -72,10 +71,6 @@ def _python_roots(paths: list[str]) -> tuple[set[str], set[str]]:
     return production, tests
 
 
-def _governs(glob: str, root: str) -> bool:
-    return PurePosixPath(f"{root}/_").full_match(glob)
-
-
 def _covered(root: str, includes: list[str]) -> bool:
     target = PurePosixPath(root)
     return any(target == PurePosixPath(e) or PurePosixPath(e) in target.parents for e in includes)
@@ -106,24 +101,13 @@ def _check_coverage(config: dict[str, Any], production_roots: set[str], test_roo
         res.fail(f"{PATH} project-includes does not cover: {', '.join(uncovered)}")
 
 
-def _check_sub_configs(
-    config: dict[str, Any], production_roots: set[str], test_roots: set[str], res: CheckResult
-) -> None:
-    sub_configs = _as_list(config.get("sub-config"))
-    for sub in sub_configs:
-        glob = sub.get("matches")
+def _check_sub_configs(config: dict[str, Any], res: CheckResult) -> None:
+    for sub in _as_list(config.get("sub-config")):
         errors = sub.get("errors") or {}
-        if glob and _weakens(errors) and any(_governs(glob, r) for r in production_roots):
-            res.fail(f"sub-config `{glob}` weakens strict on production code")
-
-    for test_root in sorted(test_roots):
-        override: dict[str, Any] = {}
-        for sub in sub_configs:
-            if (glob := sub.get("matches")) and _governs(glob, test_root):
-                override.update(sub.get("errors") or {})
-        extra = {k: v for k, v in override.items() if (k, v) not in TEST_OVERRIDE.items()}
-        if extra:
-            res.fail(f"tests `{test_root}` may relax only `implicit-any`; also found {extra}")
+        if _weakens(errors):
+            glob = sub.get("matches")
+            weakened = sorted(key for key, value in errors.items() if value is False)
+            res.fail(f"sub-config `{glob}` weakens strict; no relaxations allowed: {', '.join(weakened)}")
 
 
 def _load_strict_config(repo: Repo, ctx: Context, res: CheckResult) -> dict[str, Any] | None:
@@ -168,8 +152,8 @@ def run(repo: Repo, ctx: Context) -> CheckResult:
 
     _check_top_level_errors(config, res)
     _check_coverage(config, production_roots, test_roots, res)
-    _check_sub_configs(config, production_roots, test_roots, res)
+    _check_sub_configs(config, res)
 
     if not res.problems:
-        res.ok(f"production strict, tests relax only `implicit-any` ({PATH})")
+        res.ok(f"all code strict, no relaxations ({PATH})")
     return res
