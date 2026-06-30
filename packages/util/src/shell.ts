@@ -52,10 +52,10 @@ const gh = {
   pr: {
     create: async (flags: PrCreateFlags) => Bun.$`gh ${['pr', 'create', ...toArgs(flags)]}`,
     disableAutoMerge: async () => Bun.$`gh ${['pr', 'merge', '--disable-auto']}`.nothrow().quiet(),
-    list: async (flags: PrListFlags = {}) => Bun.$`gh ${['pr', 'list', ...toArgs(flags)]}`,
+    list: async (flags: PrListFlags = {}) => Bun.$`gh ${['pr', 'list', ...toArgs(flags)]}`.quiet(),
     merge: async (flags: PrMergeFlags = {}) => Bun.$`gh ${['pr', 'merge', ...toArgs(flags)]}`,
     ready: async (flags: PrReadyFlags = {}) => Bun.$`gh ${['pr', 'ready', ...toArgs(flags)]}`,
-    view: async (flags: PrViewFlags = {}) => Bun.$`gh ${['pr', 'view', ...toArgs(flags)]}`,
+    view: async (flags: PrViewFlags = {}) => Bun.$`gh ${['pr', 'view', ...toArgs(flags)]}`.quiet(),
   },
   release: {
     create: async (tag: string, flags: ReleaseCreateFlags = {}) =>
@@ -85,7 +85,8 @@ const git = {
   pull: async (flags: PullFlags = {}) => Bun.$`git ${['pull', ...toArgs(flags)]}`,
   push: async (remote: string, branch: string, flags: PushFlags = {}) =>
     Bun.$`git ${['push', ...toArgs(flags), remote, branch]}`,
-  revParse: async (rev: string, flags: RevParseFlags = {}) => Bun.$`git ${['rev-parse', ...toArgs(flags), rev]}`,
+  revParse: async (rev: string, flags: RevParseFlags = {}) =>
+    Bun.$`git ${['rev-parse', ...toArgs(flags), rev]}`.quiet(),
   showToplevel: async (cwd: string = process.cwd()) => Bun.$`git ${['rev-parse', '--show-toplevel']}`.cwd(cwd).quiet(),
   status: async (flags: StatusFlags = {}) => Bun.$`git ${['status', ...toArgs(flags)]}`,
 };
