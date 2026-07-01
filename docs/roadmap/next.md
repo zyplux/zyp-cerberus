@@ -28,10 +28,6 @@ Todo:
    could be automated to either cz (maybe `just pr --watch`?) or Claude Code native /loop (if can be invoked via skill)
 7. use swimlanes diagram, define ownership lanes and split for them: agent, command, copilot, workflow
 
-## Fix root README.md
-
-- should describe each workspace member briefly instead
-
 ## Consider publishing org_gate_base as action
 
 - this should probably be a watcher action:
