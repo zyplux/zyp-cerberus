@@ -194,8 +194,8 @@ Once every thread is resolved, go to **Step 10**.
 *committed* work — an uncommitted fix is silently skipped, the head doesn't
 change, and the moment threads resolve, the already-armed auto-merge fires on
 that unchanged head, **merging the PR without your fix** while the thread reply
-claims it landed. Run `just c` to verify, then `git add` and `git commit` the
-touched files, and confirm before continuing:
+claims it landed. `git add` and `git commit` the touched files first, then run
+`just c` to verify, and confirm before continuing:
 
 ```bash
 git status --porcelain   # must be empty
