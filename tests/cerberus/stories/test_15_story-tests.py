@@ -26,7 +26,8 @@ DOC_PATH = "tests/stories/1_widget.md"
 PY_TEST_PATH = "tests/stories/test_1_widget.py"
 PY_TEST = "def test_1_1_1_shows_the_widget_name():\n    pass\n\n\ndef test_1_1_2_accepts_a_custom_color():\n    pass\n"
 
-TS_TEST_PATH = "tests/stories/1_widget.test.ts"
+TS_DOC_PATH = "tests/stories/1-widget.md"
+TS_TEST_PATH = "tests/stories/1-widget.test.ts"
 TS_TEST = "test('1.1.1 shows the widget name', () => {});\ntest('1.1.2 accepts a custom color', () => {});\n"
 
 _PY_PLAIN_PYPROJECT = '[project]\nname = "widget"\n'
@@ -41,7 +42,8 @@ _TS_BUN_WORKSPACE_WITH_TESTS_MEMBER = '{"workspaces": ["apps/*", "tests"]}'
 
 OK_MESSAGE = "every story criterion has a matching, title-matched test"
 NO_MATCHING_TEST_HEADER_MESSAGE = "tests/stories: story-doc ### header(s) with no matching test: 1.1.2"
-STALE_LINK_MESSAGE = "tests/stories/1_widget.md: story header links are stale; run with --fix"
+PY_STALE_LINK_MESSAGE = "tests/stories/1_widget.md: story header links are stale; run with --fix"
+TS_STALE_LINK_MESSAGE = "tests/stories/1-widget.md: story header links are stale; run with --fix"
 TITLE_DRIFT_MESSAGE = (
     "tests/stories: header/test title drift for 1.1.1 — header='shows the widget name' test='shows a different name'"
 )
@@ -177,8 +179,8 @@ def test_15_3_2_passes_a_typescript_workspace_member_with_colocated_story_tests(
     files = {
         "package.json": _TS_BUN_WORKSPACE_APPS,
         "apps/widget/package.json": _TS_BIN_PKG,
-        "apps/widget/tests/stories/1_widget.md": _linked("1_widget.test.ts"),
-        "apps/widget/tests/stories/1_widget.test.ts": TS_TEST,
+        "apps/widget/tests/stories/1-widget.md": _linked("1-widget.test.ts"),
+        "apps/widget/tests/stories/1-widget.test.ts": TS_TEST,
     }
     result = run_story_check(story_tests_ts_check.run, files)
     assert result.findings == [Finding(Status.PASS, OK_MESSAGE)]
@@ -201,8 +203,8 @@ def test_15_3_2_passes_a_typescript_workspace_member_with_colocated_story_tests(
             {
                 "package.json": _TS_BUN_WORKSPACE_APPS,
                 "apps/widget/package.json": _TS_BIN_PKG,
-                "tests/widget/stories/1_widget.md": _linked("1_widget.test.ts"),
-                "tests/widget/stories/1_widget.test.ts": TS_TEST,
+                "tests/widget/stories/1-widget.md": _linked("1-widget.test.ts"),
+                "tests/widget/stories/1-widget.test.ts": TS_TEST,
             },
         ),
     ],
@@ -216,7 +218,7 @@ def test_15_3_3_passes_a_workspace_member_whose_story_tests_are_torn_out_to_a_to
 
 
 @pytest.mark.parametrize(
-    ("check", "files"),
+    ("check", "files", "stale_link_message"),
     [
         (
             story_tests_py_check.run,
@@ -225,25 +227,27 @@ def test_15_3_3_passes_a_workspace_member_whose_story_tests_are_torn_out_to_a_to
                 DOC_PATH: DOC,
                 PY_TEST_PATH: "def test_1_1_1_shows_the_widget_name():\n    pass\n",
             },
+            PY_STALE_LINK_MESSAGE,
         ),
         (
             story_tests_ts_check.run,
             {
                 "package.json": _TS_PLAIN_PKG,
-                DOC_PATH: DOC,
+                TS_DOC_PATH: DOC,
                 TS_TEST_PATH: "test('1.1.1 shows the widget name', () => {});\n",
             },
+            TS_STALE_LINK_MESSAGE,
         ),
     ],
     ids=["python", "typescript"],
 )
 def test_15_4_1_flags_a_story_header_with_no_matching_test(
-    run_story_check: RunStoryCheck, check: RunFn, files: dict[str, str]
+    run_story_check: RunStoryCheck, check: RunFn, files: dict[str, str], stale_link_message: str
 ) -> None:
     result = run_story_check(check, files)
     assert result.findings == [
         Finding(Status.FAIL, NO_MATCHING_TEST_HEADER_MESSAGE),
-        Finding(Status.FAIL, STALE_LINK_MESSAGE),
+        Finding(Status.FAIL, stale_link_message),
     ]
 
 
@@ -256,12 +260,12 @@ def test_15_4_2_flags_a_test_with_no_matching_story_header(run_story_check: RunS
     result = run_story_check(story_tests_py_check.run, files)
     assert result.findings == [
         Finding(Status.FAIL, "tests/stories: story test(s) with no matching ### header: 1.1.2"),
-        Finding(Status.FAIL, STALE_LINK_MESSAGE),
+        Finding(Status.FAIL, PY_STALE_LINK_MESSAGE),
     ]
 
 
 @pytest.mark.parametrize(
-    ("check", "files"),
+    ("check", "files", "stale_link_message"),
     [
         (
             story_tests_py_check.run,
@@ -270,25 +274,27 @@ def test_15_4_2_flags_a_test_with_no_matching_story_header(run_story_check: RunS
                 DOC_PATH: DOC,
                 PY_TEST_PATH: PY_TEST.replace("shows_the_widget_name", "shows_a_different_name"),
             },
+            PY_STALE_LINK_MESSAGE,
         ),
         (
             story_tests_ts_check.run,
             {
                 "package.json": _TS_PLAIN_PKG,
-                DOC_PATH: DOC,
+                TS_DOC_PATH: DOC,
                 TS_TEST_PATH: TS_TEST.replace("shows the widget name", "shows a different name"),
             },
+            TS_STALE_LINK_MESSAGE,
         ),
     ],
     ids=["python", "typescript"],
 )
 def test_15_4_3_flags_a_title_that_has_drifted_between_the_header_and_its_test(
-    run_story_check: RunStoryCheck, check: RunFn, files: dict[str, str]
+    run_story_check: RunStoryCheck, check: RunFn, files: dict[str, str], stale_link_message: str
 ) -> None:
     result = run_story_check(check, files)
     assert result.findings == [
         Finding(Status.FAIL, TITLE_DRIFT_MESSAGE),
-        Finding(Status.FAIL, STALE_LINK_MESSAGE),
+        Finding(Status.FAIL, stale_link_message),
     ]
 
 
@@ -301,7 +307,7 @@ def test_15_4_4_flags_a_criterion_filed_under_the_wrong_section_doc(run_story_ch
     result = run_story_check(story_tests_py_check.run, files)
     assert result.findings == [
         Finding(Status.FAIL, "tests/stories/1_widget.md: story header(s) filed in the wrong section doc: 2.1.2"),
-        Finding(Status.FAIL, STALE_LINK_MESSAGE),
+        Finding(Status.FAIL, PY_STALE_LINK_MESSAGE),
     ]
 
 
@@ -312,7 +318,7 @@ def test_15_5_1_flags_a_stale_header_link(run_story_check: RunStoryCheck) -> Non
         PY_TEST_PATH: PY_TEST,
     }
     result = run_story_check(story_tests_py_check.run, files)
-    assert result.findings == [Finding(Status.FAIL, STALE_LINK_MESSAGE)]
+    assert result.findings == [Finding(Status.FAIL, PY_STALE_LINK_MESSAGE)]
 
 
 class StaleLinkCase(NamedTuple):
@@ -321,15 +327,28 @@ class StaleLinkCase(NamedTuple):
     test_name: str
     test_content: str
     linked_target: str
+    doc_name: str
     check: RunFn
 
 
 _STALE_LINK_CASES = [
     StaleLinkCase(
-        "pyproject.toml", _PY_PLAIN_PYPROJECT, "test_1_widget.py", PY_TEST, "test_1_widget.py", story_tests_py_check.run
+        "pyproject.toml",
+        _PY_PLAIN_PYPROJECT,
+        "test_1_widget.py",
+        PY_TEST,
+        "test_1_widget.py",
+        "1_widget.md",
+        story_tests_py_check.run,
     ),
     StaleLinkCase(
-        "package.json", _TS_PLAIN_PKG, "1_widget.test.ts", TS_TEST, "1_widget.test.ts", story_tests_ts_check.run
+        "package.json",
+        _TS_PLAIN_PKG,
+        "1-widget.test.ts",
+        TS_TEST,
+        "1-widget.test.ts",
+        "1-widget.md",
+        story_tests_ts_check.run,
     ),
 ]
 
@@ -339,7 +358,7 @@ def test_15_5_2_rewrites_a_stale_header_link_and_passes_on_the_next_run(tmp_path
     (tmp_path / case.manifest_name).write_text(case.manifest_content)
     stories = tmp_path / "tests" / "stories"
     stories.mkdir(parents=True)
-    doc_path = stories / "1_widget.md"
+    doc_path = stories / case.doc_name
     doc_path.write_text(DOC)
     (stories / case.test_name).write_text(case.test_content)
 
@@ -364,7 +383,7 @@ def test_15_6_1_recognizes_test_calls_written_with_chained_modifiers(run_story_c
         "it.concurrent('1.1.1 shows the widget name', async () => {});\n"
         "test.skip('1.1.2 accepts a custom color', () => {});\n"
     )
-    files = {"package.json": _TS_PLAIN_PKG, DOC_PATH: _linked("1_widget.test.ts"), TS_TEST_PATH: test_content}
+    files = {"package.json": _TS_PLAIN_PKG, TS_DOC_PATH: _linked("1-widget.test.ts"), TS_TEST_PATH: test_content}
     result = run_story_check(story_tests_ts_check.run, files)
     assert result.findings == [Finding(Status.PASS, OK_MESSAGE)]
 
@@ -376,8 +395,8 @@ def test_15_7_1_scopes_each_check_to_only_its_own_language_packages_in_a_mixed_r
         "package.json": _TS_BUN_WORKSPACE_APPS,
         "pyproject.toml": _PY_UV_WORKSPACE_SERVICES,
         "apps/widget/package.json": _TS_BIN_PKG,
-        "apps/widget/tests/stories/1_widget.md": _linked("1_widget.test.ts"),
-        "apps/widget/tests/stories/1_widget.test.ts": TS_TEST,
+        "apps/widget/tests/stories/1-widget.md": _linked("1-widget.test.ts"),
+        "apps/widget/tests/stories/1-widget.test.ts": TS_TEST,
         "services/gizmo/pyproject.toml": _PY_SCRIPTS_PYPROJECT,
     }
     ts_result = run_story_check(story_tests_ts_check.run, files)

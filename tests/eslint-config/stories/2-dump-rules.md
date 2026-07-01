@@ -1,4 +1,4 @@
-# 2. [Dumping the fully resolved eslint config to a committed rules snapshot](2_dump-rules.test.ts)
+# 2. [Dumping the fully resolved eslint config to a committed rules snapshot](2-dump-rules.test.ts)
 
 ## 2.1 keeping the committed snapshot in sync with the live resolved config
 

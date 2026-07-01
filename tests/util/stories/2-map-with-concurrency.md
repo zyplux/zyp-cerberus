@@ -1,4 +1,4 @@
-# 2. [Mapping over items with a fixed worker limit](2_map-with-concurrency.test.ts)
+# 2. [Mapping over items with a fixed worker limit](2-map-with-concurrency.test.ts)
 
 ## 2.1 mapping items concurrently while preserving output order
 

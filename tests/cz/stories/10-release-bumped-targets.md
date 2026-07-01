@@ -1,0 +1,33 @@
+# 10. [Cutting releases for every bumped target](10-release-bumped-targets.test.ts)
+
+## 10.1 validating preconditions
+
+### 10.1.1 refuses to run anywhere but main
+
+### 10.1.2 refuses to run with a dirty working tree
+
+### 10.1.3 refuses to run when local main is behind or ahead of origin/main
+
+## 10.2 selecting which targets to release
+
+### 10.2.1 skips a target whose version is already published
+
+### 10.2.2 skips a target that already has a github release
+
+### 10.2.3 rejects when every target ends up skipped
+
+## 10.3 publishing a pending target
+
+### 10.3.1 cuts a release, watches its workflow to success, and confirms registry visibility
+
+### 10.3.2 rejects when the publish workflow finishes unsuccessfully
+
+### 10.3.3 rejects when the publish workflow never starts
+
+### 10.3.4 rejects when the publish workflow never completes
+
+### 10.3.5 warns instead of failing when the registry never shows the new version
+
+### 10.3.6 treats an empty known-run list as no prior runs
+
+### 10.3.7 rejects when the workflow completes without reporting a conclusion

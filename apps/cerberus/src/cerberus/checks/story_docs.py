@@ -12,7 +12,10 @@ Story docs live at `<package>/tests/stories/*.md`, or — when tests are torn
 out to a top-level `tests/<package-basename>/` directory, as some repos do —
 at `tests/<package-basename>/stories/*.md`. Numbered docs (`# N. Title` /
 `## N.M Title` / `### N.M.K Title`) pair with same-numbered test files in the
-same directory.
+same directory: `test_N_slug.py` for Python (underscores — a hyphen isn't a
+valid identifier character), `N-slug.test.ts` for TypeScript (kebab-case, per
+`unicorn/filename-case`). Each language's doc filename follows its own test
+filename's separator.
 """
 
 from __future__ import annotations
@@ -31,10 +34,11 @@ if TYPE_CHECKING:
     from cerberus.model import CheckResult, Repo
 
 PY_TEST_NAME = re.compile(r"^test_(\d+)_[^/]+\.py$")
-TS_TEST_NAME = re.compile(r"^(\d+)_[^/]+\.(?:test|spec)\.tsx?$")
+TS_TEST_NAME = re.compile(r"^(\d+)-[^/]+\.(?:test|spec)\.tsx?$")
 
 _STORIES_PATH_PARTS = 2  # a stories-dir path is at least "<dir>/stories/<file>"
-_DOC_NAME = re.compile(r"^\d+_[^/]+\.md$")
+_DOC_NAME = re.compile(r"^\d+[_-][^/]+\.md$")  # `_` (Python docs) or `-` (TypeScript docs, kebab-case)
+_LEADING_NUMBER = re.compile(r"^\d+")
 _DOC_TITLE = re.compile(r"^# (\d+)\. (.+)$")
 _STORY_HEADER = re.compile(r"^## (\d+\.\d+) (.+)$")
 _CRITERION_HEADER = re.compile(r"^### (\d+(?:\.\d+)+) (.+)$")
@@ -298,7 +302,9 @@ def _check_title_drift(res: CheckResult, group: _Group, headers: dict[str, Heade
 
 def _check_own_section(res: CheckResult, group: _Group) -> None:
     for doc_path, content in sorted(group.docs.items()):
-        section = doc_path.rsplit("/", 1)[-1].split("_", 1)[0]
+        name = doc_path.rsplit("/", 1)[-1]
+        leading = _LEADING_NUMBER.match(name)
+        section = leading.group() if leading else name
         strays = sorted(story_id for story_id in parse_headers(content) if story_id.split(".")[0] != section)
         if strays:
             res.fail(f"{doc_path}: story header(s) filed in the wrong section doc: {', '.join(strays)}")

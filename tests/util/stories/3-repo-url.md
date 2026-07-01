@@ -1,4 +1,4 @@
-# 3. [Normalizing repo URLs to a canonical form](3_repo-url.test.ts)
+# 3. [Normalizing repo URLs to a canonical form](3-repo-url.test.ts)
 
 ## 3.1 normalizing many repo url shapes into a canonical https url
 

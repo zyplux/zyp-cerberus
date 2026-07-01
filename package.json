@@ -21,6 +21,7 @@
       "@typescript-eslint/rule-tester": "^8.62.1",
       "@typescript-eslint/type-utils": "^8.62.1",
       "@typescript-eslint/utils": "^8.62.1",
+      "@vitest/coverage-istanbul": "^4.1.9",
       "@vitest/eslint-plugin": "^1.6.20",
       "eslint": "^10.6.0",
       "eslint-config-prettier": "^10.1.8",
@@ -50,6 +51,7 @@
   },
   "devDependencies": {
     "@types/bun": "catalog:",
+    "@vitest/coverage-istanbul": "catalog:",
     "@zyplux/eslint-config": "workspace:*",
     "@zyplux/tsconfig": "workspace:*",
     "eslint": "catalog:",

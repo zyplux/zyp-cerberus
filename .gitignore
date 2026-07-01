@@ -4,6 +4,7 @@ dist/
 .tsbuild/
 *.tsbuildinfo
 .eslintcache
+coverage/
 
 # Python / uv
 .venv/

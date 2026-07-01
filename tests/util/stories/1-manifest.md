@@ -1,4 +1,4 @@
-# 1. [Discovering and reading package manifests for dependencies and repository info](1_manifest.test.ts)
+# 1. [Discovering and reading package manifests for dependencies and repository info](1-manifest.test.ts)
 
 ## 1.1 parsing package manifests into typed shapes
 

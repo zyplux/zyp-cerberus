@@ -1,0 +1,33 @@
+# 6. [Wrapping git and gh behind a typed shell harness](6-shell.test.ts)
+
+## 6.1 translating flag objects into CLI arguments
+
+### 6.1.1 renders a true boolean flag as a bare kebab-case switch
+
+### 6.1.2 omits a false boolean flag entirely
+
+### 6.1.3 renders a valued flag as a switch followed by its stringified value
+
+### 6.1.4 renders every own flag in a multi-flag object
+
+## 6.2 building git subcommands
+
+### 6.2.1 builds each git subcommand's argv from its arguments and flags
+
+## 6.3 building gh subcommands
+
+### 6.3.1 builds each gh subcommand's argv from its arguments and flags
+
+## 6.4 reading trimmed command output
+
+### 6.4.1 awaits a command and trims its text output
+
+## 6.5 invoking the shell function directly
+
+### 6.5.1 forwards a direct call to the underlying Bun.$ tagged template
+
+## 6.6 omitting optional flags falls back to defaults
+
+### 6.6.1 omits any flags when a git or gh subcommand is called without them
+
+### 6.6.2 defaults cwd to process.cwd() when git.showToplevel is called without it

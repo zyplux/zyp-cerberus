@@ -1,6 +1,9 @@
 import { loadReleaseTargets, type ReleaseTarget, resolveReleaseTag } from '@zyplux/cz/release-targets';
+import { $ } from '@zyplux/util/shell';
+import { mkdtemp, rm, writeFile } from 'node:fs/promises';
+import { tmpdir } from 'node:os';
 import path from 'node:path';
-import { beforeAll, describe, expect, it } from 'vitest';
+import { afterEach, beforeAll, beforeEach, describe, expect, it, vi } from 'vitest';
 
 const findTarget = (targets: ReleaseTarget[], label: string) => {
   const target = targets.find(candidate => candidate.label === label);
@@ -83,6 +86,56 @@ describe('release-targets', () => {
 
     it('2.3.3 rejects a tag whose version does not match the manifest', async () => {
       await expect(resolveReleaseTag('cerberus-v0.0.0-does-not-exist')).rejects.toThrow();
+    });
+  });
+
+  describe('2.4 reading a version whose regex does not match its source file', () => {
+    let dir: string;
+    const originalShowToplevel = $.git.showToplevel;
+
+    beforeEach(async () => {
+      dir = await mkdtemp(path.join(tmpdir(), 'cz-release-targets-'));
+      await writeFile(
+        path.join(dir, 'release-targets.toml'),
+        [
+          '[[target]]',
+          'kind = "npm"',
+          'label = "broken-target"',
+          'surface = []',
+          'tag_prefix = "broken-v"',
+          "version = { file = \"VERSION\", regex = '^nomatch$' }",
+        ].join('\n'),
+        'utf8',
+      );
+      await writeFile(path.join(dir, 'VERSION'), '1.2.3\n', 'utf8');
+      $.git.showToplevel = (async () => ({ text: () => dir })) as typeof $.git.showToplevel;
+    });
+
+    afterEach(async () => {
+      $.git.showToplevel = originalShowToplevel;
+      await rm(dir, { force: true, recursive: true });
+    });
+
+    it('2.4.1 rejects reading a version whose regex does not match the file', async () => {
+      const [brokenTarget] = await loadReleaseTargets();
+      if (brokenTarget === undefined) throw new Error('expected a target from the crafted manifest');
+
+      await expect(brokenTarget.readVersion()).rejects.toThrow('could not read version from VERSION');
+    });
+  });
+
+  describe('2.5 checking whether the ghcr image target is published', () => {
+    it('2.5.1 treats a failed registry auth handshake as not published', async () => {
+      vi.stubGlobal('fetch', async (input: string | URL) =>
+        String(input).includes('/token?') ? new Response(null, { status: 404 }) : new Response(null, { status: 200 }),
+      );
+      try {
+        const ci = findTarget(targets, 'ghcr.io/zyplux/ci');
+
+        await expect(ci.isPublished('9.9.9')).resolves.toBe(false);
+      } finally {
+        vi.unstubAllGlobals();
+      }
     });
   });
 });

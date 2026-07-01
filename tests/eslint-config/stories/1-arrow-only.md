@@ -1,4 +1,4 @@
-# 1. [Requiring arrow functions in place of function declarations and expressions](1_arrow-only.test.ts)
+# 1. [Requiring arrow functions in place of function declarations and expressions](1-arrow-only.test.ts)
 
 ## 1.1 banning ordinary function declarations and expressions
 

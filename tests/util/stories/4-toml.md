@@ -1,4 +1,4 @@
-# 4. [Parsing TOML into schema-validated values](4_toml.test.ts)
+# 4. [Parsing TOML into schema-validated values](4-toml.test.ts)
 
 ## 4.1 parsing toml text against a schema
 

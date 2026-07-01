@@ -1,4 +1,4 @@
-# 2. [Discovering and resolving release targets](2_release-targets.test.ts)
+# 2. [Discovering and resolving release targets](2-release-targets.test.ts)
 
 ## 2.1 loading release targets from the manifest
 
@@ -17,3 +17,11 @@
 ### 2.3.2 rejects a tag no target owns
 
 ### 2.3.3 rejects a tag whose version does not match the manifest
+
+## 2.4 reading a version whose regex does not match its source file
+
+### 2.4.1 rejects reading a version whose regex does not match the file
+
+## 2.5 checking whether the ghcr image target is published
+
+### 2.5.1 treats a failed registry auth handshake as not published

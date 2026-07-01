@@ -1,4 +1,4 @@
-# 3. [Configuring eslint through the public zyplux entry point](3_public-interface.test.ts)
+# 3. [Configuring eslint through the public zyplux entry point](3-public-interface.test.ts)
 
 ## 3.1 assembling the base flat config
 

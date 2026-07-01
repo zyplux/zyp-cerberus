@@ -1,8 +1,11 @@
 import type { PackageSystem } from '@zyplux/cz/deps-catalog';
 
 import { collectDepRepos, collectDepsNames, resolveSourceRepo } from '@zyplux/cz/deps-catalog';
+import { mkdir, mkdtemp, rm, writeFile } from 'node:fs/promises';
+import { tmpdir } from 'node:os';
+import path from 'node:path';
 import { fileURLToPath } from 'node:url';
-import { test as base, describe, expect, vi } from 'vitest';
+import { afterEach, test as base, beforeEach, describe, expect, vi } from 'vitest';
 
 type FetchRoute = (url: string) => Response;
 
@@ -18,6 +21,11 @@ const depsDevSourceRepo = (id: string) =>
 
 const reactViaDepsDev: FetchRoute = url =>
   url.includes('/versions/') ? depsDevSourceRepo('github.com/facebook/react') : depsDevDefaultVersion();
+
+const zodViaDepsDevLinks: FetchRoute = url =>
+  url.includes('/versions/')
+    ? Response.json({ links: [{ label: 'SOURCE_REPO', url: 'https://github.com/colinhacks/zod' }] })
+    : depsDevDefaultVersion();
 
 const reactViaNpmRegistry: FetchRoute = url => {
   if (url.startsWith('https://api.deps.dev/')) {
@@ -128,6 +136,10 @@ describe('1.2 resolving a dependency name to its source repository', () => {
   test('1.2.4 returns undefined when no source repo is found anywhere', async ({ resolveRepo }) => {
     expect(await resolveRepo(nothingAnywhere, 'npm', 'does-not-exist')).toBeUndefined();
   });
+
+  test('1.2.5 falls back to a deps dev links entry when there is no related project', async ({ resolveRepo }) => {
+    expect(await resolveRepo(zodViaDepsDevLinks, 'npm', 'zod')).toBe('https://github.com/colinhacks/zod');
+  });
 });
 
 describe('1.3 collecting the external repos a workspace depends on', () => {
@@ -153,5 +165,96 @@ describe('1.3 collecting the external repos a workspace depends on', () => {
         { name: 'pytest', system: 'pypi' },
       ]),
     );
+  });
+
+  test('1.3.4 defaults to the current working directory and no local repos when called without options', async () => {
+    vi.stubGlobal('fetch', (input: string | URL) => Promise.resolve(resolveFromCatalog(String(input))));
+    try {
+      const withDefaults = await collectDepRepos();
+
+      expect(withDefaults.repos).toEqual(
+        expect.arrayContaining(['https://github.com/astral-sh/ruff', 'https://github.com/dahlia/optique']),
+      );
+    } finally {
+      vi.unstubAllGlobals();
+    }
+  });
+
+  test('1.3.5 excludes extra local repos passed via options, ignoring ones that fail to normalize', async () => {
+    vi.stubGlobal('fetch', (input: string | URL) => Promise.resolve(resolveFromCatalog(String(input))));
+    try {
+      const withExtraRepo = await collectDepRepos({
+        dir: workspaceRoot,
+        localRepos: ['https://github.com/colinhacks/zod.git', ''],
+      });
+
+      expect(withExtraRepo.repos).not.toContain('https://github.com/colinhacks/zod');
+    } finally {
+      vi.unstubAllGlobals();
+    }
+  });
+});
+
+describe('1.4 skipping manifest files that fail to parse', () => {
+  let dir: string;
+  const originalBunDollar = Bun.$;
+
+  const stubGitTree = (listing: string) => {
+    Bun.$ = ((strings: TemplateStringsArray, ...values: unknown[]) => {
+      const argv = values[0] as string[];
+      const result =
+        argv[0] === 'rev-parse'
+          ? { exitCode: 0, text: () => 'true\n' }
+          : argv[0] === 'ls-files'
+            ? { text: () => listing }
+            : (() => {
+                throw new Error(`unexpected Bun.$ call: ${strings[0]?.trim()} ${argv.join(' ')}`);
+              })();
+      const chain = {
+        cwd: () => chain,
+        nothrow: () => chain,
+        quiet: () => chain,
+        then: (resolve: (value: typeof result) => void) => { resolve(result); },
+      };
+      return chain;
+    }) as unknown as typeof Bun.$;
+  };
+
+  beforeEach(async () => {
+    dir = await mkdtemp(path.join(tmpdir(), 'cz-deps-catalog-broken-'));
+    await writeFile(path.join(dir, 'package.json'), '{ "name": "should-not-parse", ', 'utf8');
+    await mkdir(path.join(dir, 'bad-toml'));
+    await writeFile(path.join(dir, 'bad-toml/pyproject.toml'), '[project\nname = "should-not-parse"\n', 'utf8');
+    await mkdir(path.join(dir, 'no-name'));
+    await writeFile(
+      path.join(dir, 'no-name/pyproject.toml'),
+      '[project.urls]\nSource = "https://github.com/noname/repo"\n',
+      'utf8',
+    );
+    await mkdir(path.join(dir, 'empty-name'));
+    await writeFile(
+      path.join(dir, 'empty-name/pyproject.toml'),
+      '[project]\nname = ""\n\n[project.urls]\nSource = "https://github.com/emptyname/repo"\n',
+      'utf8',
+    );
+    stubGitTree(
+      ['package.json', 'bad-toml/pyproject.toml', 'no-name/pyproject.toml', 'empty-name/pyproject.toml']
+        .map(relative => `${relative}\0`)
+        .join(''),
+    );
+  });
+
+  afterEach(async () => {
+    Bun.$ = originalBunDollar;
+    await rm(dir, { force: true, recursive: true });
+  });
+
+  test('1.4.1 skips package.json and pyproject.toml files that fail to parse, keeping the rest', async () => {
+    const scan = await collectDepsNames(dir);
+
+    expect([...scan.localRepos]).toEqual(
+      expect.arrayContaining(['https://github.com/noname/repo', 'https://github.com/emptyname/repo']),
+    );
+    expect(scan.localRepos.size).toBe(2);
   });
 });

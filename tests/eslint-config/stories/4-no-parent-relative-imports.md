@@ -1,4 +1,4 @@
-# 4. [Restricting parent-relative (../) imports](4_no-parent-relative-imports.test.ts)
+# 4. [Restricting parent-relative (../) imports](4-no-parent-relative-imports.test.ts)
 
 ## 4.1 flagging parent-relative import specifiers
 

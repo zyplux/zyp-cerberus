@@ -11,7 +11,11 @@ package = false
 members = ["apps/cerberus"]
 
 [tool.pytest.ini_options]
+addopts = "--cov=cerberus --cov-report=term-missing"
 testpaths = ["tests/cerberus"]
+
+[tool.coverage.report]
+fail_under = 90
 
 [tool.vulture]
 paths = ["apps/cerberus/src", "tests/cerberus"]

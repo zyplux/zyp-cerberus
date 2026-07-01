@@ -7,7 +7,7 @@ import { perfectionistConfig } from './configs/perfectionist';
 import { reactPresets, type RendererGlobs } from './configs/react';
 import { tanstackRoutes } from './configs/tanstack';
 import { typescript } from './configs/typescript';
-import { unicornConfig, unicornStoryTestFilenames } from './configs/unicorn';
+import { unicornConfig } from './configs/unicorn';
 import { vitestConfig } from './configs/vitest';
 import { zypluxRules } from './configs/zyplux';
 
@@ -70,7 +70,6 @@ const create = (options: ZypluxOptions = {}) => {
     ...reactPresets(renderers, reactVersion),
     perfectionistConfig,
     unicornConfig,
-    unicornStoryTestFilenames,
     ...(isTanstack ? [tanstackRoutes] : []),
     zypluxRules,
     vitestConfig,
