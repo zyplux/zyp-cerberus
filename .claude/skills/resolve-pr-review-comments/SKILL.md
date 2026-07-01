@@ -96,13 +96,16 @@ done
 always exists once the push triggers it; see Notes.)
 
 - **`pass`** → continue to **Step 4**.
-- **anything else** (`fail`, `skipping`, `cancel`) → **Step 11**: work out why
-  and fix it. `gh pr checks "$NUMBER" --json name,link -q '.[]|select(.name=="ci")|.link'`
-  opens the failing run; `just c` runs the same lint/type/test gate `ci` does
-  and is usually the fastest way to reproduce and fix the break. Then go to
-  **Step 10**.
+- **anything else** (`fail`, `skipping`, `cancel`) → **Step 11**, below.
 - Loop exhausted with no terminal bucket → stop and tell the user; `ci` may be
   stuck queued or the runner may be down.
+
+## Step 11 — fix the failing ci check
+
+`gh pr checks "$NUMBER" --json name,link -q '.[]|select(.name=="ci")|.link'`
+opens the failing run; `just c` runs the same lint/type/test gate `ci` does
+and is usually the fastest way to reproduce and fix the break. Then go to
+**Step 10**.
 
 ## Steps 4–5 — wait for the Copilot gate, then branch
 
