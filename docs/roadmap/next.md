@@ -48,6 +48,8 @@ Todo:
 
 - all tests should use fixture pattern like m-react-chatbot: arrang, act, assert, fixtures - so that tests could read like stories, and that should be enforced by cerberus per app/package type
 
+>Note: some ts stuff may be easier to check with eslint-config rules, maybe special rules for tests?
+
 ## eslint-config
 
 ### Generate docs from tests
