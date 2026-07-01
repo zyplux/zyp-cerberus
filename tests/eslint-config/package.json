@@ -6,6 +6,9 @@
   "scripts": {
     "test": "vitest run"
   },
+  "imports": {
+    "#merged-rule": "./merged-rule.ts"
+  },
   "devDependencies": {
     "@types/bun": "catalog:",
     "@zyplux/eslint-config": "workspace:*",

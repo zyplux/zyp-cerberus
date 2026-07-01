@@ -15,9 +15,5 @@ SCOPE = Scope.CONTENT
 
 def run(repo: Repo, ctx: Context) -> CheckResult:
     res = CheckResult(ID, repo.name)
-    if story_docs.has_bun_workspace(repo, ctx) and not story_docs.has_uv_workspace(repo, ctx):
-        res.skip("bun workspace monorepo present, no uv workspace; not applicable")
-        return res
-
     story_docs.run_story_check(repo, ctx, res, story_docs.PY)
     return res

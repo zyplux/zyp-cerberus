@@ -12,6 +12,7 @@ __pycache__/
 .pytest_cache/
 .ruff_cache/
 .rumdl_cache/
+.coverage
 
 reference_clones/
 

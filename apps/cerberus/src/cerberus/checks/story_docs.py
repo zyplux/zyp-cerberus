@@ -1,10 +1,18 @@
 """Shared machinery for the `story-tests-py`/`story-tests-ts` checks.
 
-Convention: any `.../stories/` directory holding numbered docs (`<n>_<slug>.md`,
-`# N. Title` / `## N.M Title` / `### N.M.K Title` headers) plus same-numbered test
-files in the same directory. A directory is claimed by whichever language's test
-files are present there; a doc-only directory (no test files yet) is unclaimed and
-evaluated by both checks until one gains tests.
+A "package" is a uv/bun workspace member, or the repo root when the language
+has no workspace (a single-project repo). A package needs user-story tests
+when it exposes a public interface — a CLI entry point, a published
+`exports`/`main` surface, or tests of its own already exist for it — and
+having none is a FAIL; not needing them is silently skipped. Docs already
+present are always validated for consistency, whether or not the package
+was judged to need them.
+
+Story docs live at `<package>/tests/stories/*.md`, or — when tests are torn
+out to a top-level `tests/<package-basename>/` directory, as some repos do —
+at `tests/<package-basename>/stories/*.md`. Numbered docs (`# N. Title` /
+`## N.M Title` / `### N.M.K Title`) pair with same-numbered test files in the
+same directory.
 """
 
 from __future__ import annotations
@@ -34,6 +42,9 @@ _LINKED_TITLE = re.compile(r"^\[(?P<title>.+)\]\((?P<target>[^)]+)\)$")
 _TS_TEST_CALL = re.compile(
     r"\b(?:test|it)(?:\.\w+)*\s*\(\s*(?P<quote>['\"`])(?P<id>\d+(?:\.\d+)+)\s+(?P<title>[^'\"`]*?)(?P=quote)"
 )
+_PY_ANY_TEST = re.compile(r"^test_.+\.py$")
+_TS_ANY_TEST = re.compile(r".+\.(?:test|spec)\.tsx?$")
+_TEST_HARNESS_PACKAGE = "tests"  # a workspace member reserved for cross-package test tooling, never a product itself
 
 
 @dataclass(frozen=True)
@@ -51,9 +62,12 @@ class Header:
 
 @dataclass(frozen=True)
 class Language:
+    name: str
+    manifest_name: str
     own_test_name: re.Pattern[str]
-    other_test_name: re.Pattern[str]
     collect_tests: Callable[[list[str], Callable[[str], str | None]], dict[str, StoryTest]]
+    package_dirs: Callable[[Repo, Context, list[str]], list[str]]
+    needs_story_tests: Callable[[str, Repo, Context, list[str]], bool]
 
 
 @dataclass(frozen=True)
@@ -151,8 +165,97 @@ def collect_ts_tests(test_paths: list[str], read: Callable[[str], str | None]) -
     return tests
 
 
-PY = Language(PY_TEST_NAME, TS_TEST_NAME, collect_py_tests)
-TS = Language(TS_TEST_NAME, PY_TEST_NAME, collect_ts_tests)
+def _package_prefixes(package: str) -> list[str]:
+    """Where a package's own files may live: co-located, or torn out to a top-level tests/<basename>/."""
+    if not package:
+        return [""]
+    basename = package.rsplit("/", 1)[-1]
+    return [f"{package}/", f"tests/{basename}/"]
+
+
+def _under_package(path: str, package: str) -> bool:
+    return any(path.startswith(prefix) for prefix in _package_prefixes(package))
+
+
+def _dir_matches_glob(directory: str, glob: str) -> bool:
+    dir_parts = directory.split("/")
+    glob_parts = glob.rstrip("/").split("/")
+    return len(dir_parts) == len(glob_parts) and all(g in {"*", d} for g, d in zip(glob_parts, dir_parts, strict=True))
+
+
+def _member_dirs(paths: list[str], globs: list[str], manifest_name: str) -> list[str]:
+    suffix = f"/{manifest_name}"
+    dirs = {path[: -len(suffix)] for path in paths if path.endswith(suffix)}
+    matched = {d for d in dirs if any(_dir_matches_glob(d, glob) for glob in globs)}
+    return sorted(d for d in matched if d.split("/", 1)[0] != _TEST_HARNESS_PACKAGE)
+
+
+def _py_package_dirs(repo: Repo, ctx: Context, paths: list[str]) -> list[str]:
+    content = ctx.file(repo, "pyproject.toml")
+    if content is None:
+        return []
+    try:
+        data = tomllib.loads(content)
+    except tomllib.TOMLDecodeError:
+        return []
+    tool = data.get("tool")
+    uv = tool.get("uv") if isinstance(tool, dict) else None
+    workspace = uv.get("workspace") if isinstance(uv, dict) else None
+    if isinstance(workspace, dict):
+        members = [g for g in workspace.get("members", []) if isinstance(g, str)]
+        return _member_dirs(paths, members, "pyproject.toml")
+    return [""] if isinstance(data.get("project"), dict) else []
+
+
+def _ts_package_dirs(repo: Repo, ctx: Context, paths: list[str]) -> list[str]:
+    content = ctx.file(repo, "package.json")
+    if content is None:
+        return []
+    try:
+        data = json.loads(content)
+    except json.JSONDecodeError:
+        return []
+    if not isinstance(data, dict):
+        return []
+    workspaces = data.get("workspaces")
+    globs: list[str] | None = None
+    if isinstance(workspaces, list):
+        globs = [g for g in workspaces if isinstance(g, str)]
+    elif isinstance(workspaces, dict):
+        globs = [g for g in workspaces.get("packages", []) if isinstance(g, str)]
+    if globs is not None:
+        return _member_dirs(paths, globs, "package.json")
+    return [""]
+
+
+def _py_needs_story_tests(package: str, repo: Repo, ctx: Context, paths: list[str]) -> bool:
+    manifest_path = f"{package}/pyproject.toml" if package else "pyproject.toml"
+    content = ctx.file(repo, manifest_path)
+    if content is not None:
+        try:
+            project = tomllib.loads(content).get("project")
+        except tomllib.TOMLDecodeError:
+            project = None
+        if isinstance(project, dict) and project.get("scripts"):
+            return True
+    return any(_under_package(path, package) and _PY_ANY_TEST.match(path.rsplit("/", 1)[-1]) for path in paths)
+
+
+def _ts_needs_story_tests(package: str, repo: Repo, ctx: Context, paths: list[str]) -> bool:
+    manifest_path = f"{package}/package.json" if package else "package.json"
+    content = ctx.file(repo, manifest_path)
+    if content is not None:
+        try:
+            data = json.loads(content)
+        except json.JSONDecodeError:
+            data = None
+        if isinstance(data, dict) and (data.get("bin") or data.get("exports") or data.get("main")):
+            return True
+    return any(_under_package(path, package) and _TS_ANY_TEST.match(path.rsplit("/", 1)[-1]) for path in paths)
+
+
+PY = Language("Python", "pyproject.toml", PY_TEST_NAME, collect_py_tests, _py_package_dirs, _py_needs_story_tests)
+TS = Language("TypeScript", "package.json", TS_TEST_NAME, collect_ts_tests, _ts_package_dirs, _ts_needs_story_tests)
 
 
 def _grouped_by_stories_dir(paths: list[str], name: re.Pattern[str]) -> dict[str, list[str]]:
@@ -164,30 +267,6 @@ def _grouped_by_stories_dir(paths: list[str], name: re.Pattern[str]) -> dict[str
         if name.match(parts[-1]):
             dirs.setdefault("/".join(parts[:-1]), []).append(path)
     return dirs
-
-
-def has_bun_workspace(repo: Repo, ctx: Context) -> bool:
-    content = ctx.file(repo, "package.json")
-    if content is None:
-        return False
-    try:
-        manifest = json.loads(content)
-    except json.JSONDecodeError:
-        return False
-    return isinstance(manifest, dict) and "workspaces" in manifest
-
-
-def has_uv_workspace(repo: Repo, ctx: Context) -> bool:
-    content = ctx.file(repo, "pyproject.toml")
-    if content is None:
-        return False
-    try:
-        config = tomllib.loads(content)
-    except tomllib.TOMLDecodeError:
-        return False
-    tool = config.get("tool")
-    uv = tool.get("uv") if isinstance(tool, dict) else None
-    return isinstance(uv, dict) and "workspace" in uv
 
 
 def _headers_of(group: _Group) -> dict[str, Header]:
@@ -244,29 +323,38 @@ def _check_group(res: CheckResult, ctx: Context, repo: Repo, group: _Group) -> N
     _check_header_links(res, ctx, repo, group)
 
 
-def _owned_directories(doc_dirs: dict[str, list[str]], own_dirs: dict[str, list[str]], other_dirs: dict[str, list[str]]) -> set[str]:
-    candidates = set(doc_dirs) | set(own_dirs)
-    return {directory for directory in candidates if directory in own_dirs or directory not in other_dirs}
-
-
 def run_story_check(repo: Repo, ctx: Context, res: CheckResult, language: Language) -> None:
     paths = ctx.paths(repo)
+    packages = language.package_dirs(repo, ctx, paths)
+    if not packages:
+        res.skip(f"no {language.name} packages")
+        return
+
     doc_dirs = _grouped_by_stories_dir(paths, _DOC_NAME)
     own_dirs = _grouped_by_stories_dir(paths, language.own_test_name)
-    other_dirs = _grouped_by_stories_dir(paths, language.other_test_name)
-
-    owned = _owned_directories(doc_dirs, own_dirs, other_dirs)
-    if not owned:
-        res.skip("no tests/**/stories/ docs")
-        return
+    all_story_dirs = set(doc_dirs) | set(own_dirs)
 
     def read(path: str) -> str | None:
         return ctx.file(repo, path)
 
-    for directory in sorted(owned):
-        docs = {path: content for path in doc_dirs.get(directory, []) if (content := read(path)) is not None}
-        tests = language.collect_tests(own_dirs.get(directory, []), read)
-        _check_group(res, ctx, repo, _Group(directory, docs, tests))
+    did_something = False
+    for package in sorted(packages):
+        owned = sorted(d for d in all_story_dirs if _under_package(d, package))
+        if not owned:
+            if language.needs_story_tests(package, repo, ctx, paths):
+                res.fail(
+                    f"{package or '.'}: exposes a public interface but has no tests/**/stories/*.md user-story tests"
+                )
+                did_something = True
+            continue
 
-    if not res.problems:
+        did_something = True
+        for directory in owned:
+            docs = {path: content for path in doc_dirs.get(directory, []) if (content := read(path)) is not None}
+            tests = language.collect_tests(own_dirs.get(directory, []), read)
+            _check_group(res, ctx, repo, _Group(directory, docs, tests))
+
+    if not did_something:
+        res.skip(f"no {language.name} package needs story-based tests")
+    elif not res.problems:
         res.ok("every story criterion has a matching, title-matched test")
