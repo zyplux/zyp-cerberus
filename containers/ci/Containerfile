@@ -1,8 +1,8 @@
 FROM oven/bun:1.3.14-debian
 
-LABEL org.opencontainers.image.source="https://github.com/zyplux/zyp-cerberus"
+LABEL org.opencontainers.image.source="https://github.com/zyplux/zyplux"
 LABEL org.opencontainers.image.description="zyplux CI base image: bun + uv + git, no Node"
-LABEL org.opencontainers.image.version="0.1.0"
+LABEL org.opencontainers.image.version="0.1.1"
 
 COPY --from=ghcr.io/astral-sh/uv:0.11.23 /uv /uvx /usr/local/bin/
 

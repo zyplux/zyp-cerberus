@@ -1,4 +1,4 @@
-# zyp-cerberus
+# zyplux
 
 The zyplux organization's platform monorepo: it publishes shared tooling to npm and PyPI, and the product monorepos consume it. One source of truth for the org's standards, so they stay in lockstep instead of drifting per repo.
 

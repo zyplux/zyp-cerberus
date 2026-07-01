@@ -1,7 +1,7 @@
 [project]
-name = "zyp-cerberus"
+name = "zyplux"
 version = "0"
-description = "zyp-cerberus — virtual workspace root (cerberus governance CLI + @zyplux/eslint-config)"
+description = "zyplux — virtual workspace root (cerberus governance CLI + @zyplux/eslint-config)"
 requires-python = ">=3.14"
 
 [tool.uv]

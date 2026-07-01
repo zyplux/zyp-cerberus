@@ -1,6 +1,6 @@
 {
   "name": "@zyplux/eslint-config",
-  "version": "0.6.2",
+  "version": "0.6.3",
   "description": "Shared ESLint flat config and custom rules",
   "keywords": [
     "eslint",
@@ -11,10 +11,10 @@
   ],
   "license": "MIT",
   "author": "Sergiy Yeskov <sergiy.yeskov@gmail.com>",
-  "homepage": "https://github.com/zyplux/zyp-cerberus",
+  "homepage": "https://github.com/zyplux/zyplux",
   "repository": {
     "type": "git",
-    "url": "git+https://github.com/zyplux/zyp-cerberus.git",
+    "url": "git+https://github.com/zyplux/zyplux.git",
     "directory": "packages/eslint-config"
   },
   "type": "module",

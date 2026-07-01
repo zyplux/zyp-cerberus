@@ -4,7 +4,7 @@ requires-python = ">=3.14"
 
 [manifest]
 members = [
-    "zyp-cerberus",
+    "zyplux",
     "zyplux-cerberus",
 ]
 
@@ -264,7 +264,7 @@ wheels = [
 ]
 
 [[package]]
-name = "zyp-cerberus"
+name = "zyplux"
 version = "0"
 source = { virtual = "." }
 

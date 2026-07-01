@@ -1,6 +1,6 @@
 {
   "name": "@zyplux/util",
-  "version": "0.1.4",
+  "version": "0.1.5",
   "description": "Small Bun utilities: assertions, polling, bounded-concurrency mapping, zod-validated JSON reads, repo-URL normalization, package.json/pyproject manifest schemas, and a git/gh shell harness",
   "keywords": [
     "bun",
@@ -13,10 +13,10 @@
   ],
   "license": "MIT",
   "author": "Sergiy Yeskov <sergiy.yeskov@gmail.com>",
-  "homepage": "https://github.com/zyplux/zyp-cerberus",
+  "homepage": "https://github.com/zyplux/zyplux",
   "repository": {
     "type": "git",
-    "url": "git+https://github.com/zyplux/zyp-cerberus.git",
+    "url": "git+https://github.com/zyplux/zyplux.git",
     "directory": "packages/util"
   },
   "type": "module",
