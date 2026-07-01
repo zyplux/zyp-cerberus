@@ -15,6 +15,8 @@ from cerberus.checks import (
     release_bumps_check,
     ruff_config_check,
     rumdl_config_check,
+    story_tests_py_check,
+    story_tests_ts_check,
     ts_project_references_check,
     vitest_runner_check,
     workflow_tooling_check,
@@ -50,6 +52,8 @@ ALL: tuple[Check, ...] = tuple(
         vitest_runner_check,
         ts_project_references_check,
         catalog_discipline_check,
+        story_tests_py_check,
+        story_tests_ts_check,
         release_bumps_check,
         codeowners_check,
     )

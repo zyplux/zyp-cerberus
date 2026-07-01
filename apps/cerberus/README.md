@@ -38,6 +38,8 @@ A repo opts out of specific checks with `[tool.cerberus] disable = ["check-id", 
 | `vitest-runner`         | content     | TypeScript tests run on vitest, never bun's built-in test runner                    |
 | `ts-project-references` | content     | TypeScript typecheck runs via project references (`tsc -b`), not a per-package fan-out |
 | `catalog-discipline`    | content     | Every workspace `package.json` dependency pins via `catalog:` or `workspace:`        |
+| `story-tests-py`        | content     | `tests/**/stories/*.md` criteria have a matching, title-matched pytest test          |
+| `story-tests-ts`        | content     | `tests/**/stories/*.md` criteria have a matching, title-matched vitest test          |
 | `release-bumps`         | git-history | A published target's version is bumped whenever its release surface changes          |
 | `codeowners`            | content     | `CODEOWNERS` present and covers `/.github/`                                          |
 
