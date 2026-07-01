@@ -1,7 +1,7 @@
 import type { PackageSystem } from '@zyplux/cz/deps-catalog';
 
 import { collectDepRepos, collectDepsNames, resolveSourceRepo } from '@zyplux/cz/deps-catalog';
-import { fakeShellOutput, fakeShellPromise, toArgv } from '@zyplux/tests-shell-fixtures';
+import { fakeShellOutput, fakeShellPromise, toArgv } from '@zyplux/tests-fixtures';
 import { mkdir, mkdtemp, rm, writeFile } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import path from 'node:path';

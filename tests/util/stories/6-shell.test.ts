@@ -1,4 +1,4 @@
-import { fakeShellOutput, fakeShellPromise, toArgv } from '@zyplux/tests-shell-fixtures';
+import { fakeShellOutput, fakeShellPromise, toArgv } from '@zyplux/tests-fixtures';
 import { $, readTrimmed } from '@zyplux/util/shell';
 import { test as base, describe, expect, vi } from 'vitest';
 

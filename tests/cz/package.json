@@ -9,7 +9,7 @@
   "devDependencies": {
     "@types/bun": "catalog:",
     "@zyplux/cz": "workspace:*",
-    "@zyplux/tests-shell-fixtures": "workspace:*",
+    "@zyplux/tests-fixtures": "workspace:*",
     "@zyplux/tsconfig": "workspace:*",
     "@zyplux/util": "workspace:*",
     "vitest": "catalog:"

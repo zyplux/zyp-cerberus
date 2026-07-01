@@ -1,5 +1,5 @@
 import { loadReleaseTargets, type ReleaseTarget, resolveReleaseTag } from '@zyplux/cz/release-targets';
-import { fakeShellOutput } from '@zyplux/tests-shell-fixtures';
+import { fakeShellOutput } from '@zyplux/tests-fixtures';
 import { $ } from '@zyplux/util/shell';
 import { mkdtemp, rm, writeFile } from 'node:fs/promises';
 import { tmpdir } from 'node:os';

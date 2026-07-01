@@ -86,7 +86,7 @@
       "devDependencies": {
         "@types/bun": "catalog:",
         "@zyplux/cz": "workspace:*",
-        "@zyplux/tests-shell-fixtures": "workspace:*",
+        "@zyplux/tests-fixtures": "workspace:*",
         "@zyplux/tsconfig": "workspace:*",
         "@zyplux/util": "workspace:*",
         "vitest": "catalog:",
@@ -106,12 +106,15 @@
         "zod": "catalog:",
       },
     },
-    "tests/shell-fixtures": {
-      "name": "@zyplux/tests-shell-fixtures",
+    "tests/fixtures": {
+      "name": "@zyplux/tests-fixtures",
       "version": "0.1.0",
       "devDependencies": {
         "@types/bun": "catalog:",
         "@zyplux/tsconfig": "workspace:*",
+        "@zyplux/util": "workspace:*",
+      },
+      "peerDependencies": {
         "@zyplux/util": "workspace:*",
       },
     },
@@ -120,7 +123,7 @@
       "version": "0.1.0",
       "devDependencies": {
         "@types/bun": "catalog:",
-        "@zyplux/tests-shell-fixtures": "workspace:*",
+        "@zyplux/tests-fixtures": "workspace:*",
         "@zyplux/tsconfig": "workspace:*",
         "@zyplux/util": "workspace:*",
         "vitest": "catalog:",
@@ -418,7 +421,7 @@
 
     "@zyplux/tests-eslint-config": ["@zyplux/tests-eslint-config@workspace:tests/eslint-config"],
 
-    "@zyplux/tests-shell-fixtures": ["@zyplux/tests-shell-fixtures@workspace:tests/shell-fixtures"],
+    "@zyplux/tests-fixtures": ["@zyplux/tests-fixtures@workspace:tests/fixtures"],
 
     "@zyplux/tests-util": ["@zyplux/tests-util@workspace:tests/util"],
 

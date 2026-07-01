@@ -1,6 +1,6 @@
 import { runReleaseBumpedTargets } from '@zyplux/cz/commands/release-bumped-targets';
 import { loadReleaseTargets, type ReleaseTarget } from '@zyplux/cz/release-targets';
-import { fakeShellOutput } from '@zyplux/tests-shell-fixtures';
+import { fakeShellOutput } from '@zyplux/tests-fixtures';
 import { $ } from '@zyplux/util/shell';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 

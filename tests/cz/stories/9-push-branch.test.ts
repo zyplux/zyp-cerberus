@@ -1,5 +1,5 @@
 import { runPushBranch } from '@zyplux/cz/commands/push-branch';
-import { fakeShellOutput } from '@zyplux/tests-shell-fixtures';
+import { fakeShellOutput } from '@zyplux/tests-fixtures';
 import { $ } from '@zyplux/util/shell';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 

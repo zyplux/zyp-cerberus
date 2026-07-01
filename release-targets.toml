@@ -29,6 +29,13 @@ surface = ["packages/util/package.json", "packages/util/README.md", "packages/ut
 
 [[target]]
 kind = "npm"
+label = "@zyplux/tests-fixtures"
+tag_prefix = "tests-fixtures-v"
+version = { file = "tests/fixtures/package.json", json = "version" }
+surface = ["tests/fixtures/package.json", "tests/fixtures/README.md", "tests/fixtures/src"]
+
+[[target]]
+kind = "npm"
 label = "@zyplux/cz"
 tag_prefix = "cz-v"
 version = { file = "apps/cz/package.json", json = "version" }

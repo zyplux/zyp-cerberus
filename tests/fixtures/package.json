@@ -1,13 +1,39 @@
 {
-  "name": "@zyplux/tests-shell-fixtures",
+  "name": "@zyplux/tests-fixtures",
   "version": "0.1.0",
-  "private": true,
+  "description": "Fake Bun.$ shell output/promise fixtures for testing @zyplux/util-based shell harnesses",
+  "keywords": [
+    "bun",
+    "test",
+    "fixtures",
+    "mock",
+    "shell"
+  ],
+  "license": "MIT",
+  "author": "Sergiy Yeskov <sergiy.yeskov@gmail.com>",
+  "homepage": "https://github.com/zyplux/zyplux",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/zyplux/zyplux.git",
+    "directory": "tests/fixtures"
+  },
   "type": "module",
   "exports": {
     ".": {
       "types": "./src/index.ts",
       "default": "./src/index.ts"
-    }
+    },
+    "./package.json": "./package.json"
+  },
+  "files": [
+    "README.md",
+    "src"
+  ],
+  "publishConfig": {
+    "access": "public"
+  },
+  "peerDependencies": {
+    "@zyplux/util": "workspace:*"
   },
   "devDependencies": {
     "@types/bun": "catalog:",
