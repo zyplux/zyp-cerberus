@@ -98,12 +98,11 @@ minutes, comfortably above its observed ~1–2 minute runtime, so a cold-cache o
 otherwise slow run doesn't get mistaken for stuck.)
 
 - **`pass`** → continue to **Step 4**.
-- **`fail`** → **Step 11**, below.
-- **`skipping`** or **`cancel`** → these aren't failures — `skipping` usually
-  means a path filter excluded this push, `cancel` means someone (or a newer
-  push) cancelled the run. Check `gh pr checks "$NUMBER"` for why; if it should
-  have run, re-push to retrigger, otherwise treat as a pass and continue to
-  **Step 4**.
+- **`fail`, `skipping`, or `cancel`** → none of these satisfy the "ci passing"
+  merge requirement, so none can be treated as a pass. Check
+  `gh pr checks "$NUMBER"` for why: a genuine failure goes to **Step 11**; a
+  `skipping`/`cancel` from a superseded or manually-cancelled run means a newer
+  run is (or should be) in flight — re-poll, or re-push to retrigger if none is.
 - Loop exhausted with no terminal bucket → stop and tell the user; `ci` may be
   stuck queued or the runner may be down.
 
@@ -117,10 +116,14 @@ and is usually the fastest way to reproduce and fix the break. Then go to
 ## Steps 4–5 — wait for the Copilot gate, then branch
 
 Once `ci` is green, wait for the Copilot gate the same way — polling the commit
-status directly rather than `gh pr checks` (see Notes for why):
+status directly rather than `gh pr checks` (see Notes for why). Read the SHA
+from the PR's head on GitHub, not the local checkout — if the skill was invoked
+with an explicit PR number/URL whose head doesn't match the local branch,
+`git rev-parse HEAD` would poll the wrong commit's status and report the wrong
+gate state:
 
 ```bash
-SHA=$(git rev-parse HEAD)
+SHA=$(gh pr view "$NUMBER" --json headRefOid -q .headRefOid)
 for _ in $(seq 1 120); do
   STATE=$(gh api "repos/$OWNER/$REPO/commits/$SHA/statuses" \
     --jq 'map(select(.context=="copilot-review-complete"))[0].state // "none"')
@@ -224,6 +227,13 @@ uncommitted changes can pass or fail against stale state. If it autofixes
 anything post-commit, fold that into a follow-up commit rather than leaving it
 uncommitted — an uncommitted autofix is exactly the "unpushed fix" trap Step 10
 exists to avoid.
+
+Before running `just pr`, re-run the Step 6 GraphQL query one last time and
+confirm every thread from this round — both "agree" and "disagree" — shows
+`isResolved: true` except the "agree" ones you're deliberately holding open
+until after the push. This catches a thread dropped mid-triage (e.g. a reply
+posted but the resolve call missed or failed) before it becomes a stray
+unresolved thread on the next round.
 
 Then run `just pr`. It pushes the current head, flips back to ready, and enables
 auto-merge (held by the gates until the head is clean). Only once the push has
