@@ -209,12 +209,21 @@ means the fix is already on the head that the gate will see, so there's no
 window where a stale head looks clean:
 
 ```bash
-just c                    # autofixes throughout — run before staging, not after
 git add <touched files>
 git commit -m '<message>'
-git status --porcelain   # must be empty
-git log --oneline -1     # must show your fix commit, not the pre-existing head
+just c                    # autofixes throughout — may touch files after the commit above
+git status --porcelain   # if non-empty, `just c` autofixed something —
+                          # git add -u && git commit -m 'chore: apply autofix' to fold it in
+git log --oneline -1     # must show your fix commit(s), not the pre-existing head
 ```
+
+Commit before running `just c`, not after: some of its checks read the
+committed tree rather than the working tree — e.g. `cerberus`'s version-bump
+check, which diffs against the last commit — so running it against
+uncommitted changes can pass or fail against stale state. If it autofixes
+anything post-commit, fold that into a follow-up commit rather than leaving it
+uncommitted — an uncommitted autofix is exactly the "unpushed fix" trap Step 10
+exists to avoid.
 
 Then run `just pr`. It pushes the current head, flips back to ready, and enables
 auto-merge (held by the gates until the head is clean). Only once the push has
