@@ -84,7 +84,7 @@ Confirm CI is green before even looking at Copilot's review — no point triagin
 comments against code that's about to fail its own tests:
 
 ```bash
-for _ in $(seq 1 30); do
+for _ in $(seq 1 60); do
   BUCKET=$(gh pr checks "$NUMBER" --json name,bucket \
     -q '(.[] | select(.name=="ci") | .bucket) // "none"')
   case "$BUCKET" in pass|fail|skipping|cancel) break;; esac
@@ -93,10 +93,17 @@ done
 ```
 
 (`gh pr checks` is safe here — unlike for the Copilot gate below — because `ci`
-always exists once the push triggers it; see Notes.)
+always exists once the push triggers it; see Notes. 60×10s gives `ci` up to 10
+minutes, comfortably above its observed ~1–2 minute runtime, so a cold-cache or
+otherwise slow run doesn't get mistaken for stuck.)
 
 - **`pass`** → continue to **Step 4**.
-- **anything else** (`fail`, `skipping`, `cancel`) → **Step 11**, below.
+- **`fail`** → **Step 11**, below.
+- **`skipping`** or **`cancel`** → these aren't failures — `skipping` usually
+  means a path filter excluded this push, `cancel` means someone (or a newer
+  push) cancelled the run. Check `gh pr checks "$NUMBER"` for why; if it should
+  have run, re-push to retrigger, otherwise treat as a pass and continue to
+  **Step 4**.
 - Loop exhausted with no terminal bucket → stop and tell the user; `ci` may be
   stuck queued or the runner may be down.
 
@@ -167,10 +174,12 @@ positives, style contrary to the repo's conventions, or out-of-scope suggestions
 
 Reply on each thread (not a new top-level comment). Where you **agree**, edit the
 code in the working tree — the better long-term design, not the smallest diff —
-then reply that it's addressed (e.g. "Done — extracted the guard into
-`ensure_loaded`.") (**Step 8**). Where you **disagree**, give the reason in a
-sentence or two, referencing the code (**Step 9**). One fix may settle several
-threads — note it on each. Then resolve every processed thread:
+and reply that it's addressed (e.g. "Done — extracted the guard into
+`ensure_loaded`."), but **do not resolve it yet** — leave it for **Step 10**
+(**Step 8**). Where you **disagree**, give the reason in a sentence or two,
+referencing the code, then resolve it immediately — a disagreement has no code
+change riding on it, so there's no race to protect against (**Step 9**). One fix
+may settle several threads — note it on each.
 
 ```bash
 gh api graphql -f threadId='<thread-node-id>' -f body='<reply>' -f query='
@@ -186,24 +195,31 @@ one-off), add a short, abstract instruction to `.github/copilot-instructions.md`
 to head it off in future reviews — abstract enough to cover the class, not just
 this instance. Skip it if the mistake couldn't plausibly recur.
 
-Once every thread is resolved, go to **Step 10**.
+Once every thread has a reply (agreed ones still unresolved), go to **Step 10**.
 
-## Step 10 — commit, verify, and push
+## Step 10 — commit, push, then resolve
 
-**Commit every code fix before moving on.** `just pr` below only pushes
-*committed* work — an uncommitted fix is silently skipped, the head doesn't
-change, and the moment threads resolve, the already-armed auto-merge fires on
-that unchanged head, **merging the PR without your fix** while the thread reply
-claims it landed. `git add` and `git commit` the touched files first, then run
-`just c` to verify, and confirm before continuing:
+**Commit every code fix before pushing — and push before resolving the
+remaining threads.** The org gate re-evaluates `copilot-review-complete` the
+instant a thread is resolved; resolving an "agree" thread while its fix is only
+local (or committed but unpushed) flips the gate to `success` on the
+**old, already-`ci`-green** head, and the already-armed auto-merge can merge
+that head — **without your fix** — before the push ever lands. Pushing first
+means the fix is already on the head that the gate will see, so there's no
+window where a stale head looks clean:
 
 ```bash
+git add <touched files>
+git commit -m '<message>'
+just c
 git status --porcelain   # must be empty
 git log --oneline -1     # must show your fix commit, not the pre-existing head
 ```
 
 Then run `just pr`. It pushes the current head, flips back to ready, and enables
-auto-merge (held by the gates until the head is clean).
+auto-merge (held by the gates until the head is clean). Only once the push has
+gone out, resolve every remaining "agree" thread from Step 8 using the same
+`resolveReviewThread` mutation above.
 
 - **Changed code** (fixed comments, or fixed a CI failure) → `just pr` flips the
   PR to draft, pushes the fixes, and flips back to ready; that transition
