@@ -71,7 +71,7 @@ def _scan_workflow(name: str, content: str, allowed: set[str], res: CheckResult)
     try:
         workflow = yaml.safe_load(content)
     except yaml.YAMLError as err:
-        res.fail(f"{name}: not valid YAML ({err})")
+        res.error(f"{name}: not valid YAML ({err})")
         return
     if not isinstance(workflow, dict):
         return

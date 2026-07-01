@@ -34,12 +34,19 @@ A repo opts out of specific checks with `[tool.cerberus] disable = ["check-id", 
 | `ci-sequence`           | content     | `ci.yml` runs the canonical check sequence per stack, in the org container          |
 | `cerberus-step`         | content     | A CI workflow runs cerberus to self-verify org invariants                           |
 | `workflow-tooling`      | content     | Workflows set up only the workspace toolchain (uv, bun), not extra tools            |
+| `pyrefly-config`        | content     | All code, tests included, type-checks under strict pyrefly with no relaxations       |
+| `ruff-config`           | content     | ruff runs standalone in preview with `select = ["ALL"]`; relaxations stay sanctioned |
+| `line-length`           | content     | ruff `line-length` and prettier `printWidth` are both 120                            |
 | `rumdl-config`          | content     | `.rumdl.toml` carries the org-canonical rule config (per-repo `exclude` allowed)    |
 | `vitest-runner`         | content     | TypeScript tests run on vitest, never bun's built-in test runner                    |
 | `ts-project-references` | content     | TypeScript typecheck runs via project references (`tsc -b`), not a per-package fan-out |
 | `catalog-discipline`    | content     | Every workspace `package.json` dependency pins via `catalog:` or `workspace:`        |
+| `story-tests-py`        | content     | `tests/**/stories/*.md` criteria have a matching, title-matched pytest test          |
+| `story-tests-ts`        | content     | `tests/**/stories/*.md` criteria have a matching, title-matched vitest test          |
 | `release-bumps`         | git-history | A published target's version is bumped whenever its release surface changes          |
 | `codeowners`            | content     | `CODEOWNERS` present and covers `/.github/`                                          |
+| `pytest-coverage`       | content     | `pyproject.toml` `[tool.coverage.report] fail_under` is set to at least 90%          |
+| `vitest-coverage`       | content     | The root `vitest.config.*` `coverage.thresholds` are all set to at least 90%         |
 
 ## Config
 

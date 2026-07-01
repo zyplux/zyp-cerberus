@@ -4,6 +4,7 @@ dist/
 .tsbuild/
 *.tsbuildinfo
 .eslintcache
+coverage/
 
 # Python / uv
 .venv/
@@ -12,6 +13,7 @@ __pycache__/
 .pytest_cache/
 .ruff_cache/
 .rumdl_cache/
+.coverage
 
 reference_clones/
 

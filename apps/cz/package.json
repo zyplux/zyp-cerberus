@@ -1,6 +1,6 @@
 {
   "name": "@zyplux/cz",
-  "version": "0.2.2",
+  "version": "0.2.3",
   "description": "Repo automation CLI: cut releases, push branches and PRs, and clone reference repos.",
   "keywords": [
     "bun",
@@ -23,6 +23,38 @@
     "cz": "./src/index.ts"
   },
   "exports": {
+    "./commands/assert-tag-version": {
+      "types": "./src/commands/assert-tag-version.ts",
+      "default": "./src/commands/assert-tag-version.ts"
+    },
+    "./commands/bootstrap-npm-target": {
+      "types": "./src/commands/bootstrap-npm-target.ts",
+      "default": "./src/commands/bootstrap-npm-target.ts"
+    },
+    "./commands/clone-reference-repo": {
+      "types": "./src/commands/clone-reference-repo.ts",
+      "default": "./src/commands/clone-reference-repo.ts"
+    },
+    "./commands/deps-catalog": {
+      "types": "./src/commands/deps-catalog.ts",
+      "default": "./src/commands/deps-catalog.ts"
+    },
+    "./commands/print-tag-kind": {
+      "types": "./src/commands/print-tag-kind.ts",
+      "default": "./src/commands/print-tag-kind.ts"
+    },
+    "./commands/publish-tagged-target": {
+      "types": "./src/commands/publish-tagged-target.ts",
+      "default": "./src/commands/publish-tagged-target.ts"
+    },
+    "./commands/push-branch": {
+      "types": "./src/commands/push-branch.ts",
+      "default": "./src/commands/push-branch.ts"
+    },
+    "./commands/release-bumped-targets": {
+      "types": "./src/commands/release-bumped-targets.ts",
+      "default": "./src/commands/release-bumped-targets.ts"
+    },
     "./deps-catalog": {
       "types": "./src/deps-catalog.ts",
       "default": "./src/deps-catalog.ts"

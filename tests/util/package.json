@@ -8,6 +8,7 @@
   },
   "devDependencies": {
     "@types/bun": "catalog:",
+    "@zyplux/tests-fixtures": "workspace:*",
     "@zyplux/tsconfig": "workspace:*",
     "@zyplux/util": "workspace:*",
     "vitest": "catalog:",
