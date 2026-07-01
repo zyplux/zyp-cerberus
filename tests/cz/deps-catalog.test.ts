@@ -72,7 +72,7 @@ describe('collectDepsNames', () => {
     expect(npm).not.toContain('@zyplux/util');
     expect(npm).not.toContain('@zyplux/cz');
     expect(npm).not.toContain('@zyplux/tsconfig');
-    expect(pypi).not.toContain('zyp-cerberus');
+    expect(pypi).not.toContain('zyplux');
     expect(pypi).not.toContain('zyplux-cerberus');
   });
 
@@ -121,7 +121,7 @@ describe('resolveSourceRepo', () => {
 describe('collectDepRepos', () => {
   const sourceRepoById = new Map([
     ['npm:@optique/core', 'github.com/dahlia/optique'],
-    ['npm:knip', 'github.com/zyplux/zyp-cerberus'],
+    ['npm:knip', 'github.com/zyplux/zyplux'],
     ['npm:zod', 'github.com/colinhacks/zod'],
     ['pypi:ruff', 'github.com/astral-sh/ruff'],
   ]);
@@ -156,7 +156,7 @@ describe('collectDepRepos', () => {
 
     const { repos } = await collectDepRepos({ dir: workspaceRoot });
 
-    expect(repos).not.toContain('https://github.com/zyplux/zyp-cerberus');
+    expect(repos).not.toContain('https://github.com/zyplux/zyplux');
   });
 
   test('reports dependencies it could not resolve to a repo', async ({ routeFetch }) => {

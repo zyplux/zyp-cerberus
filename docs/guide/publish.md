@@ -29,7 +29,7 @@ publishing can be enabled, and that first publish needs a credential.
    `@zyplux/util`. This publishes the first version using the `NPM_TOKEN` secret.
 2. **Enable trusted publishing** — npmjs.com → the package → **Settings → Trusted
    Publishing → GitHub Actions**:
-   - Organization `zyplux` · Repository `zyp-cerberus` · Workflow `release.yml` ·
+   - Organization `zyplux` · Repository `zyplux` · Workflow `release.yml` ·
      Environment *(blank)*
    - The `npm` job in `release.yml` runs with **no** `environment:`, so leave
      Environment blank — npm matches the OIDC environment claim exactly.
@@ -37,7 +37,7 @@ publishing can be enabled, and that first publish needs a credential.
 
      ```sh
      bunx npm@latest login
-     bunx npm@latest trust github @zyplux/util --file release.yml --repo zyplux/zyp-cerberus --allow-publish
+     bunx npm@latest trust github @zyplux/util --file release.yml --repo zyplux/zyplux --allow-publish
      ```
 
 3. From then on `just release` publishes new versions via OIDC — no token, with
@@ -55,7 +55,7 @@ no bootstrap step.
 
 1. PyPI → **Account → Publishing → Add a pending publisher**:
    - PyPI Project Name `<dist-name>` (e.g. `zyplux-cerberus`) · Owner `zyplux` ·
-     Repository `zyp-cerberus` · Workflow `release.yml` · Environment `pypi`
+     Repository `zyplux` · Workflow `release.yml` · Environment `pypi`
    - The environment must match `environment: pypi` on the `pypi` job in `release.yml`.
 2. Bump and `just release` — the PyPI job publishes the first version via OIDC.
 

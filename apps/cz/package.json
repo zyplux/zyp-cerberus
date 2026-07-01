@@ -12,10 +12,10 @@
   ],
   "license": "MIT",
   "author": "Sergiy Yeskov <sergiy.yeskov@gmail.com>",
-  "homepage": "https://github.com/zyplux/zyp-cerberus/tree/main/apps/cz",
+  "homepage": "https://github.com/zyplux/zyplux/tree/main/apps/cz",
   "repository": {
     "type": "git",
-    "url": "git+https://github.com/zyplux/zyp-cerberus.git",
+    "url": "git+https://github.com/zyplux/zyplux.git",
     "directory": "apps/cz"
   },
   "type": "module",
