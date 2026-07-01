@@ -1,18 +1,18 @@
 import { $, readTrimmed } from '@zyplux/util/shell';
-import { test as base, describe, expect } from 'vitest';
+import { test as base, describe, expect, vi } from 'vitest';
+
+import { fakeShellOutput, fakeShellPromise, toArgv } from '#shell-fixtures';
 
 type CapturedCall = { argv: string[]; program: string };
 
-const fakeChain = () => {
-  const chain = { cwd: () => chain, nothrow: () => chain, quiet: () => chain, text: () => 'output' };
-  return chain;
+const stubBunDollar = (calls: CapturedCall[]) => {
+  const shellFn = vi.fn<typeof Bun.$>();
+  shellFn.mockImplementation((strings, ...values) => {
+    calls.push({ argv: toArgv(values), program: strings[0]?.trim() ?? '' });
+    return fakeShellPromise(fakeShellOutput('output'));
+  });
+  return shellFn;
 };
-
-const stubBunDollar = (calls: CapturedCall[]) =>
-  ((strings: TemplateStringsArray, ...values: unknown[]) => {
-    calls.push({ argv: values[0] as string[], program: strings[0]?.trim() ?? '' });
-    return fakeChain();
-  }) as unknown as typeof Bun.$;
 
 const test = base.extend<{ shellCalls: CapturedCall[] }>({
   shellCalls: async ({}, use) => {
@@ -54,7 +54,11 @@ describe('6.1 translating flag objects into CLI arguments', () => {
 
 describe('6.2 building git subcommands', () => {
   test.each([
-    ['branch', () => $.git.branch('feat-x', { delete: true, force: true }), ['branch', '--delete', '--force', 'feat-x']],
+    [
+      'branch',
+      () => $.git.branch('feat-x', { delete: true, force: true }),
+      ['branch', '--delete', '--force', 'feat-x'],
+    ],
     ['checkout', () => $.git.checkout('main'), ['checkout', 'main']],
     [
       'clone',
@@ -150,10 +154,12 @@ describe('6.5 invoking the shell function directly', () => {
   test('6.5.1 forwards a direct call to the underlying Bun.$ tagged template', async () => {
     const calls: { strings: readonly string[]; values: unknown[] }[] = [];
     const original = Bun.$;
-    Bun.$ = ((strings: TemplateStringsArray, ...values: unknown[]) => {
+    const shellFn = vi.fn<typeof Bun.$>();
+    shellFn.mockImplementation((strings, ...values) => {
       calls.push({ strings: [...strings], values });
-      return fakeChain();
-    }) as unknown as typeof Bun.$;
+      return fakeShellPromise(fakeShellOutput('output'));
+    });
+    Bun.$ = shellFn;
 
     try {
       const dir = '/tmp/pkg';
@@ -181,18 +187,21 @@ describe('6.6 omitting optional flags falls back to defaults', () => {
     ['git.push', () => $.git.push('origin', 'main'), ['push', 'origin', 'main'], 'git'],
     ['git.revParse', () => $.git.revParse('HEAD'), ['rev-parse', 'HEAD'], 'git'],
     ['git.status', () => $.git.status(), ['status'], 'git'],
-  ] as const)('6.6.1 omits any flags when %s is called without them', async (_name, invoke, expectedArgv, expectedProgram) => {
-    const calls: CapturedCall[] = [];
-    const original = Bun.$;
-    Bun.$ = stubBunDollar(calls);
+  ] as const)(
+    '6.6.1 omits any flags when %s is called without them',
+    async (_name, invoke, expectedArgv, expectedProgram) => {
+      const calls: CapturedCall[] = [];
+      const original = Bun.$;
+      Bun.$ = stubBunDollar(calls);
 
-    try {
-      await invoke();
-      expect(calls[0]).toEqual({ argv: [...expectedArgv], program: expectedProgram });
-    } finally {
-      Bun.$ = original;
-    }
-  });
+      try {
+        await invoke();
+        expect(calls[0]).toEqual({ argv: [...expectedArgv], program: expectedProgram });
+      } finally {
+        Bun.$ = original;
+      }
+    },
+  );
 
   test('6.6.2 defaults cwd to process.cwd() when git.showToplevel is called without it', async ({ shellCalls }) => {
     await $.git.showToplevel();

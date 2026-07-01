@@ -12,11 +12,11 @@
 
 ## 6.2 building git subcommands
 
-### 6.2.1 builds each git subcommand's argv from its arguments and flags
+### 6.2.1 builds git %s argv from its arguments and flags
 
 ## 6.3 building gh subcommands
 
-### 6.3.1 builds each gh subcommand's argv from its arguments and flags
+### 6.3.1 builds gh %s argv from its arguments and flags
 
 ## 6.4 reading trimmed command output
 
@@ -28,6 +28,6 @@
 
 ## 6.6 omitting optional flags falls back to defaults
 
-### 6.6.1 omits any flags when a git or gh subcommand is called without them
+### 6.6.1 omits any flags when %s is called without them
 
 ### 6.6.2 defaults cwd to process.cwd() when git.showToplevel is called without it

@@ -56,6 +56,10 @@
 
 ### 15.6.1 recognizes test calls written with chained modifiers
 
+### 15.6.2 recognizes test calls written with a parametrized each table
+
+### 15.6.3 recognizes a title that contains a different quote character than its delimiter
+
 ## 15.7 running the python and typescript checks independently
 
 ### 15.7.1 scopes each check to only its own language packages in a mixed repo

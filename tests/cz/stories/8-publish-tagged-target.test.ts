@@ -16,13 +16,28 @@ const findTarget = (targets: ReleaseTarget[], label: string) => {
   return target;
 };
 
-const renderCall = (call: unknown[]) => {
-  const [strings, ...values] = call as [TemplateStringsArray, ...unknown[]];
-  return strings.reduce((rendered, chunk, index) => `${rendered}${chunk}${index < values.length ? String(values[index]) : ''}`, '');
+type ShellValue = Parameters<typeof $>[1];
+
+const renderValue = (value: ShellValue): string => {
+  if (Buffer.isBuffer(value)) return value.toString();
+  if (typeof value === 'string') return value;
+  if (Array.isArray(value)) {
+    const items: ShellValue[] = value;
+    return items.map(item => renderValue(item)).join(' ');
+  }
+  throw new Error('unexpected shell expression in renderCall');
 };
 
-const notFound = () => new Response(null, { status: 404 });
-const ok = () => new Response(null, { status: 200 });
+const renderCall = (call: Parameters<typeof $>) => {
+  const [strings, ...values] = call;
+  return strings.reduce((rendered, chunk, index) => {
+    const value = values[index];
+    return `${rendered}${chunk}${value === undefined ? '' : renderValue(value)}`;
+  }, '');
+};
+
+const notFound = () => new Response(undefined, { status: 404 });
+const ok = () => new Response(undefined, { status: 200 });
 
 afterEach(() => {
   vi.restoreAllMocks();
@@ -36,7 +51,7 @@ describe('8.1 skipping an already-published target', () => {
     const targets = await loadReleaseTargets();
     const util = findTarget(targets, '@zyplux/util');
     const version = await util.readVersion();
-    vi.stubGlobal('fetch', async () => ok());
+    vi.stubGlobal('fetch', () => Promise.resolve(ok()));
     const log = vi.spyOn(console, 'log').mockReturnValue(undefined);
 
     await runPublishTaggedTarget({ command: 'publish-tagged-target', tag: `util-v${version}` });
@@ -51,13 +66,15 @@ describe('8.2 publishing to each registry kind', () => {
     const targets = await loadReleaseTargets();
     const util = findTarget(targets, '@zyplux/util');
     const version = await util.readVersion();
-    vi.stubGlobal('fetch', async () => notFound());
+    vi.stubGlobal('fetch', () => Promise.resolve(notFound()));
     vi.spyOn(console, 'log').mockReturnValue(undefined);
 
     await runPublishTaggedTarget({ command: 'publish-tagged-target', tag: `util-v${version}` });
 
+    const [packCall] = mockedDollar.mock.calls;
+    if (packCall === undefined) throw new Error('expected $ to have been called');
     expect(mockedDollar).toHaveBeenCalledTimes(1);
-    expect(renderCall(mockedDollar.mock.calls[0]!)).toBe(
+    expect(renderCall(packCall)).toBe(
       `cd ${util.dir} && bun pm pack && bunx npm@latest publish ./*.tgz --access public`,
     );
   });
@@ -66,13 +83,15 @@ describe('8.2 publishing to each registry kind', () => {
     const targets = await loadReleaseTargets();
     const cerberus = findTarget(targets, 'zyplux-cerberus');
     const version = await cerberus.readVersion();
-    vi.stubGlobal('fetch', async () => notFound());
+    vi.stubGlobal('fetch', () => Promise.resolve(notFound()));
     vi.spyOn(console, 'log').mockReturnValue(undefined);
 
     await runPublishTaggedTarget({ command: 'publish-tagged-target', tag: `cerberus-v${version}` });
 
+    const [buildCall] = mockedDollar.mock.calls;
+    if (buildCall === undefined) throw new Error('expected $ to have been called');
     expect(mockedDollar).toHaveBeenCalledTimes(1);
-    expect(renderCall(mockedDollar.mock.calls[0]!)).toBe('uv build --package zyplux-cerberus && uv publish');
+    expect(renderCall(buildCall)).toBe('uv build --package zyplux-cerberus && uv publish');
   });
 
   it('8.2.3 requires GH_TOKEN and GITHUB_ACTOR before pushing a ghcr target', async () => {
@@ -81,14 +100,14 @@ describe('8.2 publishing to each registry kind', () => {
     const version = await ci.readVersion();
     vi.stubEnv('GH_TOKEN', '');
     vi.stubEnv('GITHUB_ACTOR', '');
-    vi.stubGlobal('fetch', async (input: string | URL) =>
-      String(input).includes('/token?') ? Response.json({ token: 'gh-token' }) : notFound(),
+    vi.stubGlobal('fetch', (input: string | URL) =>
+      Promise.resolve(String(input).includes('/token?') ? Response.json({ token: 'gh-token' }) : notFound()),
     );
     vi.spyOn(console, 'log').mockReturnValue(undefined);
 
-    await expect(runPublishTaggedTarget({ command: 'publish-tagged-target', tag: `ci-image-v${version}` })).rejects.toThrow(
-      'GH_TOKEN is required to push to GHCR',
-    );
+    await expect(
+      runPublishTaggedTarget({ command: 'publish-tagged-target', tag: `ci-image-v${version}` }),
+    ).rejects.toThrow('GH_TOKEN is required to push to GHCR');
     expect(mockedDollar).not.toHaveBeenCalled();
   });
 
@@ -98,17 +117,19 @@ describe('8.2 publishing to each registry kind', () => {
     const version = await ci.readVersion();
     vi.stubEnv('GH_TOKEN', 'gh-token');
     vi.stubEnv('GITHUB_ACTOR', 'zyplux-bot');
-    vi.stubGlobal('fetch', async (input: string | URL) =>
-      String(input).includes('/token?') ? Response.json({ token: 'gh-token' }) : notFound(),
+    vi.stubGlobal('fetch', (input: string | URL) =>
+      Promise.resolve(String(input).includes('/token?') ? Response.json({ token: 'gh-token' }) : notFound()),
     );
     vi.spyOn(console, 'log').mockReturnValue(undefined);
 
     await runPublishTaggedTarget({ command: 'publish-tagged-target', tag: `ci-image-v${version}` });
 
-    const rendered = mockedDollar.mock.calls.map(call => renderCall(call));
-    expect(rendered[0]).toContain('podman login ghcr.io -u zyplux-bot --password-stdin < ');
-    expect(rendered[1]).toBe(`podman build -t ghcr.io/zyplux/ci:${version} -t ghcr.io/zyplux/ci:latest ${ci.dir}`);
-    expect(rendered[2]).toBe(`podman push ghcr.io/zyplux/ci:${version}`);
-    expect(rendered[3]).toBe('podman push ghcr.io/zyplux/ci:latest');
+    const [loginCall, buildCall, versionPushCall, latestPushCall] = mockedDollar.mock.calls.map(call =>
+      renderCall(call),
+    );
+    expect(loginCall).toContain('podman login ghcr.io -u zyplux-bot --password-stdin < ');
+    expect(buildCall).toBe(`podman build -t ghcr.io/zyplux/ci:${version} -t ghcr.io/zyplux/ci:latest ${ci.dir}`);
+    expect(versionPushCall).toBe(`podman push ghcr.io/zyplux/ci:${version}`);
+    expect(latestPushCall).toBe('podman push ghcr.io/zyplux/ci:latest');
   });
 });

@@ -8,6 +8,7 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 vi.mock('@zyplux/cz/deps-catalog', () => ({ collectDepRepos: vi.fn() }));
 
 const mockedCollect = vi.mocked(collectDepRepos);
+const JSON_INDENT = 2;
 
 describe('7.1 writing the resolved repos to the output file', () => {
   let dir: string;
@@ -29,7 +30,7 @@ describe('7.1 writing the resolved repos to the output file', () => {
     await runDepsCatalog({ command: 'deps-catalog', dir, out: 'catalog.json' });
 
     const written = await readFile(path.join(dir, 'catalog.json'), 'utf8');
-    expect(written).toBe(`${JSON.stringify(report.repos, undefined, 2)}\n`);
+    expect(written).toBe(`${JSON.stringify(report.repos, undefined, JSON_INDENT)}\n`);
     expect(log).toHaveBeenCalledWith(`Wrote 2 source repositories to ${path.join(dir, 'catalog.json')}`);
   });
 

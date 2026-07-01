@@ -5,6 +5,8 @@ import { tmpdir } from 'node:os';
 import path from 'node:path';
 import { afterEach, beforeAll, beforeEach, describe, expect, it, vi } from 'vitest';
 
+import { fakeShellOutput } from '#shell-fixtures';
+
 const findTarget = (targets: ReleaseTarget[], label: string) => {
   const target = targets.find(candidate => candidate.label === label);
   if (target === undefined) throw new Error(`${label} target missing from manifest`);
@@ -103,12 +105,12 @@ describe('release-targets', () => {
           'label = "broken-target"',
           'surface = []',
           'tag_prefix = "broken-v"',
-          "version = { file = \"VERSION\", regex = '^nomatch$' }",
+          'version = { file = "VERSION", regex = \'^nomatch$\' }',
         ].join('\n'),
         'utf8',
       );
       await writeFile(path.join(dir, 'VERSION'), '1.2.3\n', 'utf8');
-      $.git.showToplevel = (async () => ({ text: () => dir })) as typeof $.git.showToplevel;
+      $.git.showToplevel = () => Promise.resolve(fakeShellOutput(dir));
     });
 
     afterEach(async () => {
@@ -126,8 +128,12 @@ describe('release-targets', () => {
 
   describe('2.5 checking whether the ghcr image target is published', () => {
     it('2.5.1 treats a failed registry auth handshake as not published', async () => {
-      vi.stubGlobal('fetch', async (input: string | URL) =>
-        String(input).includes('/token?') ? new Response(null, { status: 404 }) : new Response(null, { status: 200 }),
+      vi.stubGlobal('fetch', (input: string | URL) =>
+        Promise.resolve(
+          String(input).includes('/token?')
+            ? new Response(undefined, { status: 404 })
+            : new Response(undefined, { status: 200 }),
+        ),
       );
       try {
         const ci = findTarget(targets, 'ghcr.io/zyplux/ci');

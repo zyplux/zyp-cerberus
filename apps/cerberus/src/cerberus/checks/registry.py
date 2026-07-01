@@ -12,12 +12,14 @@ from cerberus.checks import (
     justfile_check,
     line_length_check,
     pyrefly_config_check,
+    pytest_coverage_check,
     release_bumps_check,
     ruff_config_check,
     rumdl_config_check,
     story_tests_py_check,
     story_tests_ts_check,
     ts_project_references_check,
+    vitest_coverage_check,
     vitest_runner_check,
     workflow_tooling_check,
 )
@@ -56,6 +58,8 @@ ALL: tuple[Check, ...] = tuple(
         story_tests_ts_check,
         release_bumps_check,
         codeowners_check,
+        pytest_coverage_check,
+        vitest_coverage_check,
     )
 )
 

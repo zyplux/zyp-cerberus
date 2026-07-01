@@ -30,8 +30,6 @@ describe('3.1 asserting a tag against the release manifest', () => {
   });
 
   it('3.1.2 rejects a tag no release target owns', async () => {
-    await expect(
-      runAssertTagVersion({ command: 'assert-tag-version', tag: 'mystery-v1.0.0' }),
-    ).rejects.toThrow();
+    await expect(runAssertTagVersion({ command: 'assert-tag-version', tag: 'mystery-v1.0.0' })).rejects.toThrow();
   });
 });

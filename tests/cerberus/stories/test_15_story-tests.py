@@ -388,6 +388,38 @@ def test_15_6_1_recognizes_test_calls_written_with_chained_modifiers(run_story_c
     assert result.findings == [Finding(Status.PASS, OK_MESSAGE)]
 
 
+def test_15_6_2_recognizes_test_calls_written_with_a_parametrized_each_table(
+    run_story_check: RunStoryCheck,
+) -> None:
+    test_content = (
+        "test.each([\n"
+        "  ['red', () => paint('red', { intensity: 1 })],\n"
+        "  ['blue', () => paint('blue', { intensity: 2 })],\n"
+        "] as const)('1.1.1 shows the widget name', (_color, invoke) => {\n"
+        "  invoke();\n"
+        "});\n"
+        "test('1.1.2 accepts a custom color', () => {});\n"
+    )
+    files = {"package.json": _TS_PLAIN_PKG, TS_DOC_PATH: _linked("1-widget.test.ts"), TS_TEST_PATH: test_content}
+    result = run_story_check(story_tests_ts_check.run, files)
+    assert result.findings == [Finding(Status.PASS, OK_MESSAGE)]
+
+
+def test_15_6_3_recognizes_a_title_that_contains_a_different_quote_character_than_its_delimiter(
+    run_story_check: RunStoryCheck,
+) -> None:
+    test_content = "it(\"1.1.1 shows the widget's name\", () => {});\ntest('1.1.2 accepts a custom color', () => {});\n"
+    files = {"package.json": _TS_PLAIN_PKG, TS_DOC_PATH: _linked("1-widget.test.ts"), TS_TEST_PATH: test_content}
+    result = run_story_check(story_tests_ts_check.run, files)
+    assert result.findings == [
+        Finding(
+            Status.FAIL,
+            "tests/stories: header/test title drift for 1.1.1 — "
+            "header='shows the widget name' test=\"shows the widget's name\"",
+        )
+    ]
+
+
 def test_15_7_1_scopes_each_check_to_only_its_own_language_packages_in_a_mixed_repo(
     run_story_check: RunStoryCheck,
 ) -> None:

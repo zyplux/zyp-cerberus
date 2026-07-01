@@ -65,7 +65,9 @@ describe('9. Pushing a branch and advancing its draft PR', () => {
     localHeadSha = 'sha-local';
     Bun.sleep = () => Promise.resolve();
 
-    git.revParse.mockImplementation((_rev, flags) => Promise.resolve(text(flags?.abbrevRef ? branchName : localHeadSha)));
+    git.revParse.mockImplementation((_rev, flags) =>
+      Promise.resolve(text(flags?.abbrevRef ? branchName : localHeadSha)),
+    );
     gh.pr.view.mockImplementation(({ json } = {}) => Promise.resolve(text(shiftField(json))));
   });
 
@@ -75,9 +77,9 @@ describe('9. Pushing a branch and advancing its draft PR', () => {
 
   describe('9.1 validating preconditions', () => {
     it('9.1.1 rejects --hold without --ready', async () => {
-      await expect(
-        runPushBranch({ command: 'push-branch', hold: true, ready: false }),
-      ).rejects.toThrow('--hold requires --ready');
+      await expect(runPushBranch({ command: 'push-branch', hold: true, ready: false })).rejects.toThrow(
+        '--hold requires --ready',
+      );
       expect(git.revParse).not.toHaveBeenCalled();
     });
 
@@ -93,7 +95,7 @@ describe('9. Pushing a branch and advancing its draft PR', () => {
       branchName = 'main';
 
       await expect(runPushBranch({ command: 'push-branch', hold: false, ready: false })).rejects.toThrow(
-        "refusing to run on main",
+        'refusing to run on main',
       );
     });
   });

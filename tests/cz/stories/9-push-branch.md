@@ -26,11 +26,15 @@
 
 ### 9.4.3 skips the Copilot check when there are new commits to push
 
+### 9.4.4 rejects when the PR never reports draft state
+
 ## 9.5 flipping a draft PR back to ready
 
 ### 9.5.1 flips an existing draft PR to ready after pushing
 
 ### 9.5.2 holds auto-merge when --hold is set
+
+### 9.5.3 rejects when the PR never returns to ready state
 
 ## 9.6 merging a ready PR
 
@@ -39,3 +43,5 @@
 ### 9.6.2 rejects a dirty merge state
 
 ### 9.6.3 schedules auto-merge for any other mergeable state
+
+### 9.6.4 rejects when the merge state stays UNKNOWN

@@ -43,8 +43,11 @@ _DOC_TITLE = re.compile(r"^# (\d+)\. (.+)$")
 _STORY_HEADER = re.compile(r"^## (\d+\.\d+) (.+)$")
 _CRITERION_HEADER = re.compile(r"^### (\d+(?:\.\d+)+) (.+)$")
 _LINKED_TITLE = re.compile(r"^\[(?P<title>.+)\]\((?P<target>[^)]+)\)$")
+_BALANCED_PARENS = r"\((?:[^()]|\((?:[^()]|\([^()]*\))*\))*\)"
 _TS_TEST_CALL = re.compile(
-    r"\b(?:test|it)(?:\.\w+)*\s*\(\s*(?P<quote>['\"`])(?P<id>\d+(?:\.\d+)+)\s+(?P<title>[^'\"`]*?)(?P=quote)"
+    rf"\b(?:test|it)(?:\.\w+)*(?:{_BALANCED_PARENS}\s*)?\(\s*"
+    rf"(?P<quote>['\"`])(?P<id>\d+(?:\.\d+)+)\s+(?P<title>(?:(?!(?P=quote)).)*?)(?P=quote)",
+    re.DOTALL,
 )
 _PY_ANY_TEST = re.compile(r"^test_.+\.py$")
 _TS_ANY_TEST = re.compile(r".+\.(?:test|spec)\.tsx?$")

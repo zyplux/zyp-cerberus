@@ -7,6 +7,8 @@ import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { afterEach, test as base, beforeEach, describe, expect, vi } from 'vitest';
 
+import { fakeShellOutput, fakeShellPromise, toArgv } from '#shell-fixtures';
+
 type FetchRoute = (url: string) => Response;
 
 const workspaceRoot = fileURLToPath(new URL('../../../', import.meta.url));
@@ -64,6 +66,17 @@ const resolveFromCatalog: FetchRoute = url => {
   const repo = sourceRepoById.get(`${system}:${decodeURIComponent(encodedName)}`);
   if (repo === undefined) return notFound();
   return versionPath === undefined ? depsDevDefaultVersion() : depsDevSourceRepo(repo);
+};
+
+const stubGitTree = (listing: string) => {
+  const shellFn = vi.fn<typeof Bun.$>();
+  shellFn.mockImplementation((strings, ...values) => {
+    const argv = toArgv(values);
+    if (argv[0] === 'rev-parse') return fakeShellPromise(fakeShellOutput('true\n'));
+    if (argv[0] === 'ls-files') return fakeShellPromise(fakeShellOutput(listing));
+    throw new Error(`unexpected Bun.$ call: ${strings[0]?.trim() ?? ''} ${argv.join(' ')}`);
+  });
+  Bun.$ = shellFn;
 };
 
 const test = base.extend<{
@@ -199,27 +212,6 @@ describe('1.4 skipping manifest files that fail to parse', () => {
   let dir: string;
   const originalBunDollar = Bun.$;
 
-  const stubGitTree = (listing: string) => {
-    Bun.$ = ((strings: TemplateStringsArray, ...values: unknown[]) => {
-      const argv = values[0] as string[];
-      const result =
-        argv[0] === 'rev-parse'
-          ? { exitCode: 0, text: () => 'true\n' }
-          : argv[0] === 'ls-files'
-            ? { text: () => listing }
-            : (() => {
-                throw new Error(`unexpected Bun.$ call: ${strings[0]?.trim()} ${argv.join(' ')}`);
-              })();
-      const chain = {
-        cwd: () => chain,
-        nothrow: () => chain,
-        quiet: () => chain,
-        then: (resolve: (value: typeof result) => void) => { resolve(result); },
-      };
-      return chain;
-    }) as unknown as typeof Bun.$;
-  };
-
   beforeEach(async () => {
     dir = await mkdtemp(path.join(tmpdir(), 'cz-deps-catalog-broken-'));
     await writeFile(path.join(dir, 'package.json'), '{ "name": "should-not-parse", ', 'utf8');
@@ -250,11 +242,10 @@ describe('1.4 skipping manifest files that fail to parse', () => {
   });
 
   test('1.4.1 skips package.json and pyproject.toml files that fail to parse, keeping the rest', async () => {
+    const survivingRepos = ['https://github.com/noname/repo', 'https://github.com/emptyname/repo'];
     const scan = await collectDepsNames(dir);
 
-    expect([...scan.localRepos]).toEqual(
-      expect.arrayContaining(['https://github.com/noname/repo', 'https://github.com/emptyname/repo']),
-    );
-    expect(scan.localRepos.size).toBe(2);
+    expect([...scan.localRepos]).toEqual(expect.arrayContaining(survivingRepos));
+    expect(scan.localRepos.size).toBe(survivingRepos.length);
   });
 });

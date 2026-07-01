@@ -63,17 +63,15 @@ describe('6.1 building the clone url and destination', () => {
 describe('6.2 re-cloning over an existing destination', () => {
   const dest = path.join('reference_clones', 'existing-scratch-repo');
 
-  afterEach(async () => {
+  afterEach(() => {
     clone.mockClear();
-    globalThis.prompt = originalPrompt;
+    vi.unstubAllGlobals();
   });
-
-  const originalPrompt = globalThis.prompt;
 
   it('6.2.1 prompts for confirmation and removes the existing destination before cloning', async () => {
     await mkdir(dest, { recursive: true });
     let promptedWith: string | undefined;
-    globalThis.prompt = ((message?) => {
+    vi.stubGlobal('prompt', (message?: string) => {
       promptedWith = message;
       return '';
     });
