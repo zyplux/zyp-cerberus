@@ -303,5 +303,20 @@ describe('10. Releasing every target whose version was bumped', () => {
         `zyplux-cerberus ${cerberusVersion}: publish workflow 111 finished with 'failure'`,
       );
     });
+
+    it('10.4.3 reports failures in manifest order even when a later target fails first', async () => {
+      let isCiImageRunCompleted = false;
+      gh.run.view.mockImplementation(runId => {
+        if (runId === '222') {
+          isCiImageRunCompleted = true;
+          return Promise.resolve(text('completed\nfailure'));
+        }
+        return Promise.resolve(text(isCiImageRunCompleted ? 'completed\nfailure' : 'in_progress'));
+      });
+
+      await expect(runReleaseBumpedTargets()).rejects.toThrow(
+        '2 of 2 targets failed to publish: zyplux-cerberus, ghcr.io/zyplux/ci',
+      );
+    });
   });
 });

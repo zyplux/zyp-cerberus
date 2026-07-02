@@ -120,16 +120,17 @@ export const runReleaseBumpedTargets = async () => {
   }
   ensure(pending.length > 0, 'nothing to release; bump a version first');
 
-  const failures: { reason: string; target: Target }[] = [];
-  await Promise.all(
+  const outcomes = await Promise.all(
     pending.map(async target => {
       try {
         await publish(target, remoteHead);
+        return [];
       } catch (error) {
-        failures.push({ reason: error instanceof Error ? error.message : String(error), target });
+        return [{ reason: error instanceof Error ? error.message : String(error), target }];
       }
     }),
   );
+  const failures = outcomes.flat();
 
   for (const { reason, target } of failures) {
     console.error(`${target.label} ${target.version}: ${reason}`);

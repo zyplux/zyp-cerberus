@@ -37,3 +37,5 @@
 ### 10.4.1 publishes all pending targets concurrently, each watching its own tagged workflow run
 
 ### 10.4.2 keeps publishing the remaining targets when one fails and reports the failure at the end
+
+### 10.4.3 reports failures in manifest order even when a later target fails first
