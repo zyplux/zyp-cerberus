@@ -34,11 +34,12 @@ describe('2. Dumping the fully resolved eslint config to a committed rules snaps
       '2.2.1 replaces the absolute tsconfig root path with a stable placeholder',
       { timeout: printConfigTimeoutMs },
       ({ printedConfig }) => {
-        const config = parsePrintedConfig(printedConfig);
-        const rawTsconfigRootDir = config.languageOptions.parserOptions.tsconfigRootDir;
+        const liveTsconfigRootDir = parsePrintedConfig(printedConfig).languageOptions.parserOptions.tsconfigRootDir;
+        const snapshotTsconfigRootDir = readJsonSync(rulesUrl, PrintedConfigSchema).languageOptions.parserOptions
+          .tsconfigRootDir;
 
-        expect(path.isAbsolute(rawTsconfigRootDir)).toBe(true);
-        expect(applyRootDirPlaceholder(config).languageOptions.parserOptions.tsconfigRootDir).toBe(rootDirPlaceholder);
+        expect(path.isAbsolute(liveTsconfigRootDir)).toBe(true);
+        expect(snapshotTsconfigRootDir).toBe(rootDirPlaceholder);
       },
     );
   });

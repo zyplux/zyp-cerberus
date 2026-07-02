@@ -11,3 +11,7 @@
 ## 2.2 validating the concurrency limit argument
 
 ### 2.2.1 rejects a limit that is not a positive integer
+
+## 2.3 propagating task failures
+
+### 2.3.1 rejects with the task error when any task fails

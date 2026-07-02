@@ -10,6 +10,8 @@ import {
   normalizePythonName,
   npmDependencyNames,
   PackageJsonSchema,
+  parseJson,
+  parseToml,
   PyProjectSchema,
   pythonRequirementNames,
   repositoryUrl,
@@ -35,39 +37,60 @@ const createNestedGitRepos = async (reposRoot: string) => {
   return manifestPaths;
 };
 
-describe('1.1 parsing package manifests into typed shapes', () => {
-  test('1.1.1 reads a bun workspace catalog alongside dependency maps', () => {
-    const manifest = PackageJsonSchema.parse({
-      dependencies: { zod: 'catalog:' },
-      name: '@scope/app',
-      workspaces: { catalog: { react: '^19' } },
-    });
+const packageJsonText = [
+  '{',
+  '  "name": "@scope/app",',
+  '  "dependencies": { "zod": "catalog:" },',
+  '  "workspaces": { "catalog": { "react": "^19" } },',
+  '  "scripts": { "build": "bun build" }',
+  '}',
+].join('\n');
+
+const pyprojectTomlText = [
+  '[project]',
+  'name = "app"',
+  'dependencies = ["httpx>=0.28"]',
+  '',
+  '[project.optional-dependencies]',
+  'http = ["urllib3"]',
+  '',
+  '[dependency-groups]',
+  'dev = ["ruff>=0.1"]',
+  '',
+  '[tool.uv]',
+  'dev-dependencies = ["pytest>=8"]',
+  '',
+  '[build-system]',
+  'requires = ["hatchling"]',
+].join('\n');
+
+describe('1.1 parsing manifest text into typed shapes', () => {
+  test('1.1.1 parses package json text into a typed manifest and strips unknown keys', () => {
+    const manifest = parseJson(packageJsonText, PackageJsonSchema);
 
     expect(manifest).toEqual({
       dependencies: { zod: 'catalog:' },
       name: '@scope/app',
       workspaces: { catalog: { react: '^19' } },
     });
+    expect(manifest).not.toHaveProperty('scripts');
   });
 
   test('1.1.2 tolerates the array form of workspaces', () => {
-    const manifest = PackageJsonSchema.parse({ workspaces: ['packages/*'] });
+    const manifest = parseJson('{ "workspaces": ["packages/*"] }', PackageJsonSchema);
 
     expect(manifest).toEqual({ workspaces: ['packages/*'] });
   });
 
-  test('1.1.3 reads pep 621 dependencies optional dependency groups and pep 735 dependency groups', () => {
-    const manifest = PyProjectSchema.parse({
-      'dependency-groups': { dev: ['ruff>=0.1'] },
-      project: { dependencies: ['httpx>=0.28'], name: 'app', 'optional-dependencies': { http: ['urllib3'] } },
-      tool: { uv: { 'dev-dependencies': ['pytest>=8'] } },
-    });
+  test('1.1.3 parses pyproject toml text with pep 621 and pep 735 dependency sections and strips unknown keys', () => {
+    const manifest = parseToml(pyprojectTomlText, PyProjectSchema);
 
     expect(manifest).toEqual({
       'dependency-groups': { dev: ['ruff>=0.1'] },
       project: { dependencies: ['httpx>=0.28'], name: 'app', 'optional-dependencies': { http: ['urllib3'] } },
       tool: { uv: { 'dev-dependencies': ['pytest>=8'] } },
     });
+    expect(manifest).not.toHaveProperty('build-system');
   });
 });
 

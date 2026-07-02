@@ -1,6 +1,16 @@
+import * as z from 'zod';
+
 import { describe, expect, plugin, test, zyplux } from '#fixtures';
 
 type Config = ReturnType<typeof zyplux>;
+
+const ParserOptionsSchema = z.looseObject({ tsconfigRootDir: z.string() });
+
+const tsconfigRootDirs = (config: Config) =>
+  config.flatMap(entry => {
+    const parsed = ParserOptionsSchema.safeParse(entry.languageOptions?.['parserOptions']);
+    return parsed.success ? [parsed.data.tsconfigRootDir] : [];
+  });
 
 const hasReactSettings = (config: Config) =>
   config.some(entry => entry.settings !== undefined && 'react' in entry.settings);
@@ -32,11 +42,7 @@ const rendererMapConfig = () => zyplux({ react: rendererMap });
 
 describe('3. Configuring eslint through the public zyplux entry point', () => {
   describe('3.1 assembling the base flat config', () => {
-    test('3.1.1 produces a non-empty flat config array', () => {
-      expect(zyplux().length).toBeGreaterThan(0);
-    });
-
-    test('3.1.2 enables every rule the zyplux plugin exports', () => {
+    test('3.1.1 enables every rule the zyplux plugin exports', () => {
       const config = zyplux();
       const entry = config.find(item => item.plugins !== undefined && '@zyplux' in item.plugins);
       expect(entry).toBeDefined();
@@ -48,7 +54,7 @@ describe('3. Configuring eslint through the public zyplux entry point', () => {
       expect(enabled).toEqual(exported);
     });
 
-    test('3.1.3 scopes vitest rules to test files', () => {
+    test('3.1.2 scopes vitest rules to test files', () => {
       const config = zyplux();
       const entry = config.find(item => item.plugins !== undefined && 'vitest' in item.plugins);
       expect(entry).toBeDefined();
@@ -103,8 +109,9 @@ describe('3. Configuring eslint through the public zyplux entry point', () => {
       expect(isRuleDisabled(domlessConfig, 'react/no-unknown-property')).toBe(true);
     });
 
-    test('3.4.4 treats an empty renderer map as no react', () => {
+    test('3.4.4 treats an empty renderer map or a renderer with no globs as no react', () => {
       expect(hasReactSettings(zyplux({ react: {} }))).toBe(false);
+      expect(hasReactSettings(zyplux({ react: { dom: [] } }))).toBe(false);
     });
   });
 
@@ -118,6 +125,19 @@ describe('3. Configuring eslint through the public zyplux entry point', () => {
     test('3.5.2 lets a per-call option override a shared default', () => {
       const withReactDefaults = zyplux.withDefaults({ react: true });
       expect(hasReactSettings(withReactDefaults({ react: false }))).toBe(false);
+    });
+  });
+
+  describe('3.6 forwarding caller options into the assembled config', () => {
+    test('3.6.1 appends caller ignores to the default global ignores', () => {
+      const config = zyplux({ ignores: ['generated/**'] });
+      const entry = config.find(item => item.ignores?.includes('generated/**'));
+      expect(entry).toBeDefined();
+      expect(entry?.ignores).toContain('**/dist');
+    });
+
+    test('3.6.2 forwards the tsconfig root dir to the typescript parser options', () => {
+      expect(tsconfigRootDirs(zyplux({ tsconfigRootDir: '/repo/root' }))).toEqual(['/repo/root']);
     });
   });
 });

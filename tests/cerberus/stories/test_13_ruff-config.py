@@ -78,38 +78,40 @@ def test_13_2_3_errors_when_the_ruff_config_cannot_be_parsed(
     assert result.findings == [Finding(Status.ERROR, "could not parse ruff.toml")]
 
 
-def test_13_3_1_fails_when_preview_is_explicitly_off(
+@pytest.mark.parametrize(
+    ("ruff", "found"),
+    [
+        (_RUFF_CANONICAL.replace("preview = true", "preview = false"), "False"),
+        (_RUFF_CANONICAL.replace("preview = true\n", ""), "None"),
+    ],
+    ids=["off", "unset"],
+)
+def test_13_3_1_fails_unless_preview_is_explicitly_true(
     run_ruff: RunRuff,
+    ruff: str,
+    found: str,
 ) -> None:
-    result = run_ruff(ruff=_RUFF_CANONICAL.replace("preview = true", "preview = false"))
+    result = run_ruff(ruff=ruff)
 
-    assert result.findings == [Finding(Status.FAIL, "ruff.toml must set `preview = true` (found False)")]
+    assert result.findings == [Finding(Status.FAIL, f"ruff.toml must set `preview = true` (found {found})")]
 
 
-def test_13_3_2_fails_when_preview_is_not_set(
+@pytest.mark.parametrize(
+    ("ruff", "found"),
+    [
+        (_RUFF_CANONICAL.replace('select = ["ALL"]', 'select = ["E", "F"]'), "['E', 'F']"),
+        ('preview = true\nselect = ["ALL"]\n', "None"),
+    ],
+    ids=["specific_rules", "top_level_select"],
+)
+def test_13_4_1_fails_unless_lint_select_is_exactly_all(
     run_ruff: RunRuff,
+    ruff: str,
+    found: str,
 ) -> None:
-    result = run_ruff(ruff=_RUFF_CANONICAL.replace("preview = true\n", ""))
+    result = run_ruff(ruff=ruff)
 
-    assert result.findings == [Finding(Status.FAIL, "ruff.toml must set `preview = true` (found None)")]
-
-
-def test_13_4_1_fails_when_select_lists_specific_rules_instead_of_all(
-    run_ruff: RunRuff,
-) -> None:
-    result = run_ruff(ruff=_RUFF_CANONICAL.replace('select = ["ALL"]', 'select = ["E", "F"]'))
-
-    assert result.findings == [
-        Finding(Status.FAIL, "ruff.toml must set `[lint] select = [\"ALL\"]` (found ['E', 'F'])")
-    ]
-
-
-def test_13_4_2_fails_when_select_is_set_at_the_top_level_instead_of_under_lint(
-    run_ruff: RunRuff,
-) -> None:
-    result = run_ruff(ruff='preview = true\nselect = ["ALL"]\n')
-
-    assert result.findings == [Finding(Status.FAIL, 'ruff.toml must set `[lint] select = ["ALL"]` (found None)')]
+    assert result.findings == [Finding(Status.FAIL, f'ruff.toml must set `[lint] select = ["ALL"]` (found {found})')]
 
 
 def test_13_5_1_passes_when_only_some_sanctioned_rules_are_ignored(

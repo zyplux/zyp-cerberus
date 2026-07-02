@@ -1,8 +1,24 @@
 import { existsSync } from 'node:fs';
 import { mkdir } from 'node:fs/promises';
 import path from 'node:path';
+import process from 'node:process';
 
-import { describe, expect, test, vi } from '#fixtures';
+import { test as base, describe, expect, vi } from '#fixtures';
+
+const test = base.extend<{ tempCwd: undefined }>({
+  tempCwd: [
+    async ({ tempDir }, use) => {
+      const entryCwd = process.cwd();
+      process.chdir(tempDir.path);
+      try {
+        await use(undefined);
+      } finally {
+        process.chdir(entryCwd);
+      }
+    },
+    { auto: true },
+  ],
+});
 
 describe('6.1 building the clone url and destination', () => {
   test('6.1.1 builds a github url and destination from an owner/name shorthand', async ({ cz, shell }) => {
@@ -38,7 +54,7 @@ describe('6.1 building the clone url and destination', () => {
     });
   });
 
-  test('6.1.4 passes the ref as a branch flag when given, omits it otherwise', async ({ cz, shell }) => {
+  test('6.1.4 passes a given ref as the branch flag', async ({ cz, shell }) => {
     shell.on('git clone', '');
 
     await cz.run('clone-reference-repo', 'zyplux/util', 'v2.0.0');

@@ -14,6 +14,8 @@
 
 ### 3.1.6 works for a non github host and strips its git suffix
 
+### 3.1.7 normalizes a git plus ssh protocol remote to an https url
+
 ## 3.2 rejecting values that do not name a repository
 
 ### 3.2.1 returns undefined for an empty string

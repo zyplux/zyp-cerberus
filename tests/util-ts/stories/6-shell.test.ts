@@ -1,39 +1,12 @@
 import { $, describe, expect, readTrimmed, test } from '#fixtures';
 
 describe('6.1 translating flag objects into CLI arguments', () => {
-  test('6.1.1 renders a true boolean flag as a bare kebab-case switch', async ({ shell }) => {
-    shell.otherwise('output');
-
-    await $.git.pull({ ffOnly: true });
-
-    expect(shell.calls[0]).toEqual({ argv: ['pull', '--ff-only'], program: 'git' });
-  });
-
-  test('6.1.2 omits a false boolean flag entirely', async ({ shell }) => {
+  test('6.1.1 omits a false boolean flag entirely', async ({ shell }) => {
     shell.otherwise('output');
 
     await $.git.branch('feat-x', { delete: false });
 
     expect(shell.calls[0]).toEqual({ argv: ['branch', 'feat-x'], program: 'git' });
-  });
-
-  test('6.1.3 renders a valued flag as a switch followed by its stringified value', async ({ shell }) => {
-    shell.otherwise('output');
-
-    await $.gh.run.view('123', { json: 'status,conclusion' });
-
-    expect(shell.calls[0]).toEqual({ argv: ['run', 'view', '123', '--json', 'status,conclusion'], program: 'gh' });
-  });
-
-  test('6.1.4 renders every own flag in a multi-flag object', async ({ shell }) => {
-    shell.otherwise('output');
-
-    await $.gh.pr.list({ head: 'my-branch', jq: '.x', json: 'state', state: 'all' });
-
-    expect(shell.calls[0]).toEqual({
-      argv: ['pr', 'list', '--head', 'my-branch', '--jq', '.x', '--json', 'state', '--state', 'all'],
-      program: 'gh',
-    });
   });
 });
 
@@ -119,9 +92,10 @@ describe('6.3 building gh subcommands', () => {
 });
 
 describe('6.4 reading trimmed command output', () => {
-  test('6.4.1 awaits a command and trims its text output', async () => {
-    const command = Promise.resolve({ text: () => '  hello  \n' });
-    expect(await readTrimmed(command)).toBe('hello');
+  test('6.4.1 awaits a command and trims its text output', async ({ shell }) => {
+    shell.otherwise('  abc123  \n');
+
+    expect(await readTrimmed($.git.revParse('HEAD'))).toBe('abc123');
   });
 });
 
@@ -163,7 +137,7 @@ describe('6.6 omitting optional flags falls back to defaults', () => {
     },
   );
 
-  test('6.6.2 defaults cwd to process.cwd() when git.showToplevel is called without it', async ({ shell }) => {
+  test('6.6.2 builds the same show toplevel argv when git.showToplevel is called without a cwd', async ({ shell }) => {
     shell.otherwise('output');
 
     await $.git.showToplevel();

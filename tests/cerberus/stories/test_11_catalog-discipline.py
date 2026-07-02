@@ -68,6 +68,13 @@ def test_11_2_2_fails_and_names_the_dependency_that_pins_a_raw_version(
     ]
 
 
+def test_11_2_3_treats_an_unparseable_manifest_as_declaring_no_dependencies(
+    run_catalog_discipline: RunCatalogDiscipline,
+) -> None:
+    result = run_catalog_discipline({"package.json": _CATALOG_WS_ROOT, "packages/a/package.json": "not json"})
+    assert result.findings == [Finding(Status.PASS, "every dependency uses catalog: or workspace:")]
+
+
 def test_11_3_1_ignores_dependencies_declared_in_a_vendored_node_modules_package_json(
     run_catalog_discipline: RunCatalogDiscipline,
 ) -> None:

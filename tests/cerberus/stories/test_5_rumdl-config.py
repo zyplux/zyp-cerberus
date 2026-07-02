@@ -111,7 +111,15 @@ def test_5_2_2_rewrites_a_non_canonical_config_to_canonical_form_preserving_excl
     assert fixed_rumdl_toml.read_text(encoding="utf-8") == FIXED_WITH_EXCLUDE
 
 
-def test_5_2_3_passes_when_re_checked_after_being_fixed(fixed_rumdl_toml: Path) -> None:
+def test_5_2_3_rewrites_a_non_canonical_config_without_an_exclude_to_the_exact_canonical_text(tmp_path: Path) -> None:
+    config_path = tmp_path / ".rumdl.toml"
+    config_path.write_text(NON_CANONICAL)
+    fixer = context.local_context(config.load(), tmp_path, fix=True)
+    rumdl_config_check.run(fixer.repos()[0], fixer)
+    assert config_path.read_text() == rumdl_config_check.CANONICAL
+
+
+def test_5_2_4_passes_when_re_checked_after_being_fixed(fixed_rumdl_toml: Path) -> None:
     verifier = context.local_context(config.load(), fixed_rumdl_toml.parent)
     result = rumdl_config_check.run(verifier.repos()[0], verifier)
     assert result.findings == [Finding(Status.PASS, ".rumdl.toml matches the org canonical")]

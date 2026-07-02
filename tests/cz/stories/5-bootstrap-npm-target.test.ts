@@ -2,11 +2,15 @@ import { describe, expect, notFoundResponse, okResponse, test, workspaceRoot } f
 
 describe('5.1 validating the target before bootstrapping', () => {
   test('5.1.1 rejects a label no release target owns', async ({ cz }) => {
-    await expect(cz.run('bootstrap-npm-target', 'does-not-exist')).rejects.toThrow();
+    await expect(cz.run('bootstrap-npm-target', 'does-not-exist')).rejects.toThrow(
+      "no release target labeled 'does-not-exist' in release-targets.toml",
+    );
   });
 
   test('5.1.2 rejects a target that is not an npm target', async ({ cz }) => {
-    await expect(cz.run('bootstrap-npm-target', 'zyplux-cerberus')).rejects.toThrow();
+    await expect(cz.run('bootstrap-npm-target', 'zyplux-cerberus')).rejects.toThrow(
+      "bootstrap is npm-only; 'zyplux-cerberus' is a pypi target",
+    );
   });
 });
 

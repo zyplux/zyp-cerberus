@@ -19,6 +19,8 @@ describe('4.1 classifying a tag by its release target', () => {
   );
 
   test('4.1.2 rejects a tag no release target owns', async ({ cz }) => {
-    await expect(cz.run('print-tag-kind', 'mystery-v1.0.0')).rejects.toThrow();
+    await expect(cz.run('print-tag-kind', 'mystery-v1.0.0')).rejects.toThrow(
+      "no release target in release-targets.toml owns tag 'mystery-v1.0.0'",
+    );
   });
 });

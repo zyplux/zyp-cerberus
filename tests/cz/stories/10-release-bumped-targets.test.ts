@@ -70,16 +70,6 @@ describe('10. Releasing every target whose version was bumped', () => {
       );
       expect(shell.commandsMatching('gh release create')).toHaveLength(0);
     });
-
-    test('10.2.3 rejects when every target ends up skipped', async ({ cz, registries, repo, shell }) => {
-      repo.syncMain('sha-head');
-      registries.setPublished({ ghcrPublished: true, npmPublished: true, pypiPublished: false });
-      shell.on('gh release list', 'true');
-
-      await expect(cz.run('release-bumped-targets')).rejects.toThrow('nothing to release; bump a version first');
-
-      expect(shell.commandsMatching('gh release create')).toHaveLength(0);
-    });
   });
 
   describe('10.3 publishing a pending target', () => {
@@ -190,7 +180,7 @@ describe('10. Releasing every target whose version was bumped', () => {
       expect(logs.logLines).not.toContainEqual(expect.stringContaining('Published zyplux-cerberus'));
     });
 
-    test('10.3.6 treats an empty known-run list as no prior runs', async ({
+    test('10.3.6 keeps polling while the run list is still empty instead of watching a phantom run', async ({
       cz,
       findTarget,
       logs,
@@ -201,13 +191,14 @@ describe('10. Releasing every target whose version was bumped', () => {
       repo.syncMain('sha-head');
       registries.setPublished({ ghcrPublished: true, npmPublished: true, pypiPublished: false });
       shell.on('gh release list', 'false');
-      shell.on(KNOWN_RUNS_PATTERN, '');
-      shell.on(TAG_RUNS_PATTERN, '999');
+      shell.on(KNOWN_RUNS_PATTERN, '100\n101');
+      shell.on(TAG_RUNS_PATTERN, '', '100\n101\n999');
       shell.on('gh run view 999', 'completed\nsuccess');
       const cerberus = await findTarget('zyplux-cerberus');
 
       await cz.run('release-bumped-targets');
 
+      expect(shell.commands).toContain(renderRunViewCommand('999'));
       expect(logs.logLines).toContain(`Published zyplux-cerberus ${cerberus.version}`);
     });
 

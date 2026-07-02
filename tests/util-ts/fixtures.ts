@@ -7,6 +7,7 @@ export {
   normalizeRepoUrl,
   npmDependencyNames,
   PackageJsonSchema,
+  parseJson,
   parseToml,
   poll,
   PyProjectSchema,

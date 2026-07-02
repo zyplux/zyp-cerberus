@@ -23,6 +23,7 @@ describe('2.1 loading release targets from the manifest', () => {
       '@zyplux/tsconfig',
       '@zyplux/util',
       'zyplux-cerberus',
+      'zyplux-util',
       'ghcr.io/zyplux/ci',
     ]) {
       expect(logs.logLines).toContainEqual(expect.stringContaining(`Skipping ${label} `));

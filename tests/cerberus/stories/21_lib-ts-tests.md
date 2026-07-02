@@ -26,6 +26,8 @@
 
 ### 21.2.6 covers a published library under the tests directory
 
+### 21.2.7 accepts a string exports as the root seam
+
 ## 21.3 requiring story tests to reach workspace code only through fixture aliases
 
 ### 21.3.1 passes story tests importing only fixture aliases and node builtins
@@ -37,6 +39,8 @@
 ### 21.3.4 allows a story test to import a third party module directly
 
 ### 21.3.5 fails a story test importing a sibling workspace package
+
+### 21.3.6 fails a story test pulling in library internals via a side effect import
 
 ## 21.4 keeping test package import aliases inside the package
 

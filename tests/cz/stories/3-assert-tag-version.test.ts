@@ -14,7 +14,9 @@ describe('3.1 asserting a tag against the release manifest', () => {
   });
 
   test('3.1.2 rejects a tag no release target owns', async ({ cz }) => {
-    await expect(cz.run('assert-tag-version', 'mystery-v1.0.0')).rejects.toThrow();
+    await expect(cz.run('assert-tag-version', 'mystery-v1.0.0')).rejects.toThrow(
+      "no release target in release-targets.toml owns tag 'mystery-v1.0.0'",
+    );
   });
 
   test('3.1.3 rejects a tag whose version does not match the manifest', async ({ cz }) => {

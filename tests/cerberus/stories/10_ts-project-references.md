@@ -10,10 +10,8 @@
 
 ## 10.2 requiring the typecheck script to build via project references
 
-### 10.2.1 fails when the typecheck script is missing
+### 10.2.1 fails when the typecheck script is missing or blank
 
-### 10.2.2 fails when the typecheck script only builds a single project
+### 10.2.2 fails when the typecheck script does not build via project references
 
-### 10.2.3 fails when the typecheck script fans out per package via bun filter
-
-### 10.2.4 passes when the typecheck script builds via project references
+### 10.2.3 passes when the typecheck script builds via project references

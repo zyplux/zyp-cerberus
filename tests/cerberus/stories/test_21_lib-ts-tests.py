@@ -20,6 +20,7 @@ _SEAM_LIB_NO_EXPORTS = '{"name": "@demo/lib"}'
 _SEAM_LIB_LEAKY = '{"name": "@demo/lib", "exports": {".": "./src/index.ts", "./helpers": "./src/helpers.ts"}}'
 _SEAM_LIB_NO_ROOT = '{"name": "@demo/lib", "exports": {"./package.json": "./package.json"}}'
 _SEAM_LIB_CONDITIONS = '{"name": "@demo/lib", "exports": {"types": "./src/index.ts", "default": "./src/index.ts"}}'
+_SEAM_LIB_STRING_EXPORTS = '{"name": "@demo/lib", "exports": "./src/index.ts"}'
 _SEAM_JSON_ONLY = '{"name": "@demo/tsconfig"}'
 _SEAM_CLI_LEAKY = (
     '{"name": "@demo/cli", "bin": {"cli": "./src/index.ts"},'
@@ -35,14 +36,18 @@ _SEAM_TESTS_PKG_LEAKY_EXPORTS = (
 )
 _SEAM_TESTS_PKG_SNEAKY = (
     '{"name": "@demo/tests-lib", "private": true,'
-    ' "imports": {"#fixtures": "./fixtures.ts", "#sneaky": "../../packages/lib/src/internal.ts"}}'
+    ' "imports": {"#fixtures": "./fixtures.ts", "#sneaky": "../../packages/lib/src/internal.ts",'
+    ' "#tunnel": {"default": "../../packages/lib/src/other.ts"}}}'
 )
 _SEAM_CLEAN_STORY = "import path from 'node:path';\n\nimport { describe, expect, test } from '#fixtures';\n"
-_SEAM_LIB_IMPORT_STORY = "import { helper } from '@demo/lib';\n\nimport { test } from '#fixtures';\n"
+_SEAM_LIB_IMPORT_STORY = (
+    "import {\n  helper,\n  otherHelper,\n} from '@demo/lib';\n\nimport { test } from '#fixtures';\n"
+)
 _SEAM_RELATIVE_ESCAPE_STORY = (
     "import { internal } from '../../../packages/lib/src/internal.ts';\n\nimport { test } from '#fixtures';\n"
 )
 _SEAM_THIRD_PARTY_STORY = "import * as z from 'zod';\n\nimport { test } from '#fixtures';\n"
+_SEAM_SIDE_EFFECT_STORY = "import '../../../packages/lib/src/register.ts';\n\nimport { test } from '#fixtures';\n"
 _SEAM_OTHER_LIB = '{"name": "@demo/other", "exports": {".": "./src/index.ts", "./package.json": "./package.json"}}'
 _SEAM_SIBLING_IMPORT_STORY = "import { internal } from '@demo/other/internal';\n\nimport { test } from '#fixtures';\n"
 
@@ -189,6 +194,15 @@ def test_21_2_6_covers_a_published_library_under_the_tests_directory(run_lib_ts_
     ]
 
 
+def test_21_2_7_accepts_a_string_exports_as_the_root_seam(run_lib_ts_tests: RunLibTsTests) -> None:
+    result = run_lib_ts_tests({
+        "package.json": _SEAM_ROOT_WS,
+        "packages/lib/package.json": _SEAM_LIB_STRING_EXPORTS,
+        "packages/lib/src/index.ts": "",
+    })
+    assert result.findings == [Finding(Status.PASS, _SEAM_OK)]
+
+
 def test_21_3_1_passes_story_tests_importing_only_fixture_aliases_and_node_builtins(
     run_lib_ts_tests: RunLibTsTests,
 ) -> None:
@@ -268,6 +282,25 @@ def test_21_3_5_fails_a_story_test_importing_a_sibling_workspace_package(run_lib
     ]
 
 
+def test_21_3_6_fails_a_story_test_pulling_in_library_internals_via_a_side_effect_import(
+    run_lib_ts_tests: RunLibTsTests,
+) -> None:
+    result = run_lib_ts_tests({
+        "package.json": _SEAM_ROOT_WS,
+        "packages/lib/package.json": _SEAM_LIB,
+        "packages/lib/src/index.ts": "",
+        "tests/lib/package.json": _SEAM_TESTS_PKG,
+        "tests/lib/stories/1-first.test.ts": _SEAM_SIDE_EFFECT_STORY,
+    })
+    assert result.findings == [
+        Finding(
+            Status.FAIL,
+            "tests/lib/stories/1-first.test.ts: story test imports outside the fixtures seam — "
+            "'../../../packages/lib/src/register.ts'",
+        )
+    ]
+
+
 def test_21_4_1_fails_an_imports_alias_that_escapes_the_test_package(run_lib_ts_tests: RunLibTsTests) -> None:
     result = run_lib_ts_tests({
         "package.json": _SEAM_ROOT_WS,
@@ -281,5 +314,10 @@ def test_21_4_1_fails_an_imports_alias_that_escapes_the_test_package(run_lib_ts_
             Status.FAIL,
             "tests/lib/package.json: imports alias escapes the test package — "
             "'#sneaky' -> '../../packages/lib/src/internal.ts'",
-        )
+        ),
+        Finding(
+            Status.FAIL,
+            "tests/lib/package.json: imports alias escapes the test package — "
+            "'#tunnel' -> '../../packages/lib/src/other.ts'",
+        ),
     ]

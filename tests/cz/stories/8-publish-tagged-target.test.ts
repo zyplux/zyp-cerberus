@@ -1,5 +1,10 @@
 import { describe, expect, notFoundResponse, test, vi, workspaceRoot } from '#fixtures';
 
+const MISSING_GHCR_CREDENTIALS: [missingName: string, ghToken: string, githubActor: string][] = [
+  ['GH_TOKEN', '', 'zyplux-bot'],
+  ['GITHUB_ACTOR', 'gh-token', ''],
+];
+
 describe('8.1 skipping an already-published target', () => {
   test("8.1.1 logs and does nothing when the tag's version is already published", async ({
     cz,
@@ -45,24 +50,21 @@ describe('8.2 publishing to each registry kind', () => {
     expect(shell.commandsMatching('uv build')).toEqual(['uv build --package zyplux-cerberus && uv publish']);
   });
 
-  test('8.2.3 requires GH_TOKEN and GITHUB_ACTOR before pushing a ghcr target', async ({
-    cz,
-    findTarget,
-    registries,
-    repo,
-    shell,
-  }) => {
-    repo.setRoot(workspaceRoot);
-    registries.setPublished({ ghcrPublished: false, npmPublished: false, pypiPublished: false });
-    vi.stubEnv('GH_TOKEN', '');
-    vi.stubEnv('GITHUB_ACTOR', '');
-    const ci = await findTarget('ghcr.io/zyplux/ci');
+  test.for(MISSING_GHCR_CREDENTIALS)(
+    '8.2.3 requires GH_TOKEN and GITHUB_ACTOR before pushing a ghcr target',
+    async ([missingName, ghToken, githubActor], { cz, findTarget, registries, repo, shell }) => {
+      repo.setRoot(workspaceRoot);
+      registries.setPublished({ ghcrPublished: false, npmPublished: false, pypiPublished: false });
+      vi.stubEnv('GH_TOKEN', ghToken);
+      vi.stubEnv('GITHUB_ACTOR', githubActor);
+      const ci = await findTarget('ghcr.io/zyplux/ci');
 
-    await expect(cz.run('publish-tagged-target', `ci-image-v${ci.version}`)).rejects.toThrow(
-      'GH_TOKEN is required to push to GHCR',
-    );
-    expect(shell.commandsMatching('podman')).toHaveLength(0);
-  });
+      await expect(cz.run('publish-tagged-target', `ci-image-v${ci.version}`)).rejects.toThrow(
+        `${missingName} is required to push to GHCR`,
+      );
+      expect(shell.commandsMatching('podman')).toHaveLength(0);
+    },
+  );
 
   test('8.2.4 tags and pushes a versioned and latest ghcr image', async ({
     cz,

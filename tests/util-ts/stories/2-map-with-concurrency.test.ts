@@ -48,4 +48,14 @@ describe('mapWithConcurrency', () => {
       }
     });
   });
+
+  describe('2.3 propagating task failures', () => {
+    test('2.3.1 rejects with the task error when any task fails', async () => {
+      const mapping = mapWithConcurrency(['a', 'b', 'c'], workerLimit, item =>
+        item === 'b' ? Promise.reject(new Error('task failed on b')) : Promise.resolve(item),
+      );
+
+      await expect(mapping).rejects.toThrow('task failed on b');
+    });
+  });
 });

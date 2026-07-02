@@ -142,29 +142,20 @@ def test_6_5_2_fails_when_an_error_kind_is_set_stray_at_the_top_level(
     ]
 
 
-def test_6_6_1_fails_when_a_sub_config_weakens_strict_for_production_code(
-    run_pyrefly: RunPyrefly,
+@pytest.mark.parametrize("glob", ["apps/cerberus/src/**", "tests/cerberus/**"], ids=["production", "tests"])
+def test_6_6_1_fails_when_a_sub_config_weakens_strict_for_production_or_test_code(
+    run_pyrefly: RunPyrefly, glob: str
 ) -> None:
-    pyrefly = _PYREFLY_TESTS_RELAXED.replace('"tests/cerberus/**"', '"apps/cerberus/src/**"')
+    pyrefly = _PYREFLY_TESTS_RELAXED.replace('"tests/cerberus/**"', f'"{glob}"')
 
     result = run_pyrefly(pyrefly=pyrefly)
 
     assert result.findings == [
-        Finding(Status.FAIL, "sub-config `apps/cerberus/src/**` weakens strict; no relaxations allowed: implicit-any")
+        Finding(Status.FAIL, f"sub-config `{glob}` weakens strict; no relaxations allowed: implicit-any")
     ]
 
 
-def test_6_6_2_fails_when_a_sub_config_relaxes_rules_for_test_code(
-    run_pyrefly: RunPyrefly,
-) -> None:
-    result = run_pyrefly(pyrefly=_PYREFLY_TESTS_RELAXED)
-
-    assert result.findings == [
-        Finding(Status.FAIL, "sub-config `tests/cerberus/**` weakens strict; no relaxations allowed: implicit-any")
-    ]
-
-
-def test_6_6_3_fails_when_a_sub_config_entry_is_not_a_table(
+def test_6_6_2_fails_when_a_sub_config_entry_is_not_a_table(
     run_pyrefly: RunPyrefly,
 ) -> None:
     pyrefly = _PYREFLY_STRICT + '\nsub-config = ["oops"]\n'

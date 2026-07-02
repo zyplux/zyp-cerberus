@@ -6,7 +6,7 @@ from pathlib import Path
 import pytest
 from cerberus import config, context
 from cerberus.checks import cerberus_step_check
-from cerberus.model import CheckResult, Repo, Status
+from cerberus.model import CheckResult, Finding, Repo, Status
 
 RunCerberusStep = Callable[[dict[str, str]], CheckResult]
 
@@ -38,16 +38,21 @@ def run_cerberus_step(monkeypatch: pytest.MonkeyPatch, repo: Repo, ctx: context.
 def test_7_1_1_passes_when_a_step_runs_cerberus_via_uv_run_or_the_published_uvx_package(
     run_cerberus_step: RunCerberusStep, run_step: str
 ) -> None:
-    assert run_cerberus_step(_workflow(run_step)).status is Status.PASS
+    result = run_cerberus_step(_workflow(run_step))
+    assert result.findings == [Finding(Status.PASS, "CI runs cerberus")]
 
 
 def test_7_2_1_fails_when_workflow_steps_exist_but_none_run_cerberus(run_cerberus_step: RunCerberusStep) -> None:
-    assert run_cerberus_step(_workflow("bun run test")).status is Status.FAIL
+    result = run_cerberus_step(_workflow("bun run test"))
+    assert result.findings == [Finding(Status.FAIL, "no CI workflow runs cerberus (add `uvx zyplux-cerberus` to ci)")]
 
 
 def test_7_2_2_fails_when_the_repo_has_no_ci_workflows_at_all(run_cerberus_step: RunCerberusStep) -> None:
-    assert run_cerberus_step({}).status is Status.FAIL
+    result = run_cerberus_step({})
+    assert result.findings == [Finding(Status.FAIL, "no CI workflow runs cerberus (add `uvx zyplux-cerberus` to ci)")]
 
 
 def test_7_3_1_errors_when_a_workflow_file_is_not_valid_yaml(run_cerberus_step: RunCerberusStep) -> None:
-    assert run_cerberus_step({"ci.yml": "jobs: [unterminated"}).status is Status.ERROR
+    result = run_cerberus_step({"ci.yml": "jobs: [unterminated"})
+    assert result.status is Status.ERROR
+    assert result.findings[0].message.startswith("ci.yml is not valid YAML: ")

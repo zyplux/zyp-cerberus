@@ -12,6 +12,8 @@
 
 ### 11.2.2 fails and names the dependency that pins a raw version
 
+### 11.2.3 treats an unparseable manifest as declaring no dependencies
+
 ## 11.3 excluding vendored packages from the scan
 
 ### 11.3.1 ignores dependencies declared in a vendored node modules package json

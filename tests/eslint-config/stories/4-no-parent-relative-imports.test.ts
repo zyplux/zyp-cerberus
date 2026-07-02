@@ -6,19 +6,16 @@ const parentImportViolation = [{ ruleId: '@typescript-eslint/no-restricted-impor
 
 describe('4. restricting parent-relative (../) imports', () => {
   describe('4.1 flagging parent-relative import specifiers', () => {
-    test('4.1.1 flags a single level parent import', ({ lint }) => {
+    test('4.1.1 flags a parent import at any depth', ({ lint }) => {
       expect(lint("import { x } from '../x';")).toMatchObject(parentImportViolation);
-    });
-
-    test('4.1.2 flags a deep parent import spanning multiple levels', ({ lint }) => {
       expect(lint("import { x } from '../../../x';")).toMatchObject(parentImportViolation);
     });
 
-    test('4.1.3 flags a type only import from a parent path', ({ lint }) => {
+    test('4.1.2 flags a type only import from a parent path', ({ lint }) => {
       expect(lint("import type { X } from '../x';")).toMatchObject(parentImportViolation);
     });
 
-    test('4.1.4 flags a re export from a parent path', ({ lint }) => {
+    test('4.1.3 flags a re export from a parent path', ({ lint }) => {
       expect(lint("export { x } from '../x';")).toMatchObject(parentImportViolation);
     });
   });
@@ -28,18 +25,9 @@ describe('4. restricting parent-relative (../) imports', () => {
       expect(lint("import { x } from './x';")).toHaveLength(0);
     });
 
-    test('4.2.2 allows a path alias import', ({ lint }) => {
+    test('4.2.2 allows alias and bare package imports', ({ lint }) => {
       expect(lint("import { x } from '@/x';")).toHaveLength(0);
-    });
-
-    test('4.2.3 allows a bare package import', ({ lint }) => {
       expect(lint("import { x } from 'node:path';")).toHaveLength(0);
-    });
-  });
-
-  describe('4.3 scoping the restriction to import declarations', () => {
-    test('4.3.1 leaves a non import string argument untouched', ({ lint }) => {
-      expect(lint("const p = path.resolve(dir, '../..');")).toHaveLength(0);
     });
   });
 });

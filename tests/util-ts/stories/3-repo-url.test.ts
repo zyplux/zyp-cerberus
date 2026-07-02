@@ -28,6 +28,10 @@ describe('3.1 normalizing many repo url shapes into a canonical https url', () =
   test('3.1.6 works for a non github host and strips its git suffix', () => {
     expectNormalizesTo('https://gitlab.com/owner/repo.git', 'https://gitlab.com/owner/repo');
   });
+
+  test('3.1.7 normalizes a git plus ssh protocol remote to an https url', () => {
+    expectNormalizesTo('git+ssh://git@github.com/psf/requests.git', 'https://github.com/psf/requests');
+  });
 });
 
 describe('3.2 rejecting values that do not name a repository', () => {
