@@ -1,8 +1,7 @@
 import type { CliRunner, ConsoleCapture, FetchFake, ShellFake, TempDir } from '@zyplux/tests-fixtures';
 
 import { runCz } from '@zyplux/cz';
-import { createCliRunner, notFoundResponse, okResponse } from '@zyplux/tests-fixtures';
-import { cliTest } from '@zyplux/tests-fixtures/story';
+import { cliTest, createCliRunner, notFoundResponse, okResponse } from '@zyplux/tests-fixtures';
 import { parseJson, parseToml } from '@zyplux/util';
 import { execFileSync } from 'node:child_process';
 import { readFile } from 'node:fs/promises';

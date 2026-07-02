@@ -3,7 +3,7 @@
   "include": ["."],
   "references": [
     { "path": "../../packages/eslint-config" },
-    { "path": "../../packages/util" },
+    { "path": "../../packages/util-ts" },
     { "path": "../fixtures" }
   ]
 }

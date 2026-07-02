@@ -1,6 +1,4 @@
-import { poll } from '@zyplux/util';
-
-import { describe, expect, test } from '#fixtures';
+import { describe, expect, poll, test } from '#fixtures';
 
 const intervalMs = 1;
 const RESOLVES_ON_THIRD_ATTEMPT = 3;

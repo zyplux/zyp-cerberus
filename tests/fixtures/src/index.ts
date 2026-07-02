@@ -11,3 +11,4 @@ export {
   type ShellReply,
   toArgv,
 } from './shell';
+export { type CliFixtures, cliTest, type LibraryFixtures, libraryTest } from './story';

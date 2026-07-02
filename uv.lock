@@ -6,6 +6,7 @@ requires-python = ">=3.14"
 members = [
     "zyplux",
     "zyplux-cerberus",
+    "zyplux-util",
 ]
 
 [[package]]
@@ -369,3 +370,8 @@ requires-dist = [
     { name = "rust-just", specifier = ">=1.55.1" },
     { name = "typer", specifier = ">=0.26.8" },
 ]
+
+[[package]]
+name = "zyplux-util"
+version = "0.1.0"
+source = { editable = "packages/util_py" }

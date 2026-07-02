@@ -4,8 +4,7 @@ import { object } from '@optique/core/constructs';
 import { message } from '@optique/core/message';
 import { argument, command, constant } from '@optique/core/primitives';
 import { string } from '@optique/core/valueparser';
-import { ensure } from '@zyplux/util';
-import { $ } from '@zyplux/util/shell';
+import { $, ensure } from '@zyplux/util';
 
 import { resolveReleaseTag } from '#release-targets';
 

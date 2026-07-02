@@ -24,8 +24,8 @@ surface = ["packages/tsconfig"]
 kind = "npm"
 label = "@zyplux/util"
 tag_prefix = "util-v"
-version = { file = "packages/util/package.json", json = "version" }
-surface = ["packages/util/package.json", "packages/util/README.md", "packages/util/src"]
+version = { file = "packages/util-ts/package.json", json = "version" }
+surface = ["packages/util-ts/package.json", "packages/util-ts/README.md", "packages/util-ts/src"]
 
 [[target]]
 kind = "npm"
@@ -54,3 +54,10 @@ label = "ghcr.io/zyplux/ci"
 tag_prefix = "ci-image-v"
 version = { file = "containers/ci/Containerfile", regex = '^LABEL org\.opencontainers\.image\.version="([^"]+)"' }
 surface = ["containers/ci"]
+
+[[target]]
+kind = "pypi"
+label = "zyplux-util"
+tag_prefix = "util-py-v"
+version = { file = "packages/util_py/pyproject.toml", regex = '^version = "([^"]+)"' }
+surface = ["packages/util_py/src", "packages/util_py/pyproject.toml", "packages/util_py/README.md"]

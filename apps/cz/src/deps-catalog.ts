@@ -1,15 +1,21 @@
-import { fetchJson, mapWithConcurrency, normalizeRepoUrl, tryParseJson, tryParseToml } from '@zyplux/util';
 import {
+  fetchJson,
   findManifests,
+  IdSchema,
+  mapWithConcurrency,
   normalizePythonName,
+  normalizeRepoUrl,
   npmDependencyNames,
   PackageJsonSchema,
   PyProjectSchema,
   pythonRequirementNames,
   RepositorySchema,
   repositoryUrl,
-} from '@zyplux/util/manifest';
-import { IdSchema, StringRecordSchema, VersionKeySchema } from '@zyplux/util/schema';
+  StringRecordSchema,
+  tryParseJson,
+  tryParseToml,
+  VersionKeySchema,
+} from '@zyplux/util';
 import * as z from 'zod';
 
 type DepReposReport = { repos: string[]; unresolved: PackageRef[] };

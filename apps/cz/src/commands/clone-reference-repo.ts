@@ -5,7 +5,7 @@ import { message } from '@optique/core/message';
 import { optional } from '@optique/core/modifiers';
 import { argument, command, constant } from '@optique/core/primitives';
 import { string } from '@optique/core/valueparser';
-import { $ } from '@zyplux/util/shell';
+import { $ } from '@zyplux/util';
 import { existsSync } from 'node:fs';
 import { rm } from 'node:fs/promises';
 import path from 'node:path';

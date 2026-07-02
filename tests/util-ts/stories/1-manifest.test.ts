@@ -1,4 +1,11 @@
+import { execFileSync } from 'node:child_process';
+import { mkdir, writeFile } from 'node:fs/promises';
+import path from 'node:path';
+import { fileURLToPath } from 'node:url';
+
 import {
+  describe,
+  expect,
   findManifests,
   normalizePythonName,
   npmDependencyNames,
@@ -6,13 +13,8 @@ import {
   PyProjectSchema,
   pythonRequirementNames,
   repositoryUrl,
-} from '@zyplux/util/manifest';
-import { execFileSync } from 'node:child_process';
-import { mkdir, writeFile } from 'node:fs/promises';
-import path from 'node:path';
-import { fileURLToPath } from 'node:url';
-
-import { describe, expect, test } from '#fixtures';
+  test,
+} from '#fixtures';
 
 const workspaceRoot = fileURLToPath(new URL('../../../', import.meta.url));
 
@@ -123,7 +125,7 @@ describe('1.4 discovering manifests tracked by git', () => {
     expect({
       allAreManifestFiles: manifests.every(file => file.endsWith('package.json') || file.endsWith('pyproject.toml')),
       excludesNodeModules: manifests.every(file => !file.includes('/node_modules/')),
-      includesUtilPackageJson: manifests.some(file => file.endsWith('/packages/util/package.json')),
+      includesUtilPackageJson: manifests.some(file => file.endsWith('/packages/util-ts/package.json')),
     }).toEqual({ allAreManifestFiles: true, excludesNodeModules: true, includesUtilPackageJson: true });
   });
 

@@ -1,6 +1,4 @@
-import { mapWithConcurrency } from '@zyplux/util';
-
-import { describe, expect, test } from '#fixtures';
+import { describe, expect, mapWithConcurrency, test } from '#fixtures';
 
 const workerLimit = 3;
 

@@ -1,7 +1,6 @@
-import { parseToml, tryParseToml } from '@zyplux/util';
 import * as z from 'zod';
 
-import { describe, expect, test } from '#fixtures';
+import { describe, expect, parseToml, test, tryParseToml } from '#fixtures';
 
 const ConfigSchema = z.object({
   features: z.array(z.string()).optional(),

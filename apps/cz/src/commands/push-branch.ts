@@ -3,8 +3,7 @@ import type { InferValue } from '@optique/core/parser';
 import { object } from '@optique/core/constructs';
 import { message } from '@optique/core/message';
 import { command, constant, option } from '@optique/core/primitives';
-import { ensure, poll } from '@zyplux/util';
-import { $, readTrimmed } from '@zyplux/util/shell';
+import { $, ensure, poll, readTrimmed } from '@zyplux/util';
 
 export const pushBranchCommand = command(
   'push-branch',

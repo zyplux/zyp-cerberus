@@ -1,8 +1,8 @@
-import type { LibraryFixtures } from '@zyplux/tests-fixtures/story';
+import type { LibraryFixtures } from '@zyplux/tests-fixtures';
 import type { TestAPI } from 'vitest';
 
 import { zyplux } from '@zyplux/eslint-config';
-import { libraryTest } from '@zyplux/tests-fixtures/story';
+import { libraryTest } from '@zyplux/tests-fixtures';
 import { ESLint, Linter } from 'eslint';
 import { execFileSync } from 'node:child_process';
 import { fileURLToPath } from 'node:url';
@@ -64,4 +64,6 @@ export const test: TestAPI<EslintFixtures & LibraryFixtures> = libraryTest.exten
   ruleId: '',
 });
 
+export { plugin, zyplux } from '@zyplux/eslint-config';
+export { parseJson, readJsonSync } from '@zyplux/util';
 export { describe, expect } from 'vitest';

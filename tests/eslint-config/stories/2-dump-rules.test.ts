@@ -1,8 +1,7 @@
-import { parseJson, readJsonSync } from '@zyplux/util';
 import path from 'node:path';
 import * as z from 'zod';
 
-import { describe, expect, test } from '#fixtures';
+import { describe, expect, parseJson, readJsonSync, test } from '#fixtures';
 
 const rulesUrl = new URL('../../../packages/eslint-config/rules.json', import.meta.url);
 const rootDirPlaceholder = '<rootDir>';

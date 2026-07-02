@@ -193,8 +193,11 @@ def _dir_matches_glob(directory: str, glob: str) -> bool:
 def _member_dirs(paths: list[str], globs: list[str], manifest_name: str) -> list[str]:
     suffix = f"/{manifest_name}"
     dirs = {path[: -len(suffix)] for path in paths if path.endswith(suffix)}
-    matched = {d for d in dirs if any(_dir_matches_glob(d, glob) for glob in globs)}
-    return sorted(d for d in matched if d.split("/", 1)[0] != _TEST_HARNESS_PACKAGE)
+    return sorted(d for d in dirs if any(_dir_matches_glob(d, glob) for glob in globs))
+
+
+def _without_test_harness(dirs: list[str]) -> list[str]:
+    return [d for d in dirs if d.split("/", 1)[0] != _TEST_HARNESS_PACKAGE]
 
 
 def _py_package_dirs(repo: Repo, ctx: Context, paths: list[str]) -> list[str]:
@@ -210,11 +213,12 @@ def _py_package_dirs(repo: Repo, ctx: Context, paths: list[str]) -> list[str]:
     workspace = uv.get("workspace") if isinstance(uv, dict) else None
     if isinstance(workspace, dict):
         members = [g for g in workspace.get("members", []) if isinstance(g, str)]
-        return _member_dirs(paths, members, "pyproject.toml")
+        return _without_test_harness(_member_dirs(paths, members, "pyproject.toml"))
     return [""] if isinstance(data.get("project"), dict) else []
 
 
-def _ts_package_dirs(repo: Repo, ctx: Context, paths: list[str]) -> list[str]:
+def ts_member_dirs(repo: Repo, ctx: Context, paths: list[str]) -> list[str]:
+    """Every bun workspace member dir — including the tests/ harness members that package_dirs excludes."""
     content = ctx.file(repo, "package.json")
     if content is None:
         return []
@@ -233,6 +237,10 @@ def _ts_package_dirs(repo: Repo, ctx: Context, paths: list[str]) -> list[str]:
     if globs is not None:
         return _member_dirs(paths, globs, "package.json")
     return [""]
+
+
+def _ts_package_dirs(repo: Repo, ctx: Context, paths: list[str]) -> list[str]:
+    return _without_test_harness(ts_member_dirs(repo, ctx, paths))
 
 
 def _py_needs_story_tests(package: str, repo: Repo, ctx: Context, paths: list[str]) -> bool:

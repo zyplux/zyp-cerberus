@@ -5,7 +5,7 @@ export default defineConfig({
     coverage: {
       enabled: true,
       exclude: ['apps/cz/src/index.ts'],
-      include: ['apps/cz/src/**', 'packages/util/src/**', 'packages/eslint-config/src/**'],
+      include: ['apps/cz/src/**', 'packages/util-ts/src/**', 'packages/eslint-config/src/**'],
       provider: 'istanbul',
       thresholds: {
         branches: 90,
@@ -14,7 +14,7 @@ export default defineConfig({
         statements: 90,
       },
     },
-    projects: ['packages/eslint-config', 'tests/eslint-config', 'tests/cz', 'tests/util'],
+    projects: ['packages/eslint-config', 'tests/eslint-config', 'tests/cz', 'tests/util-ts'],
     restoreMocks: true,
     unstubEnvs: true,
     unstubGlobals: true,

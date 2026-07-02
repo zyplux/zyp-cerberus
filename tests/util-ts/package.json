@@ -1,5 +1,5 @@
 {
-  "name": "@zyplux/tests-util",
+  "name": "@zyplux/tests-util-ts",
   "version": "0.1.0",
   "private": true,
   "type": "module",

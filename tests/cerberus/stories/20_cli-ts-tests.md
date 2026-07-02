@@ -1,4 +1,4 @@
-# 20. [Enforcing the cli test seam](test_20_cli-test-seam.py)
+# 20. [Enforcing the cli test seam](test_20_cli-ts-tests.py)
 
 ## 20.1 scoping the check to cli apps
 

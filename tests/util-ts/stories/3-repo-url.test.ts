@@ -1,6 +1,4 @@
-import { normalizeRepoUrl } from '@zyplux/util';
-
-import { describe, expect, test } from '#fixtures';
+import { describe, expect, normalizeRepoUrl, test } from '#fixtures';
 
 const expectNormalizesTo = (raw: string | undefined, expected: string | undefined) => {
   expect(normalizeRepoUrl(raw)).toBe(expected);

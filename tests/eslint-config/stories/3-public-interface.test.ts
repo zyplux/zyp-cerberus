@@ -1,6 +1,4 @@
-import { plugin, zyplux } from '@zyplux/eslint-config';
-
-import { describe, expect, test } from '#fixtures';
+import { describe, expect, plugin, test, zyplux } from '#fixtures';
 
 type Config = ReturnType<typeof zyplux>;
 

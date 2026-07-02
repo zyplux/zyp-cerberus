@@ -8,7 +8,7 @@ requires-python = ">=3.14"
 package = false
 
 [tool.uv.workspace]
-members = ["apps/cerberus"]
+members = ["apps/cerberus", "packages/util_py"]
 
 [tool.pytest.ini_options]
 addopts = "--cov=cerberus --cov-report=term-missing"
@@ -18,7 +18,7 @@ testpaths = ["tests/cerberus"]
 fail_under = 90
 
 [tool.vulture]
-paths = ["apps/cerberus/src", "tests/cerberus"]
+paths = ["apps/cerberus/src", "packages/util_py/src", "tests/cerberus"]
 ignore_decorators = ["@app.command"]
 ignore_names = ["pytestmark"]
 

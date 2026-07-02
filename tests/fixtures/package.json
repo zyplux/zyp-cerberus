@@ -24,10 +24,6 @@
       "types": "./src/index.ts",
       "default": "./src/index.ts"
     },
-    "./story": {
-      "types": "./src/story.ts",
-      "default": "./src/story.ts"
-    },
     "./package.json": "./package.json"
   },
   "files": [

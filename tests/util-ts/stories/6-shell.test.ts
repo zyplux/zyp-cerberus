@@ -1,6 +1,4 @@
-import { $, readTrimmed } from '@zyplux/util/shell';
-
-import { describe, expect, test } from '#fixtures';
+import { $, describe, expect, readTrimmed, test } from '#fixtures';
 
 describe('6.1 translating flag objects into CLI arguments', () => {
   test('6.1.1 renders a true boolean flag as a bare kebab-case switch', async ({ shell }) => {

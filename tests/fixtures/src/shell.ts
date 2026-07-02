@@ -1,4 +1,4 @@
-import type { $ } from '@zyplux/util/shell';
+import type { $ } from '@zyplux/util';
 
 import { vi } from 'vitest';
 
