@@ -1,12 +1,12 @@
 # 1. [Discovering and reading package manifests for dependencies and repository info](1-manifest.test.ts)
 
-## 1.1 parsing package manifests into typed shapes
+## 1.1 parsing manifest text into typed shapes
 
-### 1.1.1 reads a bun workspace catalog alongside dependency maps
+### 1.1.1 parses package json text into a typed manifest and strips unknown keys
 
 ### 1.1.2 tolerates the array form of workspaces
 
-### 1.1.3 reads pep 621 dependencies optional dependency groups and pep 735 dependency groups
+### 1.1.3 parses pyproject toml text with pep 621 and pep 735 dependency sections and strips unknown keys
 
 ## 1.2 collecting and normalizing dependency names from a manifest
 

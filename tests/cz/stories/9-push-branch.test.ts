@@ -1,310 +1,246 @@
-import { runPushBranch } from '@zyplux/cz/commands/push-branch';
-import { fakeShellOutput } from '@zyplux/tests-fixtures';
-import { $ } from '@zyplux/util/shell';
-import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
+import { describe, expect, test } from '#fixtures';
 
-vi.mock('@zyplux/util/shell', () => ({
-  $: {
-    gh: {
-      api: vi.fn(),
-      pr: {
-        create: vi.fn(),
-        disableAutoMerge: vi.fn(),
-        list: vi.fn(),
-        merge: vi.fn(),
-        ready: vi.fn(),
-        view: vi.fn(),
-      },
-      repo: { view: vi.fn() },
-    },
-    git: {
-      branch: vi.fn(),
-      checkout: vi.fn(),
-      lsRemote: vi.fn(),
-      pull: vi.fn(),
-      push: vi.fn(),
-      revParse: vi.fn(),
-    },
-  },
-  readTrimmed: async (command: Promise<{ text: () => string }>) => {
-    const output = await command;
-    return output.text().trim();
-  },
-}));
-
-const git = vi.mocked($.git, true);
-const gh = vi.mocked($.gh, true);
-
-const text = (value: string) => fakeShellOutput(value);
-
-const SECOND_READY_CALL = 2;
+const PR_URL = 'https://github.com/zyplux/zyplux/pull/1';
 
 describe('9. Pushing a branch and advancing its draft PR', () => {
-  let branchName: string;
-  let localHeadSha: string;
-  const fieldQueues = new Map<string, string[]>();
-
-  const queueField = (json: string, ...values: string[]) => {
-    fieldQueues.set(json, [...values]);
-  };
-
-  const shiftField = (json: string | undefined) => {
-    const value = json === undefined ? undefined : fieldQueues.get(json)?.shift();
-    if (value === undefined) throw new Error(`unexpected gh.pr.view call for json=${json}`);
-    return value;
-  };
-
-  const originalSleep = Bun.sleep;
-
-  beforeEach(() => {
-    vi.clearAllMocks();
-    vi.spyOn(console, 'log').mockReturnValue(undefined);
-    fieldQueues.clear();
-    branchName = 'feat-x';
-    localHeadSha = 'sha-local';
-    Bun.sleep = () => Promise.resolve();
-
-    git.revParse.mockImplementation((_rev, flags) =>
-      Promise.resolve(text(flags?.abbrevRef ? branchName : localHeadSha)),
-    );
-    gh.pr.view.mockImplementation(({ json } = {}) => Promise.resolve(text(shiftField(json))));
-  });
-
-  afterEach(() => {
-    Bun.sleep = originalSleep;
-  });
-
   describe('9.1 validating preconditions', () => {
-    it('9.1.1 rejects --hold without --ready', async () => {
-      await expect(runPushBranch({ command: 'push-branch', hold: true, ready: false })).rejects.toThrow(
-        '--hold requires --ready',
-      );
-      expect(git.revParse).not.toHaveBeenCalled();
+    test('9.1.1 rejects --hold without --ready', async ({ cz, shell }) => {
+      await expect(cz.run('push-branch', '--hold')).rejects.toThrow('--hold requires --ready');
+      expect(shell.commandsMatching('git rev-parse')).toHaveLength(0);
     });
 
-    it('9.1.2 rejects a detached HEAD', async () => {
-      branchName = '';
+    test('9.1.2 rejects a detached HEAD', async ({ cz, repo }) => {
+      repo.setCurrentBranch('');
 
-      await expect(runPushBranch({ command: 'push-branch', hold: false, ready: false })).rejects.toThrow(
-        'not on any branch',
-      );
+      await expect(cz.run('push-branch')).rejects.toThrow('not on any branch');
     });
 
-    it('9.1.3 refuses to run on main', async () => {
-      branchName = 'main';
+    test('9.1.3 refuses to run on main', async ({ cz, repo }) => {
+      repo.setCurrentBranch('main');
 
-      await expect(runPushBranch({ command: 'push-branch', hold: false, ready: false })).rejects.toThrow(
-        'refusing to run on main',
-      );
+      await expect(cz.run('push-branch')).rejects.toThrow('refusing to run on main');
     });
   });
 
   describe('9.2 cleaning up after a merged PR', () => {
-    it('9.2.1 switches to main and deletes the local branch once its PR is merged', async () => {
-      gh.pr.list.mockResolvedValueOnce(text('MERGED'));
+    test('9.2.1 switches to main and deletes the local branch once its PR is merged', async ({ cz, repo, shell }) => {
+      repo.setCurrentBranch('feat-x');
+      repo.setPrListState('MERGED');
 
-      await runPushBranch({ command: 'push-branch', hold: false, ready: false });
+      await cz.run('push-branch');
 
-      expect(git.checkout).toHaveBeenCalledWith('main');
-      expect(git.pull).toHaveBeenCalledWith({ ffOnly: true });
-      expect(git.branch).toHaveBeenCalledWith('feat-x', { delete: true, force: true });
-      expect(git.push).not.toHaveBeenCalled();
+      expect(shell.commands).toContain('git checkout main');
+      expect(shell.commands).toContain('git pull --ff-only');
+      expect(shell.commands).toContain('git branch --delete --force feat-x');
+      expect(shell.commandsMatching('git push')).toHaveLength(0);
     });
   });
 
   describe('9.3 pushing and opening a new draft PR', () => {
-    it('9.3.1 pushes the branch and opens a draft PR when none exists yet', async () => {
-      gh.pr.list.mockResolvedValueOnce(text(''));
-      git.lsRemote.mockResolvedValueOnce(text('sha-local\trefs/heads/feat-x'));
-      queueField('url', 'https://github.com/zyplux/zyplux/pull/1');
-      const log = vi.spyOn(console, 'log');
+    test('9.3.1 pushes the branch and opens a draft PR when none exists yet', async ({ cz, logs, repo, shell }) => {
+      repo.setCurrentBranch('feat-x');
+      repo.setHeadSha('sha-local');
+      repo.setPrListState('');
+      repo.setRemoteBranchSha('feat-x', 'sha-local');
+      repo.queuePrField('url', PR_URL);
 
-      await runPushBranch({ command: 'push-branch', hold: false, ready: false });
+      await cz.run('push-branch');
 
-      expect(git.push).toHaveBeenCalledWith('origin', 'feat-x', { setUpstream: true });
-      expect(gh.pr.create).toHaveBeenCalledWith({ base: 'main', body: '', draft: true, title: 'feat-x' });
-      expect(log).toHaveBeenCalledWith('PR (draft): https://github.com/zyplux/zyplux/pull/1');
-      expect(gh.pr.ready).not.toHaveBeenCalled();
+      expect(shell.commands).toContain('git push --set-upstream origin feat-x');
+      expect(shell.calls).toContainEqual({
+        argv: ['pr', 'create', '--base', 'main', '--body', '', '--draft', '--title', 'feat-x'],
+        program: 'gh',
+      });
+      expect(logs.logLines).toContain(`PR (draft): ${PR_URL}`);
+      expect(shell.commandsMatching('gh pr ready')).toHaveLength(0);
     });
 
-    it('9.3.2 rejects a push that does not land on the expected head', async () => {
-      gh.pr.list.mockResolvedValueOnce(text(''));
-      git.lsRemote.mockResolvedValueOnce(text('sha-elsewhere\trefs/heads/feat-x'));
+    test('9.3.2 rejects a push that does not land on the expected head', async ({ cz, repo, shell }) => {
+      repo.setCurrentBranch('feat-x');
+      repo.setHeadSha('sha-local');
+      repo.setPrListState('');
+      repo.setRemoteBranchSha('feat-x', 'sha-elsewhere');
 
-      await expect(runPushBranch({ command: 'push-branch', hold: false, ready: false })).rejects.toThrow(
-        'push did not land',
-      );
-      expect(gh.pr.create).not.toHaveBeenCalled();
+      await expect(cz.run('push-branch')).rejects.toThrow('push did not land');
+      expect(shell.commandsMatching('gh pr create')).toHaveLength(0);
     });
   });
 
   describe('9.4 flipping an already-ready PR to draft before pushing', () => {
-    it('9.4.1 rejects the flip when nothing new to push and Copilot has not reviewed HEAD', async () => {
-      gh.pr.list.mockResolvedValueOnce(text('OPEN'));
-      git.lsRemote.mockResolvedValueOnce(text('sha-local\trefs/heads/feat-x'));
-      gh.repo.view.mockResolvedValueOnce(text('zyplux/zyplux'));
-      queueField('isDraft', 'false');
-      queueField('number', '7');
-      gh.api.mockResolvedValueOnce(text('sha-different'));
+    test('9.4.1 rejects the flip when nothing new to push and Copilot has not reviewed HEAD', async ({
+      cz,
+      repo,
+      shell,
+    }) => {
+      repo.setCurrentBranch('feat-x');
+      repo.setHeadSha('sha-local');
+      repo.setPrListState('OPEN');
+      repo.queuePrField('isDraft', 'false');
+      repo.queuePrField('number', '7');
+      repo.setRemoteBranchSha('feat-x', 'sha-local');
+      repo.setRepoSlug('zyplux/zyplux');
+      repo.setCopilotReviewedHead('sha-different');
 
-      await expect(runPushBranch({ command: 'push-branch', hold: false, ready: true })).rejects.toThrow(
-        'Copilot has not reviewed HEAD',
-      );
-      expect(gh.pr.ready).not.toHaveBeenCalled();
-      expect(git.push).not.toHaveBeenCalled();
+      await expect(cz.run('push-branch', '--ready')).rejects.toThrow('Copilot has not reviewed HEAD');
+      expect(shell.commandsMatching('gh pr ready')).toHaveLength(0);
+      expect(shell.commandsMatching('git push')).toHaveLength(0);
     });
 
-    it('9.4.2 flips to draft and pushes when Copilot already reviewed HEAD', async () => {
-      gh.pr.list.mockResolvedValueOnce(text('OPEN'));
-      git.lsRemote.mockResolvedValueOnce(text('sha-local\trefs/heads/feat-x'));
-      git.lsRemote.mockResolvedValueOnce(text('sha-local\trefs/heads/feat-x'));
-      gh.repo.view.mockResolvedValueOnce(text('zyplux/zyplux'));
-      queueField('isDraft', 'false', 'true', 'false');
-      queueField('number', '7');
-      queueField('url', 'https://github.com/zyplux/zyplux/pull/1');
-      queueField('mergeStateStatus', 'CLEAN');
-      gh.api.mockResolvedValueOnce(text('sha-local'));
-      const log = vi.spyOn(console, 'log');
+    test('9.4.2 flips to draft and pushes when Copilot already reviewed HEAD', async ({ cz, logs, repo, shell }) => {
+      repo.setCurrentBranch('feat-x');
+      repo.setHeadSha('sha-local');
+      repo.setPrListState('OPEN');
+      repo.queuePrField('isDraft', 'false', 'true', 'false');
+      repo.queuePrField('number', '7');
+      repo.queuePrField('url', PR_URL);
+      repo.queuePrField('mergeStateStatus', 'CLEAN');
+      repo.setRemoteBranchSha('feat-x', 'sha-local');
+      repo.setRepoSlug('zyplux/zyplux');
+      repo.setCopilotReviewedHead('sha-local');
 
-      await runPushBranch({ command: 'push-branch', hold: false, ready: true });
+      await cz.run('push-branch', '--ready');
 
-      expect(gh.pr.ready).toHaveBeenNthCalledWith(1, { undo: true });
-      expect(log).toHaveBeenCalledWith('flip: GitHub confirms PR is draft (was ready, HEAD sha-loc)');
-      expect(git.push).toHaveBeenCalledWith('origin', 'feat-x', { setUpstream: true });
-      expect(gh.pr.ready).toHaveBeenNthCalledWith(SECOND_READY_CALL);
-      expect(log).toHaveBeenCalledWith(
+      expect(shell.commandsMatching('gh pr ready')).toEqual(['gh pr ready --undo', 'gh pr ready']);
+      expect(logs.logLines).toContain('flip: GitHub confirms PR is draft (was ready, HEAD sha-loc)');
+      expect(shell.commands).toContain('git push --set-upstream origin feat-x');
+      expect(logs.logLines).toContain(
         'flip: GitHub confirms PR is ready (draft→push→ready done; Copilot re-review triggered)',
       );
-      expect(gh.pr.merge).toHaveBeenCalledWith({ deleteBranch: true, squash: true });
+      expect(shell.commands).toContain('gh pr merge --delete-branch --squash');
     });
 
-    it('9.4.3 skips the Copilot check when there are new commits to push', async () => {
-      gh.pr.list.mockResolvedValueOnce(text('OPEN'));
-      git.lsRemote.mockResolvedValueOnce(text('sha-remote-old\trefs/heads/feat-x'));
-      git.lsRemote.mockResolvedValueOnce(text('sha-local\trefs/heads/feat-x'));
-      queueField('isDraft', 'false', 'true', 'false');
-      queueField('url', 'https://github.com/zyplux/zyplux/pull/1');
-      queueField('mergeStateStatus', 'CLEAN');
+    test('9.4.3 skips the Copilot check when there are new commits to push', async ({ cz, repo, shell }) => {
+      repo.setCurrentBranch('feat-x');
+      repo.setHeadSha('sha-local');
+      repo.setPrListState('OPEN');
+      repo.queuePrField('isDraft', 'false', 'true', 'false');
+      repo.queuePrField('url', PR_URL);
+      repo.queuePrField('mergeStateStatus', 'CLEAN');
+      repo.setRemoteBranchSha('feat-x', 'sha-remote-old', 'sha-local');
 
-      await runPushBranch({ command: 'push-branch', hold: false, ready: true });
+      await cz.run('push-branch', '--ready');
 
-      expect(gh.repo.view).not.toHaveBeenCalled();
-      expect(gh.api).not.toHaveBeenCalled();
-      expect(gh.pr.ready).toHaveBeenNthCalledWith(1, { undo: true });
+      expect(shell.commandsMatching('gh repo view')).toHaveLength(0);
+      expect(shell.commandsMatching('gh api')).toHaveLength(0);
+      expect(shell.commandsMatching('gh pr ready')).toEqual(['gh pr ready --undo', 'gh pr ready']);
     });
 
-    it('9.4.4 rejects when the PR never reports draft state', async () => {
-      gh.pr.list.mockResolvedValueOnce(text('OPEN'));
-      git.lsRemote.mockResolvedValueOnce(text('sha-remote-old\trefs/heads/feat-x'));
-      queueField('isDraft', 'false', ...Array.from({ length: 10 }, () => 'false'));
+    test('9.4.4 rejects when the PR never reports draft state', async ({ cz, repo, shell }) => {
+      repo.setCurrentBranch('feat-x');
+      repo.setHeadSha('sha-local');
+      repo.setPrListState('OPEN');
+      repo.queuePrField('isDraft', 'false');
+      repo.setRemoteBranchSha('feat-x', 'sha-remote-old');
 
-      await expect(runPushBranch({ command: 'push-branch', hold: false, ready: true })).rejects.toThrow(
-        'PR did not enter draft state before push',
-      );
-      expect(git.push).not.toHaveBeenCalled();
+      await expect(cz.run('push-branch', '--ready')).rejects.toThrow('PR did not enter draft state before push');
+      expect(shell.commandsMatching('git push')).toHaveLength(0);
     });
   });
 
   describe('9.5 flipping a draft PR back to ready', () => {
-    it('9.5.1 flips an existing draft PR to ready after pushing', async () => {
-      gh.pr.list.mockResolvedValueOnce(text('OPEN'));
-      git.lsRemote.mockResolvedValueOnce(text('sha-local\trefs/heads/feat-x'));
-      queueField('isDraft', 'true', 'false');
-      queueField('url', 'https://github.com/zyplux/zyplux/pull/1');
-      queueField('mergeStateStatus', 'CLEAN');
-      const log = vi.spyOn(console, 'log');
+    test('9.5.1 flips an existing draft PR to ready after pushing', async ({ cz, logs, repo, shell }) => {
+      repo.setCurrentBranch('feat-x');
+      repo.setHeadSha('sha-local');
+      repo.setPrListState('OPEN');
+      repo.queuePrField('isDraft', 'true', 'false');
+      repo.queuePrField('url', PR_URL);
+      repo.queuePrField('mergeStateStatus', 'CLEAN');
+      repo.setRemoteBranchSha('feat-x', 'sha-local');
 
-      await runPushBranch({ command: 'push-branch', hold: false, ready: true });
+      await cz.run('push-branch', '--ready');
 
-      expect(gh.pr.ready).toHaveBeenCalledTimes(1);
-      expect(gh.pr.ready).toHaveBeenNthCalledWith(1);
-      expect(log).toHaveBeenCalledWith('flip: GitHub confirms PR is ready');
-      expect(gh.pr.merge).toHaveBeenCalledWith({ deleteBranch: true, squash: true });
-      expect(log).toHaveBeenCalledWith('PR merged: https://github.com/zyplux/zyplux/pull/1');
+      expect(shell.commandsMatching('gh pr ready')).toEqual(['gh pr ready']);
+      expect(logs.logLines).toContain('flip: GitHub confirms PR is ready');
+      expect(shell.commands).toContain('gh pr merge --delete-branch --squash');
+      expect(logs.logLines).toContain(`PR merged: ${PR_URL}`);
     });
 
-    it('9.5.2 holds auto-merge when --hold is set', async () => {
-      gh.pr.list.mockResolvedValueOnce(text('OPEN'));
-      git.lsRemote.mockResolvedValueOnce(text('sha-local\trefs/heads/feat-x'));
-      queueField('isDraft', 'true', 'false');
-      queueField('url', 'https://github.com/zyplux/zyplux/pull/1');
-      const log = vi.spyOn(console, 'log');
+    test('9.5.2 holds auto-merge when --hold is set', async ({ cz, logs, repo, shell }) => {
+      repo.setCurrentBranch('feat-x');
+      repo.setHeadSha('sha-local');
+      repo.setPrListState('OPEN');
+      repo.queuePrField('isDraft', 'true', 'false');
+      repo.queuePrField('url', PR_URL);
+      repo.setRemoteBranchSha('feat-x', 'sha-local');
 
-      await runPushBranch({ command: 'push-branch', hold: true, ready: true });
+      await cz.run('push-branch', '--hold', '--ready');
 
-      expect(gh.pr.disableAutoMerge).toHaveBeenCalledTimes(1);
-      expect(log).toHaveBeenCalledWith('PR ready, auto-merge held: https://github.com/zyplux/zyplux/pull/1');
-      expect(gh.pr.merge).not.toHaveBeenCalled();
+      expect(shell.commandsMatching('gh pr merge')).toEqual(['gh pr merge --disable-auto']);
+      expect(logs.logLines).toContain(`PR ready, auto-merge held: ${PR_URL}`);
     });
 
-    it('9.5.3 rejects when the PR never returns to ready state', async () => {
-      gh.pr.list.mockResolvedValueOnce(text(''));
-      git.lsRemote.mockResolvedValueOnce(text('sha-local\trefs/heads/feat-x'));
-      queueField('url', 'https://github.com/zyplux/zyplux/pull/1');
-      queueField('isDraft', ...Array.from({ length: 10 }, () => 'true'));
+    test('9.5.3 rejects when the PR never returns to ready state', async ({ cz, repo, shell }) => {
+      repo.setCurrentBranch('feat-x');
+      repo.setHeadSha('sha-local');
+      repo.setPrListState('');
+      repo.queuePrField('isDraft', 'true');
+      repo.queuePrField('url', PR_URL);
+      repo.setRemoteBranchSha('feat-x', 'sha-local');
 
-      await expect(runPushBranch({ command: 'push-branch', hold: false, ready: true })).rejects.toThrow(
+      await expect(cz.run('push-branch', '--ready')).rejects.toThrow(
         'PR did not return to ready state; check the PR on GitHub',
       );
-      expect(gh.pr.merge).not.toHaveBeenCalled();
+      expect(shell.commandsMatching('gh pr merge')).toHaveLength(0);
     });
   });
 
   describe('9.6 merging a ready PR', () => {
-    it('9.6.1 merges immediately when the merge state is clean', async () => {
-      gh.pr.list.mockResolvedValueOnce(text(''));
-      git.lsRemote.mockResolvedValueOnce(text('sha-local\trefs/heads/feat-x'));
-      queueField('isDraft', 'false');
-      queueField('url', 'https://github.com/zyplux/zyplux/pull/1');
-      queueField('mergeStateStatus', 'CLEAN');
-      const log = vi.spyOn(console, 'log');
+    test('9.6.1 merges immediately when the merge state is clean', async ({ cz, logs, repo, shell }) => {
+      repo.setCurrentBranch('feat-x');
+      repo.setHeadSha('sha-local');
+      repo.setPrListState('');
+      repo.queuePrField('isDraft', 'false');
+      repo.queuePrField('url', PR_URL);
+      repo.queuePrField('mergeStateStatus', 'CLEAN');
+      repo.setRemoteBranchSha('feat-x', 'sha-local');
 
-      await runPushBranch({ command: 'push-branch', hold: false, ready: true });
+      await cz.run('push-branch', '--ready');
 
-      expect(gh.pr.merge).toHaveBeenCalledWith({ deleteBranch: true, squash: true });
-      expect(log).toHaveBeenCalledWith('PR merged: https://github.com/zyplux/zyplux/pull/1');
+      expect(shell.commands).toContain('gh pr merge --delete-branch --squash');
+      expect(logs.logLines).toContain(`PR merged: ${PR_URL}`);
     });
 
-    it('9.6.2 rejects a dirty merge state', async () => {
-      gh.pr.list.mockResolvedValueOnce(text(''));
-      git.lsRemote.mockResolvedValueOnce(text('sha-local\trefs/heads/feat-x'));
-      queueField('isDraft', 'false');
-      queueField('url', 'https://github.com/zyplux/zyplux/pull/1');
-      queueField('mergeStateStatus', 'DIRTY');
+    test('9.6.2 rejects a dirty merge state', async ({ cz, repo, shell }) => {
+      repo.setCurrentBranch('feat-x');
+      repo.setHeadSha('sha-local');
+      repo.setPrListState('');
+      repo.queuePrField('isDraft', 'false');
+      repo.queuePrField('url', PR_URL);
+      repo.queuePrField('mergeStateStatus', 'DIRTY');
+      repo.setRemoteBranchSha('feat-x', 'sha-local');
 
-      await expect(runPushBranch({ command: 'push-branch', hold: false, ready: true })).rejects.toThrow(
-        'merge conflict',
-      );
-      expect(gh.pr.merge).not.toHaveBeenCalled();
+      await expect(cz.run('push-branch', '--ready')).rejects.toThrow('merge conflict');
+      expect(shell.commandsMatching('gh pr merge')).toHaveLength(0);
     });
 
-    it('9.6.3 schedules auto-merge for any other mergeable state', async () => {
-      gh.pr.list.mockResolvedValueOnce(text(''));
-      git.lsRemote.mockResolvedValueOnce(text('sha-local\trefs/heads/feat-x'));
-      queueField('isDraft', 'false');
-      queueField('url', 'https://github.com/zyplux/zyplux/pull/1');
-      queueField('mergeStateStatus', 'BEHIND');
-      const log = vi.spyOn(console, 'log');
+    test('9.6.3 schedules auto-merge for any other mergeable state', async ({ cz, logs, repo, shell }) => {
+      repo.setCurrentBranch('feat-x');
+      repo.setHeadSha('sha-local');
+      repo.setPrListState('');
+      repo.queuePrField('isDraft', 'false');
+      repo.queuePrField('url', PR_URL);
+      repo.queuePrField('mergeStateStatus', 'BEHIND');
+      repo.setRemoteBranchSha('feat-x', 'sha-local');
 
-      await runPushBranch({ command: 'push-branch', hold: false, ready: true });
+      await cz.run('push-branch', '--ready');
 
-      expect(gh.pr.merge).toHaveBeenCalledWith({ auto: true, deleteBranch: true, squash: true });
-      expect(log).toHaveBeenCalledWith(
-        'PR ready, auto-merge scheduled (BEHIND): https://github.com/zyplux/zyplux/pull/1',
-      );
+      expect(shell.commands).toContain('gh pr merge --auto --delete-branch --squash');
+      expect(logs.logLines).toContain(`PR ready, auto-merge scheduled (BEHIND): ${PR_URL}`);
     });
 
-    it('9.6.4 rejects when the merge state stays UNKNOWN', async () => {
-      gh.pr.list.mockResolvedValueOnce(text(''));
-      git.lsRemote.mockResolvedValueOnce(text('sha-local\trefs/heads/feat-x'));
-      queueField('isDraft', 'false');
-      queueField('url', 'https://github.com/zyplux/zyplux/pull/1');
-      queueField('mergeStateStatus', ...Array.from({ length: 10 }, () => 'UNKNOWN'));
+    test('9.6.4 rejects when the merge state stays UNKNOWN', async ({ cz, repo, shell }) => {
+      repo.setCurrentBranch('feat-x');
+      repo.setHeadSha('sha-local');
+      repo.setPrListState('');
+      repo.queuePrField('isDraft', 'false');
+      repo.queuePrField('url', PR_URL);
+      repo.queuePrField('mergeStateStatus', 'UNKNOWN');
+      repo.setRemoteBranchSha('feat-x', 'sha-local');
 
-      await expect(runPushBranch({ command: 'push-branch', hold: false, ready: true })).rejects.toThrow(
+      await expect(cz.run('push-branch', '--ready')).rejects.toThrow(
         'merge state stayed UNKNOWN; check the PR on GitHub',
       );
-      expect(gh.pr.merge).not.toHaveBeenCalled();
+      expect(shell.commandsMatching('gh pr merge')).toHaveLength(0);
     });
   });
 });

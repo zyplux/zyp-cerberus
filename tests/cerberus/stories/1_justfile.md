@@ -25,6 +25,12 @@ When `ctx.file` returns no content for `justfile`, the check fails immediately
 with a "no justfile at repo root" style finding and never attempts to parse
 anything.
 
+### 1.1.3 errors when the justfile cannot be parsed
+
+A justfile that `just` itself rejects (e.g. a recipe line with no colon)
+produces an error finding that starts with "could not parse justfile:",
+rather than a pass or an ordinary failure.
+
 ## 1.2 keeping aliases and recipes conformant
 
 Every recipe needs a short alias (`i`, `k`, `tc`, `l`, `t`, `c`, plus the
@@ -61,13 +67,11 @@ Reordering the `check` recipe's dependencies (e.g. running `lint` before
 `knip`/`typecheck`) so the required pipeline steps no longer appear in the
 configured order fails the check.
 
-### 1.3.2 determines whether one step list is an in order subsequence of another
+### 1.3.2 passes when extra steps are interleaved between the pipeline steps
 
-The pipeline-order rule is backed by a general in-order-subsequence test:
-a needle list matches a haystack list when every needle item appears in the
-haystack in the same relative order, with other items allowed in between
-(e.g. `["install", "knip", "test"]` in `["install", "build", "knip", "test"]`),
-and fails to match when an item is out of order or absent entirely.
+The pipeline steps only have to appear in order, not contiguously: a `check`
+recipe that interleaves an extra step (e.g. `build`) between the configured
+pipeline steps still passes.
 
 ## 1.4 requiring the default recipe to list available commands
 
@@ -101,19 +105,19 @@ Recipe lines must not carry trailing spaces or tabs.
 A justfile whose otherwise-conforming `check` recipe line ends in trailing
 spaces fails the check.
 
-## 1.7 parsing justfile content into structured data
+### 1.6.2 strips trailing whitespace when run with fix
 
-`justfile.parse` turns raw justfile text into structured aliases, recipes,
-dependencies, and bodies by shelling out to `just --dump --dump-format json`.
+Running the check with `--fix` rewrites the justfile with the trailing
+whitespace removed and reports no findings against it.
 
-### 1.7.1 extracts recipes aliases dependencies and bodies from justfile content
+## 1.7 handling justfiles that use interpolation
 
-Parsing a justfile yields its aliases as a name-to-target mapping, each
-recipe's dependencies as an ordered list, and each recipe's body text.
+Recipe bodies may embed `{{ variable }}` interpolation; the check must
+evaluate such justfiles the same as plain ones instead of tripping over the
+interpolation fragments that `just --dump` emits.
 
-### 1.7.2 collapses interpolation fragments when extracting recipe bodies
+### 1.7.1 passes a conforming justfile whose recipes use interpolation
 
-A `just --dump` recipe body is a list of lines whose fragments can be nested
-interpolation nodes rather than plain strings; parsing collapses each
-interpolation fragment to a single space so the body still reads as text and
-its recipe's dependency list still parses correctly.
+A conforming justfile extended with a variable assignment and a recipe whose
+body interpolates that variable (and the recipe's own arguments) still passes
+with no findings.

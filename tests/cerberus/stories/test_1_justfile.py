@@ -3,7 +3,7 @@ from collections.abc import Callable
 from pathlib import Path
 
 import pytest
-from cerberus import config, context, justfile
+from cerberus import config, context
 from cerberus.checks import justfile_check
 from cerberus.model import CheckResult, Repo, Status
 
@@ -42,6 +42,7 @@ clean:
     rm -rf node_modules
 """
 
+UNPARSEABLE = "recipe without colon\n"
 MISSING_REQUIRED_ALIAS = CONFORMING.replace("alias k := knip\n", "")
 WRONG_ALIAS_TARGET = CONFORMING.replace("alias k := knip\n", "alias k := lint\n")
 MISSING_REQUIRED_RECIPE = CONFORMING.replace("default:\n    @just --list\n", "")
@@ -51,6 +52,9 @@ MISSING_RECOMMENDED = CONFORMING.replace("alias ui := upgrade-interactive\n", ""
 WRONG_CHECK_ORDER = CONFORMING.replace(
     "check: install knip typecheck lint test", "check: install lint knip typecheck test"
 )
+INTERLEAVED_CHECK = CONFORMING.replace(
+    "check: install knip typecheck lint test", "check: install knip build typecheck lint test"
+).replace("clean:\n", "build:\n    bun run build\nclean:\n")
 DEFAULT_NO_LIST = CONFORMING.replace("default:\n    @just --list\n", "default:\n    echo hi\n")
 BARE_TOOL_CALL = CONFORMING.replace("lint:\n    bun run lint\n", "lint:\n    rumdl check\n")
 TRAILING_WHITESPACE = CONFORMING.replace(
@@ -58,23 +62,9 @@ TRAILING_WHITESPACE = CONFORMING.replace(
     "check: install knip typecheck lint test   \n",
 )
 
-WITH_INTERPOLATION = """
-recipe := "examples/recipe.toml"
-
-default:
-    @just --list
-
-install:
-    uv sync
-
-test:
-    uv run pytest
-
-up *args:
-    uv run totchef up --recipe {{ recipe }} {{ args }}
-
-check: install test
-"""
+WITH_INTERPOLATION = CONFORMING + (
+    '\nrecipe := "examples/recipe.toml"\n\nup *args:\n    uv run totchef up --recipe {{ recipe }} {{ args }}\n'
+)
 
 
 @pytest.fixture
@@ -105,6 +95,13 @@ def test_1_1_1_passes_a_fully_conforming_justfile(run_justfile_check: RunJustfil
 def test_1_1_2_fails_when_the_repo_has_no_justfile_at_its_root(run_justfile_check: RunJustfileCheck) -> None:
     result = run_justfile_check(None)
     assert (result.status, [f.message for f in result.problems]) == (Status.FAIL, ["no justfile at repo root"])
+
+
+@requires_just
+def test_1_1_3_errors_when_the_justfile_cannot_be_parsed(run_justfile_check: RunJustfileCheck) -> None:
+    result = run_justfile_check(UNPARSEABLE)
+    assert result.status is Status.ERROR
+    assert result.problems[0].message.startswith("could not parse justfile: ")
 
 
 @requires_just
@@ -155,11 +152,12 @@ def test_1_3_1_fails_when_the_check_recipe_runs_its_steps_out_of_order(run_justf
     )
 
 
-def test_1_3_2_determines_whether_one_step_list_is_an_in_order_subsequence_of_another() -> None:
-    assert justfile.is_subsequence(["a", "c"], ["a", "b", "c"])
-    assert justfile.is_subsequence(["install", "knip", "test"], ["install", "build", "knip", "test"])
-    assert not justfile.is_subsequence(["c", "a"], ["a", "b", "c"])
-    assert not justfile.is_subsequence(["x"], ["a", "b"])
+@requires_just
+def test_1_3_2_passes_when_extra_steps_are_interleaved_between_the_pipeline_steps(
+    run_justfile_check: RunJustfileCheck,
+) -> None:
+    result = run_justfile_check(INTERLEAVED_CHECK)
+    assert (result.status, result.problems) == (Status.PASS, [])
 
 
 @requires_just
@@ -192,23 +190,17 @@ def test_1_6_1_fails_when_a_recipe_line_has_trailing_whitespace(run_justfile_che
 
 
 @requires_just
-def test_1_7_1_extracts_recipes_aliases_dependencies_and_bodies_from_justfile_content() -> None:
-    jf = justfile.parse(
-        "alias c := check\n"
-        "default:\n    @just --list\n"
-        "install:\n    bun install\n"
-        "check: install test\n"
-        "test:\n    bun test\n"
-    )
-    assert (jf.aliases, jf.recipes, jf.bodies) == (
-        {"c": "check"},
-        {"check": ["install", "test"], "default": [], "install": [], "test": []},
-        {"check": "", "default": "@just --list", "install": "bun install", "test": "bun test"},
-    )
+def test_1_6_2_strips_trailing_whitespace_when_run_with_fix(tmp_path: Path) -> None:
+    (tmp_path / "justfile").write_text(TRAILING_WHITESPACE)
+    fixer = context.local_context(config.load(), tmp_path, fix=True)
+    result = justfile_check.run(fixer.repos()[0], fixer)
+    assert (tmp_path / "justfile").read_text() == CONFORMING
+    assert (result.status, result.problems) == (Status.PASS, [])
 
 
 @requires_just
-def test_1_7_2_collapses_interpolation_fragments_when_extracting_recipe_bodies() -> None:
-    jf = justfile.parse(WITH_INTERPOLATION)
-    assert jf.recipes["check"] == ["install", "test"]
-    assert "uv run totchef up" in jf.bodies["up"]
+def test_1_7_1_passes_a_conforming_justfile_whose_recipes_use_interpolation(
+    run_justfile_check: RunJustfileCheck,
+) -> None:
+    result = run_justfile_check(WITH_INTERPOLATION)
+    assert (result.status, result.problems) == (Status.PASS, [])

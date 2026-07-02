@@ -2,11 +2,9 @@
 
 ## 3.1 assembling the base flat config
 
-### 3.1.1 produces a non-empty flat config array
+### 3.1.1 enables every rule the zyplux plugin exports
 
-### 3.1.2 enables every rule the zyplux plugin exports
-
-### 3.1.3 scopes vitest rules to test files
+### 3.1.2 scopes vitest rules to test files
 
 ## 3.2 opting into react support
 
@@ -30,10 +28,16 @@
 
 ### 3.4.3 enables react and disables no-unknown-property for a renderer map with no dom entry
 
-### 3.4.4 treats an empty renderer map as no react
+### 3.4.4 treats an empty renderer map or a renderer with no globs as no react
 
 ## 3.5 sharing defaults across zyplux calls
 
 ### 3.5.1 applies shared defaults to every call
 
 ### 3.5.2 lets a per-call option override a shared default
+
+## 3.6 forwarding caller options into the assembled config
+
+### 3.6.1 appends caller ignores to the default global ignores
+
+### 3.6.2 forwards the tsconfig root dir to the typescript parser options

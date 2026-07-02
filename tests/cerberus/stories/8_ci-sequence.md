@@ -8,7 +8,7 @@
 
 ### 8.2.1 fails when no ci workflow file exists
 
-### 8.2.2 errors when the ci workflow file is not valid yaml
+### 8.2.2 errors when the ci workflow is not a valid yaml mapping
 
 ## 8.3 requiring the python pipeline to run every step in canonical order
 
@@ -27,3 +27,5 @@
 ### 8.4.3 fails when the required ts steps run out of canonical order
 
 ### 8.4.4 fails when the ts job does not run in the org container
+
+### 8.4.5 passes when the container is declared as a mapping with an image key

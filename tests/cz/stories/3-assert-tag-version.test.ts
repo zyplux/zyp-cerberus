@@ -1,35 +1,27 @@
-import { runAssertTagVersion } from '@zyplux/cz/commands/assert-tag-version';
-import { loadReleaseTargets, type ReleaseTarget } from '@zyplux/cz/release-targets';
-import { afterEach, beforeAll, describe, expect, it, vi } from 'vitest';
-
-const findTarget = (targets: ReleaseTarget[], label: string) => {
-  const target = targets.find(candidate => candidate.label === label);
-  if (target === undefined) throw new Error(`${label} target missing from manifest`);
-  return target;
-};
+import { describe, expect, test } from '#fixtures';
 
 describe('3.1 asserting a tag against the release manifest', () => {
-  let util: ReleaseTarget;
-  let utilVersion: string;
+  test("3.1.1 logs a confirmation when the tag matches its target's declared version", async ({
+    cz,
+    findTarget,
+    logs,
+  }) => {
+    const util = await findTarget('@zyplux/util');
 
-  beforeAll(async () => {
-    util = findTarget(await loadReleaseTargets(), '@zyplux/util');
-    utilVersion = await util.readVersion();
+    await cz.run('assert-tag-version', `util-v${util.version}`);
+
+    expect(logs.logLines).toContain(`@zyplux/util ${util.version} matches util-v${util.version}`);
   });
 
-  afterEach(() => {
-    vi.restoreAllMocks();
+  test('3.1.2 rejects a tag no release target owns', async ({ cz }) => {
+    await expect(cz.run('assert-tag-version', 'mystery-v1.0.0')).rejects.toThrow(
+      "no release target in release-targets.toml owns tag 'mystery-v1.0.0'",
+    );
   });
 
-  it("3.1.1 logs a confirmation when the tag matches its target's declared version", async () => {
-    const log = vi.spyOn(console, 'log').mockReturnValue(undefined);
-
-    await runAssertTagVersion({ command: 'assert-tag-version', tag: `util-v${utilVersion}` });
-
-    expect(log).toHaveBeenCalledWith(`@zyplux/util ${utilVersion} matches util-v${utilVersion}`);
-  });
-
-  it('3.1.2 rejects a tag no release target owns', async () => {
-    await expect(runAssertTagVersion({ command: 'assert-tag-version', tag: 'mystery-v1.0.0' })).rejects.toThrow();
+  test('3.1.3 rejects a tag whose version does not match the manifest', async ({ cz }) => {
+    await expect(cz.run('assert-tag-version', 'cerberus-v0.0.0-does-not-exist')).rejects.toThrow(
+      'does not match zyplux-cerberus version',
+    );
   });
 });

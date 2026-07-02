@@ -1,7 +1,8 @@
 # @zyplux/tests-fixtures
 
-Fake `Bun.$` shell output/promise fixtures for testing code built on `@zyplux/util`'s
-shell harness. Ships TypeScript source, consumed directly under Bun.
+Story-test fixtures for code built on Bun and `@zyplux/util`. Fakes swap in at the lowest
+boundary (`Bun.$`, `fetch`, `console`, `Bun.sleep`) so tests exercise only public interfaces.
+Ships TypeScript source, consumed directly under Bun.
 
 ## Install
 
@@ -11,20 +12,47 @@ bun add -d @zyplux/tests-fixtures
 
 ## Use
 
-```ts
-import { fakeShellOutput, fakeShellPromise, toArgv } from '@zyplux/tests-fixtures';
-import { vi } from 'vitest';
+Pick a base per app type from `@zyplux/tests-fixtures/story`, extend it with suite fixtures,
+and keep the binding named `test`:
 
-const shellFn = vi.fn<typeof Bun.$>();
-shellFn.mockImplementation((strings, ...values) => {
-  console.log(strings[0]?.trim(), toArgv(values));
-  return fakeShellPromise(fakeShellOutput('output'));
-});
-Bun.$ = shellFn;
+```ts
+import { cliTest } from '@zyplux/tests-fixtures/story';
+
+export const test = cliTest;
+export { describe, expect } from 'vitest';
 ```
 
-- `fakeShellOutput(stdout, exitCode?)` — builds a fake `Awaited<ReturnType<typeof Bun.$.git.status>>`
-  result; unimplemented accessors throw.
-- `fakeShellPromise(result)` — wraps a fake result in a real `Promise` decorated with `Bun.$`'s
-  chainable methods (`.cwd()`, `.quiet()`, `.nothrow()`, etc).
-- `toArgv(values)` — extracts the argv array from a tagged-template call's interpolated values.
+```ts
+import { describe, expect, test } from '#fixtures';
+
+describe('1.1 pushing a branch', () => {
+  test('1.1.1 pushes and reports the PR url', async ({ logs, shell }) => {
+    shell.on('git rev-parse --abbrev-ref HEAD', 'feat-x');
+    shell.on('git push', '');
+
+    await runPushBranch({ command: 'push-branch', hold: false, ready: false });
+
+    expect(shell.commands).toContain('git push --set-upstream origin feat-x');
+    expect(logs.logLines).toContain('PR (draft): https://github.com/acme/repo/pull/1');
+  });
+});
+```
+
+## Bases (`/story`)
+
+- `libraryTest` — lazy fixtures: `shell` (fake `Bun.$`, installed only when destructured),
+  `tempDir` (auto-removed scratch directory).
+- `cliTest` — extends `libraryTest`; auto-silences and captures `console` (`logs`), makes
+  `Bun.sleep` instant; adds lazy `network` (fake `fetch`).
+
+## Fakes (root export)
+
+- `createShellFake()` — routes commands (`on(pattern, ...replies)`, later routes win, the last
+  reply repeats; `otherwise(reply)` sets a fallback, unrouted commands throw) and records
+  `calls` (`{ argv, program }`), `commands` (rendered strings), `commandsMatching(pattern)`.
+- `createConsoleCapture()` — records `logLines`/`warnLines`/`errorLines`.
+- `createFetchFake()` — routes urls (`on(prefixOrRegExp, reply)`, `otherwise(reply)`) and
+  records `requests`; `okResponse()`/`notFoundResponse()` build replies.
+- `createTempDir()` — `path`, `write(relativePath, content)`, `remove()`.
+- `fakeShellOutput(stdout, exitCode?)`, `fakeShellPromise(result)`, `toArgv(values)` — raw
+  `Bun.$` doubles behind `createShellFake`.

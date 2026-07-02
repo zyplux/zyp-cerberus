@@ -2,13 +2,7 @@
 
 ## 6.1 translating flag objects into CLI arguments
 
-### 6.1.1 renders a true boolean flag as a bare kebab-case switch
-
-### 6.1.2 omits a false boolean flag entirely
-
-### 6.1.3 renders a valued flag as a switch followed by its stringified value
-
-### 6.1.4 renders every own flag in a multi-flag object
+### 6.1.1 omits a false boolean flag entirely
 
 ## 6.2 building git subcommands
 
@@ -30,4 +24,4 @@
 
 ### 6.6.1 omits any flags when %s is called without them
 
-### 6.6.2 defaults cwd to process.cwd() when git.showToplevel is called without it
+### 6.6.2 builds the same show toplevel argv when git.showToplevel is called without a cwd

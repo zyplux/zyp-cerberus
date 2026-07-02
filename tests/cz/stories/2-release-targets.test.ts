@@ -1,146 +1,84 @@
-import { loadReleaseTargets, type ReleaseTarget, resolveReleaseTag } from '@zyplux/cz/release-targets';
-import { fakeShellOutput } from '@zyplux/tests-fixtures';
-import { $ } from '@zyplux/util/shell';
-import { mkdtemp, rm, writeFile } from 'node:fs/promises';
-import { tmpdir } from 'node:os';
-import path from 'node:path';
-import { afterEach, beforeAll, beforeEach, describe, expect, it, vi } from 'vitest';
+import { describe, expect, notFoundResponse, okResponse, test } from '#fixtures';
 
-const findTarget = (targets: ReleaseTarget[], label: string) => {
-  const target = targets.find(candidate => candidate.label === label);
-  if (target === undefined) throw new Error(`${label} target missing from manifest`);
-  return target;
-};
+const BROKEN_TARGET_MANIFEST = [
+  '[[target]]',
+  'kind = "npm"',
+  'label = "broken-target"',
+  'surface = []',
+  'tag_prefix = "broken-v"',
+  'version = { file = "VERSION", regex = \'^nomatch$\' }',
+].join('\n');
 
-describe('release-targets', () => {
-  let targets: ReleaseTarget[];
+describe('2.1 loading release targets from the manifest', () => {
+  test('2.1.1 loads every target declared in the manifest', async ({ cz, logs, registries, repo }) => {
+    repo.syncMain('sha-head');
+    registries.setPublished({ ghcrPublished: true, npmPublished: true, pypiPublished: true });
 
-  beforeAll(async () => {
-    targets = await loadReleaseTargets();
+    await expect(cz.run('release-bumped-targets')).rejects.toThrow('nothing to release; bump a version first');
+
+    for (const label of [
+      '@zyplux/cz',
+      '@zyplux/eslint-config',
+      '@zyplux/tests-fixtures',
+      '@zyplux/tsconfig',
+      '@zyplux/util',
+      'zyplux-cerberus',
+      'zyplux-util',
+      'ghcr.io/zyplux/ci',
+    ]) {
+      expect(logs.logLines).toContainEqual(expect.stringContaining(`Skipping ${label} `));
+    }
   });
 
-  describe('2.1 loading release targets from the manifest', () => {
-    it('2.1.1 loads every target declared in the manifest', () => {
-      expect(targets.map(target => target.label)).toEqual(
-        expect.arrayContaining([
-          '@zyplux/cz',
-          '@zyplux/eslint-config',
-          '@zyplux/tsconfig',
-          '@zyplux/util',
-          'zyplux-cerberus',
-          'ghcr.io/zyplux/ci',
-        ]),
-      );
-    });
+  test('2.1.2 reads each target version from its json and regex sources', async ({
+    cz,
+    findTarget,
+    logs,
+    registries,
+    repo,
+  }) => {
+    repo.syncMain('sha-head');
+    registries.setPublished({ ghcrPublished: true, npmPublished: true, pypiPublished: true });
+    const util = await findTarget('@zyplux/util');
+    const cerberus = await findTarget('zyplux-cerberus');
 
-    it('2.1.2 exposes each target kind and directory', () => {
-      const util = findTarget(targets, '@zyplux/util');
-      const cerberus = findTarget(targets, 'zyplux-cerberus');
+    await expect(cz.run('release-bumped-targets')).rejects.toThrow('nothing to release; bump a version first');
 
-      expect({
-        cerberus: {
-          dirEndsWithPackageDir: cerberus.dir.endsWith(path.join('apps', 'cerberus')),
-          dirIsAbsolute: path.isAbsolute(cerberus.dir),
-          kind: cerberus.kind,
-        },
-        util: {
-          dirEndsWithPackageDir: util.dir.endsWith(path.join('packages', 'util')),
-          dirIsAbsolute: path.isAbsolute(util.dir),
-          kind: util.kind,
-        },
-      }).toEqual({
-        cerberus: { dirEndsWithPackageDir: true, dirIsAbsolute: true, kind: 'pypi' },
-        util: { dirEndsWithPackageDir: true, dirIsAbsolute: true, kind: 'npm' },
-      });
-    });
+    expect(logs.logLines).toContain(`Skipping @zyplux/util ${util.version} (already published)`);
+    expect(logs.logLines).toContain(`Skipping zyplux-cerberus ${cerberus.version} (already published)`);
   });
+});
 
-  describe('2.2 reading a target version from its source file', () => {
-    it('2.2.1 reads a version from json and regex sources', async () => {
-      const versions = await Promise.all(targets.map(async target => target.readVersion()));
+describe('2.2 reading a version whose regex does not match its source file', () => {
+  test('2.2.1 rejects reading a version whose regex does not match the file', async ({ cz, repo, tempDir }) => {
+    await tempDir.write('release-targets.toml', BROKEN_TARGET_MANIFEST);
+    await tempDir.write('VERSION', '1.2.3\n');
+    repo.setRoot(tempDir.path);
 
-      expect(versions.every(version => /^\d+\.\d+\.\d+/.test(version))).toBe(true);
-    });
+    await expect(cz.run('assert-tag-version', 'broken-v1.2.3')).rejects.toThrow('could not read version from VERSION');
   });
+});
 
-  describe('2.3 resolving a release tag to its target', () => {
-    let cerberus: ReleaseTarget;
-    let cerberusVersion: string;
+describe('2.3 checking whether the ghcr image target is published', () => {
+  test('2.3.1 treats a failed registry auth handshake as not published', async ({
+    cz,
+    findTarget,
+    logs,
+    network,
+    repo,
+    shell,
+  }) => {
+    repo.syncMain('sha-head');
+    network.on('https://ghcr.io/token', () => notFoundResponse());
+    network.otherwise(() => okResponse());
+    shell.on('gh release list', 'true');
+    const ci = await findTarget('ghcr.io/zyplux/ci');
 
-    beforeAll(async () => {
-      cerberus = findTarget(targets, 'zyplux-cerberus');
-      cerberusVersion = await cerberus.readVersion();
-    });
+    await expect(cz.run('release-bumped-targets')).rejects.toThrow('nothing to release; bump a version first');
 
-    it('2.3.1 resolves a release tag to its target and version', async () => {
-      const resolved = await resolveReleaseTag(`cerberus-v${cerberusVersion}`);
-
-      expect({ label: resolved.target.label, version: resolved.version }).toEqual({
-        label: 'zyplux-cerberus',
-        version: cerberusVersion,
-      });
-    });
-
-    it('2.3.2 rejects a tag no target owns', async () => {
-      await expect(resolveReleaseTag('mystery-v1.0.0')).rejects.toThrow();
-    });
-
-    it('2.3.3 rejects a tag whose version does not match the manifest', async () => {
-      await expect(resolveReleaseTag('cerberus-v0.0.0-does-not-exist')).rejects.toThrow();
-    });
-  });
-
-  describe('2.4 reading a version whose regex does not match its source file', () => {
-    let dir: string;
-    const originalShowToplevel = $.git.showToplevel;
-
-    beforeEach(async () => {
-      dir = await mkdtemp(path.join(tmpdir(), 'cz-release-targets-'));
-      await writeFile(
-        path.join(dir, 'release-targets.toml'),
-        [
-          '[[target]]',
-          'kind = "npm"',
-          'label = "broken-target"',
-          'surface = []',
-          'tag_prefix = "broken-v"',
-          'version = { file = "VERSION", regex = \'^nomatch$\' }',
-        ].join('\n'),
-        'utf8',
-      );
-      await writeFile(path.join(dir, 'VERSION'), '1.2.3\n', 'utf8');
-      $.git.showToplevel = () => Promise.resolve(fakeShellOutput(dir));
-    });
-
-    afterEach(async () => {
-      $.git.showToplevel = originalShowToplevel;
-      await rm(dir, { force: true, recursive: true });
-    });
-
-    it('2.4.1 rejects reading a version whose regex does not match the file', async () => {
-      const [brokenTarget] = await loadReleaseTargets();
-      if (brokenTarget === undefined) throw new Error('expected a target from the crafted manifest');
-
-      await expect(brokenTarget.readVersion()).rejects.toThrow('could not read version from VERSION');
-    });
-  });
-
-  describe('2.5 checking whether the ghcr image target is published', () => {
-    it('2.5.1 treats a failed registry auth handshake as not published', async () => {
-      vi.stubGlobal('fetch', (input: string | URL) =>
-        Promise.resolve(
-          String(input).includes('/token?')
-            ? new Response(undefined, { status: 404 })
-            : new Response(undefined, { status: 200 }),
-        ),
-      );
-      try {
-        const ci = findTarget(targets, 'ghcr.io/zyplux/ci');
-
-        await expect(ci.isPublished('9.9.9')).resolves.toBe(false);
-      } finally {
-        vi.unstubAllGlobals();
-      }
-    });
+    expect(logs.logLines).toContain(
+      `Skipping ghcr.io/zyplux/ci ${ci.version} (release ci-image-v${ci.version} already exists)`,
+    );
+    expect(logs.logLines).not.toContain(`Skipping ghcr.io/zyplux/ci ${ci.version} (already published)`);
   });
 });

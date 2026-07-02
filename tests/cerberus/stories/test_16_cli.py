@@ -7,13 +7,15 @@ import pytest
 from cerberus import __version__, checks
 from cerberus.checks.rumdl_config_check import CANONICAL as RUMDL_CANONICAL
 from cerberus.cli import app
-from cerberus.config import repo_disabled_checks
+from cerberus.model import Scope
 from typer.testing import CliRunner
 
 if TYPE_CHECKING:
     from collections.abc import Callable
     from pathlib import Path
 
+    from cerberus.context import Context
+    from cerberus.model import CheckResult, Repo
     from typer.testing import Result
 
 runner = CliRunner()
@@ -128,7 +130,7 @@ def test_16_2_1_fails_when_the_ci_workflow_file_is_missing(
     (conforming_repo / ".github" / "workflows" / "ci.yml").unlink()
     result = invoke_lint()
     assert result.exit_code == 1
-    assert "ci" in result.output.lower()
+    assert "no .github/workflows/ci.yml" in result.output
 
 
 @requires_just
@@ -199,18 +201,22 @@ def test_16_6_1_skips_a_disabled_check_and_explains_why_in_the_output(
     assert "[tool.cerberus]" in result.output
 
 
-def test_16_6_2_ignores_an_unknown_check_named_in_a_pyproject_disable_list(
+def test_16_6_2_warns_and_carries_on_when_a_pyproject_disable_list_names_an_unknown_check(
     conforming_repo: Path, invoke_lint: Callable[..., Result]
 ) -> None:
     (conforming_repo / "pyproject.toml").write_text('[tool.cerberus]\ndisable = ["no-such-check"]\n')
     result = invoke_lint("--check", "codeowners")
     assert result.exit_code == 0, result.output
+    assert "unknown disabled checks ignored: no-such-check" in result.output
 
 
-def test_16_6_3_rejects_a_disable_value_that_is_not_a_list_of_check_ids(tmp_path: Path) -> None:
-    (tmp_path / "pyproject.toml").write_text('[tool.cerberus]\ndisable = "codeowners"\n')
-    with pytest.raises(TypeError, match="list of check id strings"):
-        repo_disabled_checks(tmp_path)
+def test_16_6_3_rejects_a_disable_value_that_is_not_a_list_of_check_ids(
+    conforming_repo: Path, invoke_lint: Callable[..., Result]
+) -> None:
+    (conforming_repo / "pyproject.toml").write_text('[tool.cerberus]\ndisable = "codeowners"\n')
+    result = invoke_lint("--check", "codeowners")
+    assert isinstance(result.exception, TypeError)
+    assert "list of check id strings" in str(result.exception)
 
 
 def test_16_7_1_lists_every_registered_check_by_id() -> None:
@@ -230,3 +236,19 @@ def test_16_9_1_rejects_an_option_the_lint_command_never_defined(invoke_lint: Ca
     result = invoke_lint(flag)
     assert result.exit_code == USAGE_ERROR_EXIT
     assert flag.removeprefix("--") in result.output.lower()
+
+
+def test_16_10_1_reports_a_crashing_check_as_an_error_instead_of_aborting_the_run(
+    invoke_lint: Callable[..., Result], monkeypatch: pytest.MonkeyPatch
+) -> None:
+    def explode(_repo: Repo, _ctx: Context) -> CheckResult:
+        msg = "boom"
+        raise RuntimeError(msg)
+
+    crashing = checks.Check("codeowners", "always crashes", Scope.CONTENT, explode)
+    monkeypatch.setitem(checks.BY_ID, "codeowners", crashing)
+
+    result = invoke_lint("--check", "codeowners")
+
+    assert result.exit_code == 1
+    assert "codeowners: check crashed: boom" in result.output

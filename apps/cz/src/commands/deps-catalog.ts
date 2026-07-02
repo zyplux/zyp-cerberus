@@ -37,7 +37,7 @@ export const depsCatalogCommand = command(
 type DepsCatalogConfig = InferValue<typeof depsCatalogCommand>;
 
 export const runDepsCatalog = async ({ dir, out }: DepsCatalogConfig) => {
-  const { repos, unresolved } = await collectDepRepos({ dir });
+  const { repos, unresolved } = await collectDepRepos(dir);
   const outPath = path.isAbsolute(out) ? out : path.join(dir, out);
   await Bun.write(outPath, `${JSON.stringify(repos, undefined, JSON_INDENT)}\n`);
 

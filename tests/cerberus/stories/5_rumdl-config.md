@@ -18,4 +18,6 @@
 
 ### 5.2.2 rewrites a non-canonical config to canonical form preserving exclude
 
-### 5.2.3 passes when re-checked after being fixed
+### 5.2.3 rewrites a non-canonical config without an exclude to the exact canonical text
+
+### 5.2.4 passes when re-checked after being fixed

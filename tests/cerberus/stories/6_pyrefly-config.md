@@ -32,11 +32,9 @@
 
 ## 6.6 constraining sub config entries
 
-### 6.6.1 fails when a sub config weakens strict for production code
+### 6.6.1 fails when a sub config weakens strict for production or test code
 
-### 6.6.2 fails when a sub config relaxes rules for test code
-
-### 6.6.3 fails when a sub config entry is not a table
+### 6.6.2 fails when a sub config entry is not a table
 
 ## 6.7 passing a fully compliant config
 

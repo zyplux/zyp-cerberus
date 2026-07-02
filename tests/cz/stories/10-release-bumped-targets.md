@@ -14,8 +14,6 @@
 
 ### 10.2.2 skips a target that already has a github release
 
-### 10.2.3 rejects when every target ends up skipped
-
 ## 10.3 publishing a pending target
 
 ### 10.3.1 cuts a release, watches its workflow to success, and confirms registry visibility
@@ -28,7 +26,7 @@
 
 ### 10.3.5 warns instead of failing when the registry never shows the new version
 
-### 10.3.6 treats an empty known-run list as no prior runs
+### 10.3.6 keeps polling while the run list is still empty instead of watching a phantom run
 
 ### 10.3.7 rejects when the workflow completes without reporting a conclusion
 

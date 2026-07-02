@@ -41,3 +41,11 @@
 ## 17.7 surfacing unavailable git history
 
 ### 17.7.1 errors when git history cannot be read outside a repo
+
+### 17.7.2 errors when the git binary is missing
+
+## 17.8 caching reads through the run context
+
+### 17.8.1 serves freshly written content to later reads in the same run
+
+### 17.8.2 keys cached history reads by their arguments

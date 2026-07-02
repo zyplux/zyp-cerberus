@@ -6,7 +6,7 @@ from typing import NamedTuple
 
 import pytest
 from cerberus import config, context
-from cerberus.checks import story_docs, story_tests_py_check, story_tests_ts_check
+from cerberus.checks import story_tests_py_check, story_tests_ts_check
 from cerberus.model import CheckResult, Finding, Repo, Status
 
 RunFn = Callable[[Repo, context.Context], CheckResult]
@@ -118,6 +118,15 @@ def test_15_1_5_treats_a_nested_tests_directory_as_excluded_but_still_checks_its
     }
     result = run_story_check(story_tests_ts_check.run, files)
     assert result.findings == [Finding(Status.FAIL, _needs_story_tests_message("apps/cz"))]
+
+
+def test_15_1_6_recognizes_a_workspaces_object_with_a_packages_list(run_story_check: RunStoryCheck) -> None:
+    files = {
+        "package.json": '{"workspaces": {"packages": ["apps/*"]}}',
+        "apps/widget/package.json": _TS_BIN_PKG,
+    }
+    result = run_story_check(story_tests_ts_check.run, files)
+    assert result.findings == [Finding(Status.FAIL, _needs_story_tests_message("apps/widget"))]
 
 
 def test_15_2_1_fails_a_python_package_that_exposes_a_cli_script_but_has_no_story_tests(
@@ -371,11 +380,17 @@ def test_15_5_2_rewrites_a_stale_header_link_and_passes_on_the_next_run(tmp_path
     assert result.findings == [Finding(Status.PASS, OK_MESSAGE)]
 
 
-def test_15_5_3_rendering_a_linked_doc_twice_reaches_a_fixed_point() -> None:
-    tests = story_docs.collect_py_tests([PY_TEST_PATH], {PY_TEST_PATH: PY_TEST}.get)
-    once = story_docs.render_linked_doc(DOC, tests)
-    twice = story_docs.render_linked_doc(once, tests)
-    assert once == twice
+def test_15_5_3_flags_a_linked_criterion_header_for_unlinking(run_story_check: RunStoryCheck) -> None:
+    files = {
+        "pyproject.toml": _PY_PLAIN_PYPROJECT,
+        DOC_PATH: _linked("test_1_widget.py").replace(
+            "### 1.1.1 shows the widget name",
+            "### 1.1.1 [shows the widget name](test_1_widget.py)",
+        ),
+        PY_TEST_PATH: PY_TEST,
+    }
+    result = run_story_check(story_tests_py_check.run, files)
+    assert result.findings == [Finding(Status.FAIL, PY_STALE_LINK_MESSAGE)]
 
 
 def test_15_6_1_recognizes_test_calls_written_with_chained_modifiers(run_story_check: RunStoryCheck) -> None:

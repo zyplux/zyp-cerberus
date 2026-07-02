@@ -1,58 +1,17 @@
-import { fakeShellOutput, fakeShellPromise, toArgv } from '@zyplux/tests-fixtures';
-import { $, readTrimmed } from '@zyplux/util/shell';
-import { test as base, describe, expect, vi } from 'vitest';
-
-type CapturedCall = { argv: string[]; program: string };
-
-const stubBunDollar = (calls: CapturedCall[]) => {
-  const shellFn = vi.fn<typeof Bun.$>();
-  shellFn.mockImplementation((strings, ...values) => {
-    calls.push({ argv: toArgv(values), program: strings[0]?.trim() ?? '' });
-    return fakeShellPromise(fakeShellOutput('output'));
-  });
-  return shellFn;
-};
-
-const test = base.extend<{ shellCalls: CapturedCall[] }>({
-  shellCalls: async ({}, use) => {
-    const calls: CapturedCall[] = [];
-    const original = Bun.$;
-    Bun.$ = stubBunDollar(calls);
-    try {
-      await use(calls);
-    } finally {
-      Bun.$ = original;
-    }
-  },
-});
+import { $, describe, expect, readTrimmed, test } from '#fixtures';
 
 describe('6.1 translating flag objects into CLI arguments', () => {
-  test('6.1.1 renders a true boolean flag as a bare kebab-case switch', async ({ shellCalls }) => {
-    await $.git.pull({ ffOnly: true });
-    expect(shellCalls[0]).toEqual({ argv: ['pull', '--ff-only'], program: 'git' });
-  });
+  test('6.1.1 omits a false boolean flag entirely', async ({ shell }) => {
+    shell.otherwise('output');
 
-  test('6.1.2 omits a false boolean flag entirely', async ({ shellCalls }) => {
     await $.git.branch('feat-x', { delete: false });
-    expect(shellCalls[0]).toEqual({ argv: ['branch', 'feat-x'], program: 'git' });
-  });
 
-  test('6.1.3 renders a valued flag as a switch followed by its stringified value', async ({ shellCalls }) => {
-    await $.gh.run.view('123', { json: 'status,conclusion' });
-    expect(shellCalls[0]).toEqual({ argv: ['run', 'view', '123', '--json', 'status,conclusion'], program: 'gh' });
-  });
-
-  test('6.1.4 renders every own flag in a multi-flag object', async ({ shellCalls }) => {
-    await $.gh.pr.list({ head: 'my-branch', jq: '.x', json: 'state', state: 'all' });
-    expect(shellCalls[0]).toEqual({
-      argv: ['pr', 'list', '--head', 'my-branch', '--jq', '.x', '--json', 'state', '--state', 'all'],
-      program: 'gh',
-    });
+    expect(shell.calls[0]).toEqual({ argv: ['branch', 'feat-x'], program: 'git' });
   });
 });
 
 describe('6.2 building git subcommands', () => {
-  test.each([
+  test.for([
     [
       'branch',
       () => $.git.branch('feat-x', { delete: true, force: true }),
@@ -75,22 +34,17 @@ describe('6.2 building git subcommands', () => {
     ['revParse', () => $.git.revParse('HEAD', { abbrevRef: true }), ['rev-parse', '--abbrev-ref', 'HEAD']],
     ['showToplevel', () => $.git.showToplevel('/tmp'), ['rev-parse', '--show-toplevel']],
     ['status', () => $.git.status({ porcelain: true }), ['status', '--porcelain']],
-  ] as const)('6.2.1 builds git %s argv from its arguments and flags', async (_name, invoke, expectedArgv) => {
-    const calls: CapturedCall[] = [];
-    const original = Bun.$;
-    Bun.$ = stubBunDollar(calls);
+  ] as const)('6.2.1 builds git %s argv from its arguments and flags', async ([, invoke, expectedArgv], { shell }) => {
+    shell.otherwise('output');
 
-    try {
-      await invoke();
-      expect(calls[0]).toEqual({ argv: [...expectedArgv], program: 'git' });
-    } finally {
-      Bun.$ = original;
-    }
+    await invoke();
+
+    expect(shell.calls[0]).toEqual({ argv: [...expectedArgv], program: 'git' });
   });
 });
 
 describe('6.3 building gh subcommands', () => {
-  test.each([
+  test.for([
     [
       'api',
       () => $.gh.api('repos/x/y', { input: '-', method: 'POST' }),
@@ -128,50 +82,36 @@ describe('6.3 building gh subcommands', () => {
       () => $.gh.run.view('123', { json: 'status,conclusion' }),
       ['run', 'view', '123', '--json', 'status,conclusion'],
     ],
-  ] as const)('6.3.1 builds gh %s argv from its arguments and flags', async (_name, invoke, expectedArgv) => {
-    const calls: CapturedCall[] = [];
-    const original = Bun.$;
-    Bun.$ = stubBunDollar(calls);
+  ] as const)('6.3.1 builds gh %s argv from its arguments and flags', async ([, invoke, expectedArgv], { shell }) => {
+    shell.otherwise('output');
 
-    try {
-      await invoke();
-      expect(calls[0]).toEqual({ argv: [...expectedArgv], program: 'gh' });
-    } finally {
-      Bun.$ = original;
-    }
+    await invoke();
+
+    expect(shell.calls[0]).toEqual({ argv: [...expectedArgv], program: 'gh' });
   });
 });
 
 describe('6.4 reading trimmed command output', () => {
-  test('6.4.1 awaits a command and trims its text output', async () => {
-    const command = Promise.resolve({ text: () => '  hello  \n' });
-    expect(await readTrimmed(command)).toBe('hello');
+  test('6.4.1 awaits a command and trims its text output', async ({ shell }) => {
+    shell.otherwise('  abc123  \n');
+
+    expect(await readTrimmed($.git.revParse('HEAD'))).toBe('abc123');
   });
 });
 
 describe('6.5 invoking the shell function directly', () => {
-  test('6.5.1 forwards a direct call to the underlying Bun.$ tagged template', async () => {
-    const calls: { strings: readonly string[]; values: unknown[] }[] = [];
-    const original = Bun.$;
-    const shellFn = vi.fn<typeof Bun.$>();
-    shellFn.mockImplementation((strings, ...values) => {
-      calls.push({ strings: [...strings], values });
-      return fakeShellPromise(fakeShellOutput('output'));
-    });
-    Bun.$ = shellFn;
+  test('6.5.1 forwards a direct call to the underlying Bun.$ tagged template', async ({ shell }) => {
+    shell.otherwise('output');
+    const dir = '/tmp/pkg';
 
-    try {
-      const dir = '/tmp/pkg';
-      await $`cd ${dir} && echo hi`;
-      expect(calls[0]).toEqual({ strings: ['cd ', ' && echo hi'], values: [dir] });
-    } finally {
-      Bun.$ = original;
-    }
+    await $`cd ${dir} && echo hi`;
+
+    expect(shell.commands[0]).toBe('cd /tmp/pkg && echo hi');
   });
 });
 
 describe('6.6 omitting optional flags falls back to defaults', () => {
-  test.each([
+  test.for([
     ['gh.api', () => $.gh.api('repos/x/y'), ['api', 'repos/x/y'], 'gh'],
     ['gh.pr.list', () => $.gh.pr.list(), ['pr', 'list'], 'gh'],
     ['gh.pr.merge', () => $.gh.pr.merge(), ['pr', 'merge'], 'gh'],
@@ -188,22 +128,20 @@ describe('6.6 omitting optional flags falls back to defaults', () => {
     ['git.status', () => $.git.status(), ['status'], 'git'],
   ] as const)(
     '6.6.1 omits any flags when %s is called without them',
-    async (_name, invoke, expectedArgv, expectedProgram) => {
-      const calls: CapturedCall[] = [];
-      const original = Bun.$;
-      Bun.$ = stubBunDollar(calls);
+    async ([, invoke, expectedArgv, expectedProgram], { shell }) => {
+      shell.otherwise('output');
 
-      try {
-        await invoke();
-        expect(calls[0]).toEqual({ argv: [...expectedArgv], program: expectedProgram });
-      } finally {
-        Bun.$ = original;
-      }
+      await invoke();
+
+      expect(shell.calls[0]).toEqual({ argv: [...expectedArgv], program: expectedProgram });
     },
   );
 
-  test('6.6.2 defaults cwd to process.cwd() when git.showToplevel is called without it', async ({ shellCalls }) => {
+  test('6.6.2 builds the same show toplevel argv when git.showToplevel is called without a cwd', async ({ shell }) => {
+    shell.otherwise('output');
+
     await $.git.showToplevel();
-    expect(shellCalls[0]).toEqual({ argv: ['rev-parse', '--show-toplevel'], program: 'git' });
+
+    expect(shell.calls[0]).toEqual({ argv: ['rev-parse', '--show-toplevel'], program: 'git' });
   });
 });

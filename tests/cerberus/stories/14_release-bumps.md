@@ -6,6 +6,8 @@
 
 ### 14.1.2 errors when the release manifest is malformed
 
+### 14.1.3 errors when the manifest has no target array
+
 ## 14.2 reading a target's current version
 
 ### 14.2.1 fails when the version file is missing
@@ -16,11 +18,13 @@
 
 ### 14.2.4 fails when the declared version is not semver
 
+### 14.2.5 reads the version via the target regex
+
 ## 14.3 finding a target's latest published release
 
 ### 14.3.1 treats a target with no published tags as not yet released
 
-### 14.3.2 picks the highest semver tag rather than the last one listed
+### 14.3.2 picks the highest semver tag and ignores tags that are not semver
 
 ### 14.3.3 errors when the published tags cannot be read
 

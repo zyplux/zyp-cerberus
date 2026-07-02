@@ -3,7 +3,7 @@ import subprocess
 from typing import TYPE_CHECKING
 
 import pytest
-from cerberus import source
+from cerberus import config, context, source
 from cerberus.model import Repo
 
 if TYPE_CHECKING:
@@ -109,6 +109,8 @@ def test_17_3_2_falls_back_to_walking_the_filesystem_when_git_is_unavailable(
     (tmp_path / "a.txt").write_text("one")
     (tmp_path / "nested").mkdir()
     (tmp_path / "nested" / "b.txt").write_text("two")
+    (tmp_path / "node_modules").mkdir()
+    (tmp_path / "node_modules" / "dep.ts").write_text("export const x = 1;")
 
     paths = source.LocalSource(tmp_path).list_paths(repo)
 
@@ -159,3 +161,33 @@ def test_17_6_2_excludes_surface_paths_unchanged_since_the_ref(diffable_checkout
 def test_17_7_1_errors_when_git_history_cannot_be_read_outside_a_repo(tmp_path: Path, repo: Repo) -> None:
     with pytest.raises(source.GitHistoryUnavailableError):
         source.LocalSource(tmp_path).tags(repo, "widget-v")
+
+
+def test_17_7_2_errors_when_the_git_binary_is_missing(
+    monkeypatch: pytest.MonkeyPatch, tmp_path: Path, repo: Repo
+) -> None:
+    monkeypatch.setattr(source.proc.shutil, "which", lambda _tool: None)
+
+    with pytest.raises(source.GitHistoryUnavailableError):
+        source.LocalSource(tmp_path).tags(repo, "widget-v")
+
+
+def test_17_8_1_serves_freshly_written_content_to_later_reads_in_the_same_run(tmp_path: Path, repo: Repo) -> None:
+    (tmp_path / "doc.md").write_text("before")
+    ctx = context.local_context(config.load(), tmp_path)
+    assert ctx.file(repo, "doc.md") == "before"
+
+    ctx.write_file(repo, "doc.md", "after")
+
+    assert ctx.file(repo, "doc.md") == "after"
+    assert (tmp_path / "doc.md").read_text() == "after"
+
+
+@requires_git
+def test_17_8_2_keys_cached_history_reads_by_their_arguments(diffable_checkout: Path, repo: Repo) -> None:
+    ctx = context.local_context(config.load(), diffable_checkout)
+
+    assert ctx.tags(repo, "widget-v") == ["widget-v0.1.0"]
+    assert ctx.tags(repo, "absent-v") == []
+    assert ctx.changed_paths(repo, "widget-v0.1.0", ["tracked.txt"]) == ["tracked.txt"]
+    assert ctx.changed_paths(repo, "widget-v0.1.0", ["untouched.txt"]) == []

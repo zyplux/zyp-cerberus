@@ -8,7 +8,7 @@
 
 ### 1.1.3 excludes internal workspace packages from both ecosystems
 
-### 1.1.4 returns sorted deduplicated names for each ecosystem
+### 1.1.4 reports sorted deduplicated names for each ecosystem
 
 ## 1.2 resolving a dependency name to its source repository
 
@@ -18,7 +18,7 @@
 
 ### 1.2.3 falls back to pypi project urls when deps dev has no source repo
 
-### 1.2.4 returns undefined when no source repo is found anywhere
+### 1.2.4 reports the dependency as unresolved when no source repo is found anywhere
 
 ### 1.2.5 falls back to a deps dev links entry when there is no related project
 
@@ -29,10 +29,6 @@
 ### 1.3.2 excludes repos that belong to the scanned workspace itself
 
 ### 1.3.3 reports dependencies it could not resolve to a repo
-
-### 1.3.4 defaults to the current working directory and no local repos when called without options
-
-### 1.3.5 excludes extra local repos passed via options, ignoring ones that fail to normalize
 
 ## 1.4 skipping manifest files that fail to parse
 

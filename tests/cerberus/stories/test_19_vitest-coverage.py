@@ -6,7 +6,7 @@ from pathlib import Path
 import pytest
 from cerberus import config, context
 from cerberus.checks import vitest_coverage_check
-from cerberus.model import CheckResult, Repo, Status
+from cerberus.model import CheckResult, Finding, Repo, Status
 
 RunVitestCoverage = Callable[[Mapping[str, str | None]], CheckResult]
 
@@ -23,6 +23,12 @@ _COMPLIANT_CONFIG = (
     "    },\n"
     "  },\n"
     "});\n"
+)
+
+_SKIP_FINDING = Finding(Status.SKIP, "no root vitest.config")
+_NO_COVERAGE_FINDING = Finding(
+    Status.FAIL,
+    "vitest.config.ts has no `coverage` block; vitest coverage must enforce a floor of at least 90%",
 )
 
 
@@ -47,7 +53,9 @@ def run_vitest_coverage(monkeypatch: pytest.MonkeyPatch, repo: Repo, ctx: contex
 
 
 def test_19_1_1_skips_repos_with_no_root_vitest_config(run_vitest_coverage: RunVitestCoverage) -> None:
-    assert run_vitest_coverage({"README.md": "# demo\n"}).status is Status.SKIP
+    result = run_vitest_coverage({"README.md": "# demo\n"})
+
+    assert result.findings == [_SKIP_FINDING]
 
 
 def test_19_1_2_ignores_a_nested_vitest_config_that_is_not_at_the_repo_root(
@@ -55,13 +63,15 @@ def test_19_1_2_ignores_a_nested_vitest_config_that_is_not_at_the_repo_root(
 ) -> None:
     files = {"packages/a/vitest.config.ts": "export default defineProject({ test: {} });\n"}
 
-    assert run_vitest_coverage(files).status is Status.SKIP
+    result = run_vitest_coverage(files)
+
+    assert result.findings == [_SKIP_FINDING]
 
 
 def test_19_2_1_errors_when_the_root_vitest_config_cannot_be_read(run_vitest_coverage: RunVitestCoverage) -> None:
     result = run_vitest_coverage({"vitest.config.ts": None})
 
-    assert result.status is Status.ERROR
+    assert result.findings == [Finding(Status.ERROR, "could not read vitest.config.ts")]
 
 
 def test_19_2_2_fails_when_the_coverage_block_is_unterminated(run_vitest_coverage: RunVitestCoverage) -> None:
@@ -69,19 +79,29 @@ def test_19_2_2_fails_when_the_coverage_block_is_unterminated(run_vitest_coverag
 
     result = run_vitest_coverage(files)
 
-    assert result.status is Status.FAIL
+    assert result.findings == [_NO_COVERAGE_FINDING]
 
 
 def test_19_3_1_fails_when_the_config_has_no_coverage_block(run_vitest_coverage: RunVitestCoverage) -> None:
     files = {"vitest.config.ts": "export default defineConfig({ test: {} });\n"}
 
-    assert run_vitest_coverage(files).status is Status.FAIL
+    result = run_vitest_coverage(files)
+
+    assert result.findings == [_NO_COVERAGE_FINDING]
 
 
 def test_19_3_2_fails_when_the_coverage_block_has_no_thresholds(run_vitest_coverage: RunVitestCoverage) -> None:
     files = {"vitest.config.ts": "export default defineConfig({ test: { coverage: { provider: 'istanbul' } } });\n"}
 
-    assert run_vitest_coverage(files).status is Status.FAIL
+    result = run_vitest_coverage(files)
+
+    assert result.findings == [
+        Finding(
+            Status.FAIL,
+            "vitest.config.ts `coverage` has no `thresholds`; "
+            "must set branches/functions/lines/statements to at least 90",
+        )
+    ]
 
 
 def test_19_4_1_fails_and_names_the_metric_when_a_threshold_is_below_the_required_floor(
@@ -91,8 +111,9 @@ def test_19_4_1_fails_and_names_the_metric_when_a_threshold_is_below_the_require
 
     result = run_vitest_coverage(files)
 
-    assert result.status is Status.FAIL
-    assert any("branches" in finding.message for finding in result.findings)
+    assert result.findings == [
+        Finding(Status.FAIL, "vitest.config.ts coverage.thresholds.branches is 80.0, below the required 90")
+    ]
 
 
 def test_19_4_2_fails_when_a_threshold_metric_is_missing(run_vitest_coverage: RunVitestCoverage) -> None:
@@ -100,11 +121,14 @@ def test_19_4_2_fails_when_a_threshold_metric_is_missing(run_vitest_coverage: Ru
 
     result = run_vitest_coverage(files)
 
-    assert result.status is Status.FAIL
-    assert any("branches" in finding.message for finding in result.findings)
+    assert result.findings == [
+        Finding(Status.FAIL, "vitest.config.ts coverage.thresholds has no `branches`; must be set to at least 90")
+    ]
 
 
 def test_19_5_1_passes_when_every_threshold_metric_meets_the_required_floor(
     run_vitest_coverage: RunVitestCoverage,
 ) -> None:
-    assert run_vitest_coverage({"vitest.config.ts": _COMPLIANT_CONFIG}).status is Status.PASS
+    result = run_vitest_coverage({"vitest.config.ts": _COMPLIANT_CONFIG})
+
+    assert result.findings == [Finding(Status.PASS, "vitest coverage gate enforces >= 90% (coverage.thresholds)")]

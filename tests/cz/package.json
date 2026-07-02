@@ -6,12 +6,16 @@
   "scripts": {
     "test": "vitest run"
   },
+  "imports": {
+    "#fixtures": "./fixtures.ts"
+  },
   "devDependencies": {
     "@types/bun": "catalog:",
     "@zyplux/cz": "workspace:*",
     "@zyplux/tests-fixtures": "workspace:*",
     "@zyplux/tsconfig": "workspace:*",
     "@zyplux/util": "workspace:*",
-    "vitest": "catalog:"
+    "vitest": "catalog:",
+    "zod": "catalog:"
   }
 }

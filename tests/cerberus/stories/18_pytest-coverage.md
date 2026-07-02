@@ -16,6 +16,4 @@
 
 ### 18.3.1 fails when fail under is below the required floor
 
-### 18.3.2 passes when fail under meets the required floor
-
-### 18.3.3 passes when fail under exceeds the required floor
+### 18.3.2 passes when fail under meets or exceeds the required floor

@@ -180,7 +180,7 @@ def _package_prefixes(package: str) -> list[str]:
     return [f"{package}/", f"tests/{basename}/"]
 
 
-def _under_package(path: str, package: str) -> bool:
+def under_package(path: str, package: str) -> bool:
     return any(path.startswith(prefix) for prefix in _package_prefixes(package))
 
 
@@ -193,8 +193,11 @@ def _dir_matches_glob(directory: str, glob: str) -> bool:
 def _member_dirs(paths: list[str], globs: list[str], manifest_name: str) -> list[str]:
     suffix = f"/{manifest_name}"
     dirs = {path[: -len(suffix)] for path in paths if path.endswith(suffix)}
-    matched = {d for d in dirs if any(_dir_matches_glob(d, glob) for glob in globs)}
-    return sorted(d for d in matched if d.split("/", 1)[0] != _TEST_HARNESS_PACKAGE)
+    return sorted(d for d in dirs if any(_dir_matches_glob(d, glob) for glob in globs))
+
+
+def _without_test_harness(dirs: list[str]) -> list[str]:
+    return [d for d in dirs if d.split("/", 1)[0] != _TEST_HARNESS_PACKAGE]
 
 
 def _py_package_dirs(repo: Repo, ctx: Context, paths: list[str]) -> list[str]:
@@ -210,11 +213,12 @@ def _py_package_dirs(repo: Repo, ctx: Context, paths: list[str]) -> list[str]:
     workspace = uv.get("workspace") if isinstance(uv, dict) else None
     if isinstance(workspace, dict):
         members = [g for g in workspace.get("members", []) if isinstance(g, str)]
-        return _member_dirs(paths, members, "pyproject.toml")
+        return _without_test_harness(_member_dirs(paths, members, "pyproject.toml"))
     return [""] if isinstance(data.get("project"), dict) else []
 
 
-def _ts_package_dirs(repo: Repo, ctx: Context, paths: list[str]) -> list[str]:
+def ts_member_dirs(repo: Repo, ctx: Context, paths: list[str]) -> list[str]:
+    """Every bun workspace member dir — including the tests/ harness members that package_dirs excludes."""
     content = ctx.file(repo, "package.json")
     if content is None:
         return []
@@ -235,6 +239,10 @@ def _ts_package_dirs(repo: Repo, ctx: Context, paths: list[str]) -> list[str]:
     return [""]
 
 
+def _ts_package_dirs(repo: Repo, ctx: Context, paths: list[str]) -> list[str]:
+    return _without_test_harness(ts_member_dirs(repo, ctx, paths))
+
+
 def _py_needs_story_tests(package: str, repo: Repo, ctx: Context, paths: list[str]) -> bool:
     manifest_path = f"{package}/pyproject.toml" if package else "pyproject.toml"
     content = ctx.file(repo, manifest_path)
@@ -245,7 +253,7 @@ def _py_needs_story_tests(package: str, repo: Repo, ctx: Context, paths: list[st
             project = None
         if isinstance(project, dict) and project.get("scripts"):
             return True
-    return any(_under_package(path, package) and _PY_ANY_TEST.match(path.rsplit("/", 1)[-1]) for path in paths)
+    return any(under_package(path, package) and _PY_ANY_TEST.match(path.rsplit("/", 1)[-1]) for path in paths)
 
 
 def _ts_needs_story_tests(package: str, repo: Repo, ctx: Context, paths: list[str]) -> bool:
@@ -258,7 +266,7 @@ def _ts_needs_story_tests(package: str, repo: Repo, ctx: Context, paths: list[st
             data = None
         if isinstance(data, dict) and (data.get("bin") or data.get("exports") or data.get("main")):
             return True
-    return any(_under_package(path, package) and _TS_ANY_TEST.match(path.rsplit("/", 1)[-1]) for path in paths)
+    return any(under_package(path, package) and _TS_ANY_TEST.match(path.rsplit("/", 1)[-1]) for path in paths)
 
 
 PY = Language("Python", "pyproject.toml", PY_TEST_NAME, collect_py_tests, _py_package_dirs, _py_needs_story_tests)
@@ -348,7 +356,7 @@ def run_story_check(repo: Repo, ctx: Context, res: CheckResult, language: Langua
 
     did_something = False
     for package in sorted(packages):
-        owned = sorted(d for d in all_story_dirs if _under_package(d, package))
+        owned = sorted(d for d in all_story_dirs if under_package(d, package))
         if not owned:
             if language.needs_story_tests(package, repo, ctx, paths):
                 res.fail(

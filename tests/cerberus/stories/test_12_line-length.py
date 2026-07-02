@@ -43,8 +43,15 @@ def test_12_1_2_passes_when_only_a_ruff_config_is_present_and_correct(run_line_l
     assert result.findings == [Finding(Status.PASS, "ruff and prettier both wrap at 120")]
 
 
-def test_12_1_3_passes_when_only_a_prettier_config_is_present_and_correct(run_line_length: RunLineLength) -> None:
-    result = run_line_length({"prettier.config.ts": PRETTIER_120})
+@pytest.mark.parametrize(
+    ("path", "content"),
+    [("prettier.config.ts", PRETTIER_120), (".prettierrc", '{"printWidth": 120}')],
+    ids=["config_ts", "prettierrc"],
+)
+def test_12_1_3_passes_when_only_a_prettier_config_is_present_and_correct(
+    run_line_length: RunLineLength, path: str, content: str
+) -> None:
+    result = run_line_length({path: content})
     assert result.findings == [Finding(Status.PASS, "ruff and prettier both wrap at 120")]
 
 
@@ -53,8 +60,9 @@ def test_12_2_1_fails_when_ruff_sets_a_different_line_length(run_line_length: Ru
     assert result.findings == [Finding(Status.FAIL, "ruff.toml sets line-length = 100, expected 120")]
 
 
-def test_12_2_2_fails_when_ruff_does_not_set_a_line_length(run_line_length: RunLineLength) -> None:
-    result = run_line_length({"ruff.toml": "[lint]\n", "prettier.config.ts": PRETTIER_120})
+@pytest.mark.parametrize("ruff", ["[lint]\n", "line-length = [unterminated\n"], ids=["unset", "invalid_toml"])
+def test_12_2_2_fails_when_ruff_does_not_set_a_line_length(run_line_length: RunLineLength, ruff: str) -> None:
+    result = run_line_length({"ruff.toml": ruff, "prettier.config.ts": PRETTIER_120})
     assert result.findings == [Finding(Status.FAIL, "ruff.toml does not set line-length = 120")]
 
 

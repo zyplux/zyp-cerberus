@@ -14,15 +14,11 @@
 
 ## 13.3 requiring preview mode
 
-### 13.3.1 fails when preview is explicitly off
-
-### 13.3.2 fails when preview is not set
+### 13.3.1 fails unless preview is explicitly true
 
 ## 13.4 requiring every rule to be selected
 
-### 13.4.1 fails when select lists specific rules instead of all
-
-### 13.4.2 fails when select is set at the top level instead of under lint
+### 13.4.1 fails unless lint select is exactly all
 
 ## 13.5 keeping top level rule ignores within the sanctioned set
 

@@ -30,7 +30,7 @@
 
 ### 16.6.1 skips a disabled check and explains why in the output
 
-### 16.6.2 ignores an unknown check named in a pyproject disable list
+### 16.6.2 warns and carries on when a pyproject disable list names an unknown check
 
 ### 16.6.3 rejects a disable value that is not a list of check ids
 
@@ -45,3 +45,7 @@
 ## 16.9 guarding the lint command surface against unknown options
 
 ### 16.9.1 rejects an option the lint command never defined
+
+## 16.10 isolating a crashing check
+
+### 16.10.1 reports a crashing check as an error instead of aborting the run

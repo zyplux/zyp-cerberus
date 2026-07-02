@@ -8,7 +8,7 @@
 
 ### 6.1.3 derives the destination from a git@ ssh url, stripping the .git suffix
 
-### 6.1.4 passes the ref as a branch flag when given, omits it otherwise
+### 6.1.4 passes a given ref as the branch flag
 
 ## 6.2 re-cloning over an existing destination
 

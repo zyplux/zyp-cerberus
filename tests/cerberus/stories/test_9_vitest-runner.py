@@ -6,16 +6,18 @@ from pathlib import Path
 import pytest
 from cerberus import config, context
 from cerberus.checks import vitest_runner_check
-from cerberus.model import CheckResult, Repo, Status
+from cerberus.model import CheckResult, Finding, Repo, Status
 
 RunVitestRunner = Callable[[dict[str, str]], CheckResult]
 
 _VITEST_PKG = '{"scripts": {"test": "vitest run"}}'
 _BUN_TEST_PKG = '{"scripts": {"test": "bun test"}}'
+_BUN_BAIL_TEST_PKG = '{"scripts": {"test": "bun --bail test"}}'
 _BUN_FILTER_PKG = '{"scripts": {"test": "bun --filter \'*\' test"}}'
 _BUN_RUN_PKG = '{"scripts": {"test": "bun run test"}}'
 _VITEST_IMPORT = "import { describe, expect, it } from 'vitest';\n"
 _BUN_TEST_IMPORT = "import { describe, expect, it } from 'bun:test';\n"
+_VITEST_PASS = Finding(Status.PASS, "TypeScript tests run on vitest")
 
 
 @pytest.fixture
@@ -39,33 +41,56 @@ def run_vitest_runner(monkeypatch: pytest.MonkeyPatch, repo: Repo, ctx: context.
 
 
 def test_9_1_1_skips_repos_with_no_package_json(run_vitest_runner: RunVitestRunner) -> None:
-    assert run_vitest_runner({"README.md": "# demo\n"}).status is Status.SKIP
+    result = run_vitest_runner({"README.md": "# demo\n"})
+    assert result.findings == [Finding(Status.SKIP, "no package.json")]
 
 
-def test_9_2_1_fails_when_the_test_script_runs_bun_test_directly(run_vitest_runner: RunVitestRunner) -> None:
-    files = {"package.json": _BUN_TEST_PKG, "src/a.test.ts": _VITEST_IMPORT}
-    assert run_vitest_runner(files).status is Status.FAIL
+@pytest.mark.parametrize("manifest", [_BUN_TEST_PKG, _BUN_BAIL_TEST_PKG], ids=["bare", "flagged"])
+def test_9_2_1_fails_when_the_test_script_runs_bun_test_directly(
+    run_vitest_runner: RunVitestRunner, manifest: str
+) -> None:
+    result = run_vitest_runner({"package.json": manifest, "src/a.test.ts": _VITEST_IMPORT})
+    assert result.findings == [
+        Finding(Status.FAIL, "package.json `test` script runs bun's test runner; use `vitest run`")
+    ]
 
 
-def test_9_2_2_allows_a_bun_filter_script(run_vitest_runner: RunVitestRunner) -> None:
-    files = {"package.json": _BUN_FILTER_PKG, "src/a.test.ts": _VITEST_IMPORT}
-    assert run_vitest_runner(files).status is Status.PASS
+def test_9_2_2_fails_when_a_nested_package_manifest_runs_bun_test(run_vitest_runner: RunVitestRunner) -> None:
+    result = run_vitest_runner({"package.json": _VITEST_PKG, "packages/a/package.json": _BUN_TEST_PKG})
+    assert result.findings == [
+        Finding(Status.FAIL, "packages/a/package.json `test` script runs bun's test runner; use `vitest run`")
+    ]
 
 
-def test_9_2_3_allows_a_bun_run_test_script(run_vitest_runner: RunVitestRunner) -> None:
-    assert run_vitest_runner({"package.json": _BUN_RUN_PKG}).status is Status.PASS
+@pytest.mark.parametrize("manifest", [_BUN_FILTER_PKG, _BUN_RUN_PKG], ids=["bun_filter", "bun_run"])
+def test_9_2_3_allows_bun_script_runner_invocations_of_the_test_script(
+    run_vitest_runner: RunVitestRunner, manifest: str
+) -> None:
+    result = run_vitest_runner({"package.json": manifest})
+    assert result.findings == [_VITEST_PASS]
+
+
+def test_9_2_4_treats_an_unparseable_manifest_as_having_no_test_script(run_vitest_runner: RunVitestRunner) -> None:
+    result = run_vitest_runner({"package.json": "not json"})
+    assert result.findings == [_VITEST_PASS]
 
 
 def test_9_3_1_fails_when_a_test_file_imports_from_bun_test(run_vitest_runner: RunVitestRunner) -> None:
-    files = {"package.json": _VITEST_PKG, "src/a.test.ts": _BUN_TEST_IMPORT}
-    assert run_vitest_runner(files).status is Status.FAIL
+    result = run_vitest_runner({"package.json": _VITEST_PKG, "src/a.test.ts": _BUN_TEST_IMPORT})
+    assert result.findings == [Finding(Status.FAIL, "src/a.test.ts imports `bun:test`; import from `vitest` instead")]
 
 
-def test_9_3_2_ignores_bun_test_imports_inside_vendored_node_modules_files(run_vitest_runner: RunVitestRunner) -> None:
-    files = {"package.json": _VITEST_PKG, "node_modules/dep/x.test.ts": _BUN_TEST_IMPORT}
-    assert run_vitest_runner(files).status is Status.PASS
+def test_9_4_1_ignores_bun_test_scripts_and_imports_inside_vendored_node_modules(
+    run_vitest_runner: RunVitestRunner,
+) -> None:
+    result = run_vitest_runner({
+        "package.json": _VITEST_PKG,
+        "node_modules/dep/package.json": _BUN_TEST_PKG,
+        "node_modules/dep/x.test.ts": _BUN_TEST_IMPORT,
+    })
+    assert result.findings == [_VITEST_PASS]
 
 
-def test_9_4_1_passes_when_the_test_script_and_test_files_both_use_vitest(run_vitest_runner: RunVitestRunner) -> None:
-    files = {"package.json": _VITEST_PKG, "src/a.test.ts": _VITEST_IMPORT}
-    assert run_vitest_runner(files).status is Status.PASS
+def test_9_5_1_passes_when_the_test_script_and_test_files_both_use_vitest(run_vitest_runner: RunVitestRunner) -> None:
+    result = run_vitest_runner({"package.json": _VITEST_PKG, "src/a.test.ts": _VITEST_IMPORT})
+    assert result.findings == [_VITEST_PASS]

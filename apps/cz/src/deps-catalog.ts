@@ -1,27 +1,28 @@
-import { fetchJson, mapWithConcurrency, normalizeRepoUrl, tryParseJson, tryParseToml } from '@zyplux/util';
 import {
+  fetchJson,
   findManifests,
+  IdSchema,
+  mapWithConcurrency,
   normalizePythonName,
+  normalizeRepoUrl,
   npmDependencyNames,
   PackageJsonSchema,
   PyProjectSchema,
   pythonRequirementNames,
   RepositorySchema,
   repositoryUrl,
-} from '@zyplux/util/manifest';
-import { IdSchema, StringRecordSchema, VersionKeySchema } from '@zyplux/util/schema';
+  StringRecordSchema,
+  tryParseJson,
+  tryParseToml,
+  VersionKeySchema,
+} from '@zyplux/util';
 import * as z from 'zod';
 
-export type CollectDepReposOptions = {
-  dir?: string;
-  localRepos?: Iterable<string>;
-};
+type DepReposReport = { repos: string[]; unresolved: PackageRef[] };
 
-export type DepReposReport = { repos: string[]; unresolved: PackageRef[] };
+type PackageRef = { name: string; system: PackageSystem };
 
-export type PackageRef = { name: string; system: PackageSystem };
-
-export type PackageSystem = 'npm' | 'pypi';
+type PackageSystem = 'npm' | 'pypi';
 
 const VersionEntrySchema = z.object({ isDefault: z.boolean().optional(), versionKey: VersionKeySchema });
 const DepsDevPackageSchema = z.object({ versions: z.array(VersionEntrySchema) });
@@ -65,7 +66,7 @@ const readManifestFacts = async (file: string) => {
   };
 };
 
-export const collectDepsNames = async (dir: string) => {
+const collectDepsNames = async (dir: string) => {
   const files = await findManifests(dir);
   const parsed = await Promise.all(files.map(file => readManifestFacts(file)));
   const facts = parsed.filter(fact => fact !== undefined);
@@ -106,21 +107,15 @@ const resolveViaRegistry = async (system: PackageSystem, name: string) => {
   return normalizeRepoUrl(labelled) ?? normalizeRepoUrl(pkg?.info.home_page ?? undefined);
 };
 
-export const resolveSourceRepo = async (system: PackageSystem, name: string): Promise<string | undefined> => {
+const resolveSourceRepo = async (system: PackageSystem, name: string) => {
   const viaDepsDev = await resolveViaDepsDev(system, name);
   if (viaDepsDev !== undefined) return viaDepsDev;
   return resolveViaRegistry(system, name);
 };
 
-export const collectDepRepos = async (options: CollectDepReposOptions = {}): Promise<DepReposReport> => {
-  const { dir = process.cwd(), localRepos } = options;
+export const collectDepRepos = async (dir: string): Promise<DepReposReport> => {
   const scan = await collectDepsNames(dir);
-  const excluded = new Set(scan.localRepos);
-  const extraRepos = localRepos ?? [];
-  for (const repo of extraRepos) {
-    const normalized = normalizeRepoUrl(repo);
-    if (normalized !== undefined) excluded.add(normalized);
-  }
+  const excluded = scan.localRepos;
 
   const refs: PackageRef[] = [
     ...scan.npm.map(name => ({ name, system: 'npm' as const })),

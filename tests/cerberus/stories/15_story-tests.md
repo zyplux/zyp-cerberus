@@ -12,6 +12,8 @@
 
 ### 15.1.5 treats a nested tests directory as excluded but still checks its sibling package
 
+### 15.1.6 recognizes a workspaces object with a packages list
+
 ## 15.2 requiring a package that exposes a public interface to carry story tests
 
 ### 15.2.1 fails a python package that exposes a cli script but has no story tests
@@ -50,7 +52,7 @@
 
 ### 15.5.2 rewrites a stale header link and passes on the next run
 
-### 15.5.3 rendering a linked doc twice reaches a fixed point
+### 15.5.3 flags a linked criterion header for unlinking
 
 ## 15.6 recognizing typescript test call syntax
 
