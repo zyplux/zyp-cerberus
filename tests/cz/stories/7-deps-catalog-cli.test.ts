@@ -1,82 +1,78 @@
-import { runDepsCatalog } from '@zyplux/cz/commands/deps-catalog';
-import { collectDepRepos, type DepReposReport } from '@zyplux/cz/deps-catalog';
-import { mkdtemp, readFile, rm } from 'node:fs/promises';
-import { tmpdir } from 'node:os';
+import { readFile } from 'node:fs/promises';
 import path from 'node:path';
-import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
-vi.mock('@zyplux/cz/deps-catalog', () => ({ collectDepRepos: vi.fn() }));
+import { describe, expect, notFoundResponse, test } from '#fixtures';
 
-const mockedCollect = vi.mocked(collectDepRepos);
+type FetchRoute = (url: string) => Response;
+
 const JSON_INDENT = 2;
 
+const NO_DEPS_MANIFEST = JSON.stringify({ name: 'scratch-app' });
+const TWO_DEPS_MANIFEST = JSON.stringify({ dependencies: { react: '^19', zod: '^3' }, name: 'scratch-app' });
+
+const sourceRepoByName = new Map([
+  ['react', 'github.com/facebook/react'],
+  ['zod', 'github.com/colinhacks/zod'],
+]);
+
+const depsDevDefaultVersion = () =>
+  Response.json({ versions: [{ isDefault: true, versionKey: { version: '1.0.0' } }] });
+
+const resolveViaDepsDev: FetchRoute = url => {
+  const match = /api\.deps\.dev\/v3\/systems\/npm\/packages\/([^/]+)(\/versions\/.+)?$/.exec(url);
+  if (match === null) return notFoundResponse();
+  const [, encodedName, versionPath] = match;
+  const repo = encodedName === undefined ? undefined : sourceRepoByName.get(decodeURIComponent(encodedName));
+  if (repo === undefined) return notFoundResponse();
+  return versionPath === undefined
+    ? depsDevDefaultVersion()
+    : Response.json({ relatedProjects: [{ projectKey: { id: repo }, relationType: 'SOURCE_REPO' }] });
+};
+
 describe('7.1 writing the resolved repos to the output file', () => {
-  let dir: string;
+  test('7.1.1 writes the sorted repos as indented json and reports the count', async ({
+    catalog,
+    logs,
+    network,
+    tempDir,
+  }) => {
+    await catalog.writeManifest('package.json', TWO_DEPS_MANIFEST);
+    network.otherwise(resolveViaDepsDev);
 
-  beforeEach(async () => {
-    dir = await mkdtemp(path.join(tmpdir(), 'cz-deps-catalog-'));
+    await catalog.run();
+
+    const repos = ['https://github.com/colinhacks/zod', 'https://github.com/facebook/react'];
+    const written = await readFile(path.join(tempDir.path, 'catalog.json'), 'utf8');
+    expect(written).toBe(`${JSON.stringify(repos, undefined, JSON_INDENT)}\n`);
+    expect(logs.logLines).toContain(`Wrote 2 source repositories to ${path.join(tempDir.path, 'catalog.json')}`);
   });
 
-  afterEach(async () => {
-    vi.restoreAllMocks();
-    await rm(dir, { force: true, recursive: true });
-  });
+  test('7.1.2 reports unresolved dependencies alongside the written count', async ({ catalog, logs, network }) => {
+    await catalog.writeManifest('package.json', TWO_DEPS_MANIFEST);
+    network.otherwise(() => notFoundResponse());
 
-  it('7.1.1 writes the sorted repos as indented json and reports the count', async () => {
-    const report: DepReposReport = { repos: ['https://github.com/a/a', 'https://github.com/b/b'], unresolved: [] };
-    mockedCollect.mockResolvedValue(report);
-    const log = vi.spyOn(console, 'log').mockReturnValue(undefined);
+    await catalog.run();
 
-    await runDepsCatalog({ command: 'deps-catalog', dir, out: 'catalog.json' });
-
-    const written = await readFile(path.join(dir, 'catalog.json'), 'utf8');
-    expect(written).toBe(`${JSON.stringify(report.repos, undefined, JSON_INDENT)}\n`);
-    expect(log).toHaveBeenCalledWith(`Wrote 2 source repositories to ${path.join(dir, 'catalog.json')}`);
-  });
-
-  it('7.1.2 reports unresolved dependencies alongside the written count', async () => {
-    const report: DepReposReport = {
-      repos: [],
-      unresolved: [
-        { name: 'left-pad', system: 'npm' },
-        { name: 'six', system: 'pypi' },
-      ],
-    };
-    mockedCollect.mockResolvedValue(report);
-    const log = vi.spyOn(console, 'log').mockReturnValue(undefined);
-
-    await runDepsCatalog({ command: 'deps-catalog', dir, out: 'catalog.json' });
-
-    expect(log).toHaveBeenCalledWith('Unresolved (2) — no source repo found:');
-    expect(log).toHaveBeenCalledWith('  npm\tleft-pad');
-    expect(log).toHaveBeenCalledWith('  pypi\tsix');
+    expect(logs.logLines).toContain('Unresolved (2) — no source repo found:');
+    expect(logs.logLines).toContain('  npm\treact');
+    expect(logs.logLines).toContain('  npm\tzod');
   });
 });
 
 describe('7.2 resolving the output path', () => {
-  let dir: string;
+  test('7.2.1 joins a relative --out under --dir', async ({ catalog, tempDir }) => {
+    await catalog.writeManifest('package.json', NO_DEPS_MANIFEST);
 
-  beforeEach(async () => {
-    dir = await mkdtemp(path.join(tmpdir(), 'cz-deps-catalog-'));
-    mockedCollect.mockResolvedValue({ repos: [], unresolved: [] });
-    vi.spyOn(console, 'log').mockReturnValue(undefined);
+    await catalog.run({ out: 'nested/catalog.json' });
+
+    await expect(readFile(path.join(tempDir.path, 'nested/catalog.json'), 'utf8')).resolves.toBe('[]\n');
   });
 
-  afterEach(async () => {
-    vi.restoreAllMocks();
-    await rm(dir, { force: true, recursive: true });
-  });
+  test('7.2.2 uses an absolute --out as-is', async ({ catalog, tempDir }) => {
+    await catalog.writeManifest('package.json', NO_DEPS_MANIFEST);
+    const absoluteOut = path.join(tempDir.path, 'elsewhere.json');
 
-  it('7.2.1 joins a relative --out under --dir', async () => {
-    await runDepsCatalog({ command: 'deps-catalog', dir, out: 'nested/catalog.json' });
-
-    await expect(readFile(path.join(dir, 'nested/catalog.json'), 'utf8')).resolves.toBe('[]\n');
-  });
-
-  it('7.2.2 uses an absolute --out as-is', async () => {
-    const absoluteOut = path.join(dir, 'elsewhere.json');
-
-    await runDepsCatalog({ command: 'deps-catalog', dir: '/does-not-matter', out: absoluteOut });
+    await catalog.run({ out: absoluteOut });
 
     await expect(readFile(absoluteOut, 'utf8')).resolves.toBe('[]\n');
   });

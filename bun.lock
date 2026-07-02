@@ -19,7 +19,7 @@
     },
     "apps/cz": {
       "name": "@zyplux/cz",
-      "version": "0.2.3",
+      "version": "0.3.0",
       "bin": {
         "cz": "./src/index.ts",
       },
@@ -90,6 +90,7 @@
         "@zyplux/tsconfig": "workspace:*",
         "@zyplux/util": "workspace:*",
         "vitest": "catalog:",
+        "zod": "catalog:",
       },
     },
     "tests/eslint-config": {
@@ -98,6 +99,7 @@
       "devDependencies": {
         "@types/bun": "catalog:",
         "@zyplux/eslint-config": "workspace:*",
+        "@zyplux/tests-fixtures": "workspace:*",
         "@zyplux/tsconfig": "workspace:*",
         "@zyplux/util": "workspace:*",
         "eslint": "catalog:",
@@ -108,14 +110,16 @@
     },
     "tests/fixtures": {
       "name": "@zyplux/tests-fixtures",
-      "version": "0.1.0",
+      "version": "0.3.0",
       "devDependencies": {
         "@types/bun": "catalog:",
         "@zyplux/tsconfig": "workspace:*",
         "@zyplux/util": "workspace:*",
+        "vitest": "catalog:",
       },
       "peerDependencies": {
         "@zyplux/util": "workspace:*",
+        "vitest": "catalog:",
       },
     },
     "tests/util": {

@@ -43,6 +43,7 @@ A repo opts out of specific checks with `[tool.cerberus] disable = ["check-id", 
 | `catalog-discipline`    | content     | Every workspace `package.json` dependency pins via `catalog:` or `workspace:`        |
 | `story-tests-py`        | content     | `tests/**/stories/*.md` criteria have a matching, title-matched pytest test          |
 | `story-tests-ts`        | content     | `tests/**/stories/*.md` criteria have a matching, title-matched vitest test          |
+| `cli-test-seam`         | content     | CLI apps export only the root seam; story tests import only fixture aliases          |
 | `release-bumps`         | git-history | A published target's version is bumped whenever its release surface changes          |
 | `codeowners`            | content     | `CODEOWNERS` present and covers `/.github/`                                          |
 | `pytest-coverage`       | content     | `pyproject.toml` `[tool.coverage.report] fail_under` is set to at least 90%          |

@@ -355,7 +355,7 @@ type = [
 
 [[package]]
 name = "zyplux-cerberus"
-version = "0.5.2"
+version = "0.6.0"
 source = { editable = "apps/cerberus" }
 dependencies = [
     { name = "pyyaml" },

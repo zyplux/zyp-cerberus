@@ -7,11 +7,12 @@
     "test": "vitest run"
   },
   "imports": {
-    "#merged-rule": "./merged-rule.ts"
+    "#fixtures": "./fixtures.ts"
   },
   "devDependencies": {
     "@types/bun": "catalog:",
     "@zyplux/eslint-config": "workspace:*",
+    "@zyplux/tests-fixtures": "workspace:*",
     "@zyplux/tsconfig": "workspace:*",
     "@zyplux/util": "workspace:*",
     "eslint": "catalog:",

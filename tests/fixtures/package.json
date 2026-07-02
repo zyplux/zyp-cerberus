@@ -1,13 +1,14 @@
 {
   "name": "@zyplux/tests-fixtures",
-  "version": "0.1.0",
-  "description": "Fake Bun.$ shell output/promise fixtures for testing @zyplux/util-based shell harnesses",
+  "version": "0.3.0",
+  "description": "Story-test fixtures for zyplux workspaces: Bun.$ shell fake, console capture, fetch routing, temp dirs, and vitest test.extend bases per app type",
   "keywords": [
     "bun",
     "test",
     "fixtures",
     "mock",
-    "shell"
+    "shell",
+    "vitest"
   ],
   "license": "MIT",
   "author": "Sergiy Yeskov <sergiy.yeskov@gmail.com>",
@@ -23,6 +24,10 @@
       "types": "./src/index.ts",
       "default": "./src/index.ts"
     },
+    "./story": {
+      "types": "./src/story.ts",
+      "default": "./src/story.ts"
+    },
     "./package.json": "./package.json"
   },
   "files": [
@@ -33,11 +38,13 @@
     "access": "public"
   },
   "peerDependencies": {
-    "@zyplux/util": "workspace:*"
+    "@zyplux/util": "workspace:*",
+    "vitest": "catalog:"
   },
   "devDependencies": {
     "@types/bun": "catalog:",
     "@zyplux/tsconfig": "workspace:*",
-    "@zyplux/util": "workspace:*"
+    "@zyplux/util": "workspace:*",
+    "vitest": "catalog:"
   }
 }

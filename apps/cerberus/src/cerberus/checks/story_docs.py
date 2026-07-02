@@ -180,7 +180,7 @@ def _package_prefixes(package: str) -> list[str]:
     return [f"{package}/", f"tests/{basename}/"]
 
 
-def _under_package(path: str, package: str) -> bool:
+def under_package(path: str, package: str) -> bool:
     return any(path.startswith(prefix) for prefix in _package_prefixes(package))
 
 
@@ -245,7 +245,7 @@ def _py_needs_story_tests(package: str, repo: Repo, ctx: Context, paths: list[st
             project = None
         if isinstance(project, dict) and project.get("scripts"):
             return True
-    return any(_under_package(path, package) and _PY_ANY_TEST.match(path.rsplit("/", 1)[-1]) for path in paths)
+    return any(under_package(path, package) and _PY_ANY_TEST.match(path.rsplit("/", 1)[-1]) for path in paths)
 
 
 def _ts_needs_story_tests(package: str, repo: Repo, ctx: Context, paths: list[str]) -> bool:
@@ -258,7 +258,7 @@ def _ts_needs_story_tests(package: str, repo: Repo, ctx: Context, paths: list[st
             data = None
         if isinstance(data, dict) and (data.get("bin") or data.get("exports") or data.get("main")):
             return True
-    return any(_under_package(path, package) and _TS_ANY_TEST.match(path.rsplit("/", 1)[-1]) for path in paths)
+    return any(under_package(path, package) and _TS_ANY_TEST.match(path.rsplit("/", 1)[-1]) for path in paths)
 
 
 PY = Language("Python", "pyproject.toml", PY_TEST_NAME, collect_py_tests, _py_package_dirs, _py_needs_story_tests)
@@ -348,7 +348,7 @@ def run_story_check(repo: Repo, ctx: Context, res: CheckResult, language: Langua
 
     did_something = False
     for package in sorted(packages):
-        owned = sorted(d for d in all_story_dirs if _under_package(d, package))
+        owned = sorted(d for d in all_story_dirs if under_package(d, package))
         if not owned:
             if language.needs_story_tests(package, repo, ctx, paths):
                 res.fail(

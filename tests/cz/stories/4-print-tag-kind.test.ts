@@ -1,35 +1,24 @@
-import { runPrintTagKind } from '@zyplux/cz/commands/print-tag-kind';
-import { loadReleaseTargets, type ReleaseTarget } from '@zyplux/cz/release-targets';
-import { afterEach, beforeAll, describe, expect, it, vi } from 'vitest';
+import { describe, expect, test } from '#fixtures';
 
-const findTarget = (targets: ReleaseTarget[], label: string) => {
-  const target = targets.find(candidate => candidate.label === label);
-  if (target === undefined) throw new Error(`${label} target missing from manifest`);
-  return target;
-};
+const TAGGED_KINDS: [label: string, tagPrefix: string, kind: string][] = [
+  ['@zyplux/util', 'util-v', 'npm'],
+  ['zyplux-cerberus', 'cerberus-v', 'pypi'],
+  ['ghcr.io/zyplux/ci', 'ci-image-v', 'ghcr'],
+];
 
 describe('4.1 classifying a tag by its release target', () => {
-  let cerberus: ReleaseTarget;
-  let cerberusVersion: string;
+  test.for(TAGGED_KINDS)(
+    '4.1.1 prints the registry kind of the target that owns the tag',
+    async ([label, tagPrefix, kind], { cz, findTarget, logs }) => {
+      const target = await findTarget(label);
 
-  beforeAll(async () => {
-    cerberus = findTarget(await loadReleaseTargets(), 'zyplux-cerberus');
-    cerberusVersion = await cerberus.readVersion();
-  });
+      await cz.run('print-tag-kind', `${tagPrefix}${target.version}`);
 
-  afterEach(() => {
-    vi.restoreAllMocks();
-  });
+      expect(logs.logLines).toEqual([kind]);
+    },
+  );
 
-  it('4.1.1 prints the registry kind of the target that owns the tag', async () => {
-    const log = vi.spyOn(console, 'log').mockReturnValue(undefined);
-
-    await runPrintTagKind({ command: 'print-tag-kind', tag: `cerberus-v${cerberusVersion}` });
-
-    expect(log).toHaveBeenCalledWith('pypi');
-  });
-
-  it('4.1.2 rejects a tag no release target owns', async () => {
-    await expect(runPrintTagKind({ command: 'print-tag-kind', tag: 'mystery-v1.0.0' })).rejects.toThrow();
+  test('4.1.2 rejects a tag no release target owns', async ({ cz }) => {
+    await expect(cz.run('print-tag-kind', 'mystery-v1.0.0')).rejects.toThrow();
   });
 });

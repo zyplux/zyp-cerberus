@@ -1,5 +1,6 @@
 import { plugin, zyplux } from '@zyplux/eslint-config';
-import { beforeEach, describe, expect, test } from 'vitest';
+
+import { describe, expect, test } from '#fixtures';
 
 type Config = ReturnType<typeof zyplux>;
 
@@ -28,6 +29,8 @@ const offRuleFiles = (config: Config, ruleName: string) =>
   config.flatMap(entry => (entry.rules?.[ruleName] === 'off' ? (entry.files ?? []) : []));
 
 const rendererMap = { dom: ['apps/web/**/*.tsx'], opentui: ['apps/tui/**/*.tsx'] };
+
+const rendererMapConfig = () => zyplux({ react: rendererMap });
 
 describe('3. Configuring eslint through the public zyplux entry point', () => {
   describe('3.1 assembling the base flat config', () => {
@@ -88,18 +91,12 @@ describe('3. Configuring eslint through the public zyplux entry point', () => {
   });
 
   describe('3.4 scoping react across multiple renderers', () => {
-    let rendererMapConfig: Config;
-
-    beforeEach(() => {
-      rendererMapConfig = zyplux({ react: rendererMap });
-    });
-
     test('3.4.1 scopes each renderer in a renderer map to its own file glob', () => {
-      expect(reactSettingsFiles(rendererMapConfig)).toEqual(['apps/web/**/*.tsx', 'apps/tui/**/*.tsx']);
+      expect(reactSettingsFiles(rendererMapConfig())).toEqual(['apps/web/**/*.tsx', 'apps/tui/**/*.tsx']);
     });
 
     test('3.4.2 keeps the no-unknown-property rule for the dom renderer while turning it off for non-dom renderers', () => {
-      expect(offRuleFiles(rendererMapConfig, 'react/no-unknown-property')).toEqual(['apps/tui/**/*.tsx']);
+      expect(offRuleFiles(rendererMapConfig(), 'react/no-unknown-property')).toEqual(['apps/tui/**/*.tsx']);
     });
 
     test('3.4.3 enables react and disables no-unknown-property for a renderer map with no dom entry', () => {

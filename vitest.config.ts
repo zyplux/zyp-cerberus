@@ -15,5 +15,8 @@ export default defineConfig({
       },
     },
     projects: ['packages/eslint-config', 'tests/eslint-config', 'tests/cz', 'tests/util'],
+    restoreMocks: true,
+    unstubEnvs: true,
+    unstubGlobals: true,
   },
 });
